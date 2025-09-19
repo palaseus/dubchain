@@ -1,0 +1,180 @@
+"""
+DubChain - Advanced Blockchain Implementation
+
+A sophisticated blockchain platform with:
+- Core blockchain functionality
+- Smart contract virtual machine
+- HD wallet system with multi-signature support
+- P2P networking with gossip protocol
+- Advanced consensus mechanisms (PoS, DPoS, PBFT, Hybrid)
+- Advanced cryptographic primitives
+"""
+
+__version__ = "0.2.0"
+__author__ = "DubChain Team"
+__email__ = "dev@dubchain.io"
+
+from .consensus import ConsensusConfig
+from .consensus import (
+    ConsensusEngine as AdvancedConsensusEngine,  # Types; Validator Management; Proof of Stake; Delegated Proof of Stake; PBFT; Hybrid Consensus; Main Engine
+)
+from .consensus import (
+    ConsensusMetrics,
+    ConsensusResult,
+    ConsensusSelector,
+    ConsensusState,
+    ConsensusSwitcher,
+    ConsensusType,
+    DelegatedProofOfStake,
+    DelegateInfo,
+    ElectionManager,
+    HybridConsensus,
+    PBFTMessage,
+    PBFTPhase,
+    PBFTValidator,
+    PracticalByzantineFaultTolerance,
+    ProofOfStake,
+    RewardCalculator,
+    StakingInfo,
+    StakingPool,
+    Validator,
+    ValidatorInfo,
+    ValidatorManager,
+    ValidatorRole,
+    ValidatorSet,
+    ValidatorStatus,
+    VotingPower,
+)
+from .core import (
+    UTXO,
+    Block,
+    Blockchain,
+    BlockHeader,
+    ConsensusEngine,
+    Transaction,
+    TransactionInput,
+    TransactionOutput,
+)
+from .crypto import Hash, MerkleTree, PrivateKey, PublicKey, SHA256Hasher, Signature
+from .network import (
+    ConnectionManager,
+    ConnectionStrategy,
+    ConnectionType,
+    FaultTolerance,
+    GossipProtocol,
+    MessageRouter,
+    NetworkSecurity,
+    NetworkTopology,
+    Peer,
+    PeerDiscovery,
+    PeerInfo,
+    PeerStatus,
+    PerformanceMonitor,
+)
+from .vm import (
+    ContractEvent,
+    ContractMemory,
+    ContractStorage,
+    ExecutionContext,
+    ExecutionEngine,
+    ExecutionResult,
+    GasCost,
+    GasCostConfig,
+    GasMeter,
+    OpcodeEnum,
+    OpcodeInfo,
+    OpcodeRegistry,
+    SmartContract,
+)
+from .wallet import (
+    HDKeyDerivation,
+    HDWallet,
+    MnemonicGenerator,
+    MnemonicValidator,
+    MultisigWallet,
+    WalletEncryption,
+    WalletManager,
+)
+
+__all__ = [
+    # Crypto
+    "Hash",
+    "SHA256Hasher",
+    "PrivateKey",
+    "PublicKey",
+    "Signature",
+    "MerkleTree",
+    # Core
+    "Transaction",
+    "UTXO",
+    "TransactionInput",
+    "TransactionOutput",
+    "Block",
+    "BlockHeader",
+    "Blockchain",
+    "ConsensusEngine",
+    # VM
+    "OpcodeEnum",
+    "OpcodeInfo",
+    "OpcodeRegistry",
+    "GasCost",
+    "GasCostConfig",
+    "GasMeter",
+    "SmartContract",
+    "ContractEvent",
+    "ContractStorage",
+    "ContractMemory",
+    "ExecutionEngine",
+    "ExecutionContext",
+    "ExecutionResult",
+    # Wallet
+    "HDKeyDerivation",
+    "MnemonicGenerator",
+    "MnemonicValidator",
+    "HDWallet",
+    "MultisigWallet",
+    "WalletEncryption",
+    "WalletManager",
+    # Network
+    "Peer",
+    "PeerStatus",
+    "ConnectionType",
+    "PeerInfo",
+    "GossipProtocol",
+    "PeerDiscovery",
+    "ConnectionManager",
+    "ConnectionStrategy",
+    "MessageRouter",
+    "NetworkTopology",
+    "NetworkSecurity",
+    "PerformanceMonitor",
+    "FaultTolerance",
+    # Advanced Consensus
+    "ConsensusType",
+    "ValidatorStatus",
+    "ValidatorRole",
+    "ConsensusResult",
+    "ConsensusMetrics",
+    "ConsensusConfig",
+    "ConsensusState",
+    "Validator",
+    "ValidatorInfo",
+    "ValidatorSet",
+    "ValidatorManager",
+    "ProofOfStake",
+    "StakingInfo",
+    "StakingPool",
+    "RewardCalculator",
+    "DelegatedProofOfStake",
+    "DelegateInfo",
+    "VotingPower",
+    "ElectionManager",
+    "PracticalByzantineFaultTolerance",
+    "PBFTMessage",
+    "PBFTPhase",
+    "PBFTValidator",
+    "HybridConsensus",
+    "ConsensusSelector",
+    "ConsensusSwitcher",
+    "AdvancedConsensusEngine",
+]
