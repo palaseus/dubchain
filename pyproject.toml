@@ -40,6 +40,11 @@ dependencies = [
     "isort>=5.12.0",
     "mypy>=1.5.0",
     "pre-commit>=3.3.0",
+    # CUDA and GPU acceleration dependencies
+    "torch>=2.0.0",
+    "cupy-cuda12x>=12.0.0",
+    "numpy>=1.24.0",
+    "scipy>=1.10.0",
 ]
 
 [project.optional-dependencies]
@@ -107,7 +112,7 @@ strict_equality = true
 
 [tool.pytest.ini_options]
 minversion = "7.0"
-addopts = "-ra -q --strict-markers --strict-config"
+addopts = "-ra -q --strict-markers --strict-config --html=results/test_results/pytest_report.html --self-contained-html"
 testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
@@ -118,6 +123,8 @@ markers = [
     "unit: marks tests as unit tests",
     "crypto: marks tests that involve cryptographic operations",
     "network: marks tests that involve network operations",
+    "performance: marks tests as performance tests",
+    "stress: marks tests as stress tests",
 ]
 
 [tool.coverage.run]

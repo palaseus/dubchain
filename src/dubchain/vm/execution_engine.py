@@ -187,6 +187,9 @@ class ExecutionEngine:
         self.execution_history: List[Dict[str, Any]] = []
         self.performance_metrics: Dict[str, Any] = {}
 
+        # CUDA acceleration (lazy loading to avoid circular imports)
+        self._cuda_accelerator = None
+
         # Initialize performance tracking
         self.performance_metrics = {
             "total_executions": 0,
@@ -198,6 +201,14 @@ class ExecutionEngine:
             "opcode_usage": {},
             "error_counts": {},
         }
+
+    @property
+    def cuda_accelerator(self):
+        """Get CUDA accelerator with lazy loading."""
+        if self._cuda_accelerator is None:
+            from .cuda_vm import get_global_cuda_vm_accelerator
+            self._cuda_accelerator = get_global_cuda_vm_accelerator()
+        return self._cuda_accelerator
 
     def execute_contract(
         self,
@@ -766,3 +777,80 @@ class ExecutionEngine:
             }
 
         return error_analysis
+
+    def execute_contracts_batch(self, 
+                              contracts: List[SmartContract], 
+                              execution_data: List[Dict[str, Any]]) -> List[ExecutionResult]:
+        """
+        Execute multiple contracts in parallel using CUDA acceleration.
+        
+        Args:
+            contracts: List of contracts to execute
+            execution_data: List of execution data for each contract
+            
+        Returns:
+            List of execution results
+        """
+        return self.cuda_accelerator.execute_contracts_batch(contracts, execution_data)
+    
+    def process_bytecode_batch(self, 
+                             bytecode_list: List[bytes], 
+                             optimization_level: int = 1) -> List[bytes]:
+        """
+        Process multiple bytecode sequences in parallel using CUDA acceleration.
+        
+        Args:
+            bytecode_list: List of bytecode sequences to process
+            optimization_level: Level of optimization to apply
+            
+        Returns:
+            List of processed bytecode sequences
+        """
+        return self.cuda_accelerator.process_bytecode_batch(bytecode_list, optimization_level)
+    
+    def execute_operations_batch(self, 
+                               operations: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Execute multiple VM operations in parallel using CUDA acceleration.
+        
+        Args:
+            operations: List of VM operations to execute
+            
+        Returns:
+            List of operation results
+        """
+        return self.cuda_accelerator.execute_operations_batch(operations)
+    
+    def optimize_bytecode_batch(self, 
+                              bytecode_list: List[bytes], 
+                              optimization_rules: List[str]) -> List[bytes]:
+        """
+        Optimize multiple bytecode sequences in parallel using CUDA acceleration.
+        
+        Args:
+            bytecode_list: List of bytecode sequences to optimize
+            optimization_rules: List of optimization rules to apply
+            
+        Returns:
+            List of optimized bytecode sequences
+        """
+        return self.cuda_accelerator.optimize_bytecode_batch(bytecode_list, optimization_rules)
+    
+    def benchmark_vm_performance(self, 
+                               test_data: List[Dict[str, Any]], 
+                               num_iterations: int = 10) -> Dict[str, Any]:
+        """
+        Benchmark VM performance with CUDA acceleration.
+        
+        Args:
+            test_data: Test data for benchmarking
+            num_iterations: Number of benchmark iterations
+            
+        Returns:
+            Benchmark results
+        """
+        return self.cuda_accelerator.benchmark_vm_operations(test_data, num_iterations)
+    
+    def get_cuda_performance_metrics(self) -> Dict[str, Any]:
+        """Get CUDA performance metrics."""
+        return self.cuda_accelerator.get_performance_metrics()

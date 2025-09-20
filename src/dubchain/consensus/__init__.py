@@ -32,6 +32,13 @@ from .pbft import (
 from .proof_of_stake import ProofOfStake, RewardCalculator, StakingInfo, StakingPool
 from .validator import Validator, ValidatorInfo, ValidatorManager, ValidatorSet
 
+# CUDA-accelerated consensus imports
+from .cuda_consensus import (
+    CUDAConsensusAccelerator,
+    CUDAConsensusConfig,
+    get_global_cuda_consensus_accelerator,
+)
+
 __all__ = [
     # Types
     "ConsensusType",
@@ -67,4 +74,8 @@ __all__ = [
     "ConsensusEngine",
     "ConsensusConfig",
     "ConsensusState",
+    # CUDA Consensus
+    "CUDAConsensusAccelerator",
+    "CUDAConsensusConfig",
+    "get_global_cuda_consensus_accelerator",
 ]

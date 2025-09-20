@@ -37,6 +37,7 @@ class ErrorCategory(Enum):
     RESOURCE = "resource"
     TIMEOUT = "timeout"
     SYSTEM = "system"
+    GOVERNANCE = "governance"
 
 
 @dataclass
@@ -460,6 +461,40 @@ class FatalError(DubChainError):
         """Convert fatal error to dictionary."""
         data = super().to_dict()
         data.update({"shutdown_required": self.shutdown_required})
+        return data
+
+
+class GovernanceError(DubChainError):
+    """Governance error."""
+
+    def __init__(
+        self,
+        message: str,
+        proposal_id: Optional[str] = None,
+        voter_address: Optional[str] = None,
+        governance_operation: Optional[str] = None,
+        **kwargs,
+    ):
+        super().__init__(
+            message,
+            category=ErrorCategory.GOVERNANCE,
+            severity=ErrorSeverity.HIGH,
+            **kwargs,
+        )
+        self.proposal_id = proposal_id
+        self.voter_address = voter_address
+        self.governance_operation = governance_operation
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert governance error to dictionary."""
+        data = super().to_dict()
+        data.update(
+            {
+                "proposal_id": self.proposal_id,
+                "voter_address": self.voter_address,
+                "governance_operation": self.governance_operation,
+            }
+        )
         return data
 
 

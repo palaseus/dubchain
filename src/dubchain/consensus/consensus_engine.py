@@ -23,7 +23,12 @@ from .delegated_proof_of_stake import DelegatedProofOfStake
 from .hybrid_consensus import HybridConsensus
 from .pbft import PracticalByzantineFaultTolerance
 from .proof_of_stake import ProofOfStake
+from .proof_of_authority import ProofOfAuthority
+from .proof_of_history import ProofOfHistory
+from .proof_of_space_time import ProofOfSpaceTime
+from .hotstuff import HotStuffConsensus
 from .validator import Validator, ValidatorInfo, ValidatorManager, ValidatorSet
+from .cuda_consensus import get_global_cuda_consensus_accelerator
 
 
 class ConsensusEngine:
@@ -40,6 +45,9 @@ class ConsensusEngine:
         self.consensus_mechanism = self._create_consensus_mechanism(
             config.consensus_type
         )
+
+        # CUDA acceleration
+        self.cuda_accelerator = get_global_cuda_consensus_accelerator()
 
         # Validator management
         self.validator_manager = ValidatorManager(
@@ -63,6 +71,10 @@ class ConsensusEngine:
         DelegatedProofOfStake,
         PracticalByzantineFaultTolerance,
         HybridConsensus,
+        ProofOfAuthority,
+        ProofOfHistory,
+        ProofOfSpaceTime,
+        HotStuffConsensus,
     ]:
         """Create consensus mechanism based on type."""
         if consensus_type == ConsensusType.PROOF_OF_STAKE:
@@ -73,6 +85,14 @@ class ConsensusEngine:
             return PracticalByzantineFaultTolerance(self.config)
         elif consensus_type == ConsensusType.HYBRID:
             return HybridConsensus(self.config)
+        elif consensus_type == ConsensusType.PROOF_OF_AUTHORITY:
+            return ProofOfAuthority(self.config)
+        elif consensus_type == ConsensusType.PROOF_OF_HISTORY:
+            return ProofOfHistory(self.config)
+        elif consensus_type == ConsensusType.PROOF_OF_SPACE_TIME:
+            return ProofOfSpaceTime(self.config)
+        elif consensus_type == ConsensusType.HOTSTUFF:
+            return HotStuffConsensus(self.config)
         else:
             # Default to Proof of Stake
             return ProofOfStake(self.config)
@@ -91,6 +111,10 @@ class ConsensusEngine:
             return self.consensus_mechanism.register_delegate(validator, initial_stake)
         elif hasattr(self.consensus_mechanism, "add_validator"):
             return self.consensus_mechanism.add_validator(validator)
+        elif hasattr(self.consensus_mechanism, "register_authority"):
+            return self.consensus_mechanism.register_authority(validator.validator_id, "pubkey")
+        elif hasattr(self.consensus_mechanism, "register_farmer"):
+            return self.consensus_mechanism.register_farmer(validator.validator_id)
 
         return True
 
@@ -299,6 +323,10 @@ class ConsensusEngine:
                     )
                 elif hasattr(new_consensus, "add_validator"):
                     new_consensus.add_validator(validator)
+                elif hasattr(new_consensus, "register_authority"):
+                    new_consensus.register_authority(validator.validator_id, "pubkey")
+                elif hasattr(new_consensus, "register_farmer"):
+                    new_consensus.register_farmer(validator.validator_id)
 
             return True
         except Exception:
@@ -393,3 +421,93 @@ class ConsensusEngine:
         )
 
         return engine
+    
+    def propose_blocks_batch(self, blocks_data: List[Dict[str, Any]]) -> List[ConsensusResult]:
+        """
+        Propose multiple blocks in parallel using CUDA acceleration.
+        
+        Args:
+            blocks_data: List of block data to propose
+            
+        Returns:
+            List of consensus results
+        """
+        if not blocks_data:
+            return []
+        
+        # Use CUDA acceleration for large batches
+        if len(blocks_data) >= 10:
+            return self._propose_blocks_cuda(blocks_data)
+        else:
+            return self._propose_blocks_cpu(blocks_data)
+    
+    def _propose_blocks_cuda(self, blocks_data: List[Dict[str, Any]]) -> List[ConsensusResult]:
+        """Propose blocks using CUDA acceleration."""
+        def cuda_propose_func(data):
+            return self._propose_blocks_cpu(data)
+        
+        def cpu_propose_func(data):
+            return self._propose_blocks_cpu(data)
+        
+        return self.cuda_accelerator.cuda_manager.execute_gpu_operation(
+            cuda_propose_func,
+            blocks_data,
+            algorithm="consensus",
+            fallback_func=cpu_propose_func
+        )
+    
+    def _propose_blocks_cpu(self, blocks_data: List[Dict[str, Any]]) -> List[ConsensusResult]:
+        """Propose blocks using CPU."""
+        results = []
+        for block_data in blocks_data:
+            result = self.propose_block(block_data)
+            results.append(result)
+        return results
+    
+    def verify_signatures_batch(self, 
+                              signatures: List[bytes], 
+                              public_keys: List[bytes], 
+                              messages: List[bytes]) -> List[bool]:
+        """
+        Verify multiple signatures in parallel using CUDA acceleration.
+        
+        Args:
+            signatures: List of signatures to verify
+            public_keys: List of corresponding public keys
+            messages: List of corresponding messages
+            
+        Returns:
+            List of verification results
+        """
+        return self.cuda_accelerator.verify_signatures_batch(signatures, public_keys, messages)
+    
+    def validate_blocks_batch(self, blocks: List[Dict[str, Any]]) -> List[ConsensusResult]:
+        """
+        Validate multiple blocks in parallel using CUDA acceleration.
+        
+        Args:
+            blocks: List of blocks to validate
+            
+        Returns:
+            List of validation results
+        """
+        return self.cuda_accelerator.validate_blocks_batch(blocks)
+    
+    def benchmark_consensus_performance(self, 
+                                      test_blocks: List[Dict[str, Any]], 
+                                      num_iterations: int = 10) -> Dict[str, Any]:
+        """
+        Benchmark consensus performance with CUDA acceleration.
+        
+        Args:
+            test_blocks: Test blocks for benchmarking
+            num_iterations: Number of benchmark iterations
+            
+        Returns:
+            Benchmark results
+        """
+        return self.cuda_accelerator.benchmark_consensus_operations(test_blocks, num_iterations)
+    
+    def get_cuda_performance_metrics(self) -> Dict[str, Any]:
+        """Get CUDA performance metrics."""
+        return self.cuda_accelerator.get_performance_metrics()

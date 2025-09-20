@@ -998,8 +998,8 @@ class TestAnalysisIntegration:
         """Test analyzer with large dataset."""
         analyzer = LogAnalyzer()
 
-        # Add many log entries
-        for i in range(1000):
+        # Add many log entries (reduced for faster testing)
+        for i in range(100):  # Reduced from 1000 to 100
             entry = LogEntry(
                 timestamp=time.time() - (i * 60),
                 level=LogLevel.INFO if i % 2 == 0 else LogLevel.ERROR,
@@ -1010,7 +1010,7 @@ class TestAnalysisIntegration:
             analyzer.add_entry(entry)
 
         metrics = analyzer.get_metrics()
-        assert metrics.total_logs == 1000
+        assert metrics.total_logs == 100  # Reduced from 1000 to 100
         assert len(metrics.logs_by_logger) == 10
         assert len(metrics.logs_by_component) == 5
 

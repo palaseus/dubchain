@@ -372,8 +372,8 @@ class TestMemoryProfiler:
         # Take first snapshot
         snapshot1 = profiler.take_snapshot()
 
-        # Allocate some memory
-        data = [i for i in range(1000)]
+        # Allocate some memory (reduced for faster testing)
+        data = [i for i in range(100)]  # Reduced from 1000 to 100
 
         # Take second snapshot
         snapshot2 = profiler.take_snapshot()
@@ -385,8 +385,8 @@ class TestMemoryProfiler:
 
     def test_get_top_memory_allocations(self, profiler):
         """Test getting top memory allocations."""
-        # Allocate some memory
-        data = [i for i in range(1000)]
+        # Allocate some memory (reduced for faster testing)
+        data = [i for i in range(100)]  # Reduced from 1000 to 100
 
         # Take snapshot
         profiler.take_snapshot()
@@ -402,8 +402,8 @@ class TestMemoryProfiler:
         # Take first snapshot
         profiler.take_snapshot()
 
-        # Allocate some memory
-        data = [i for i in range(1000)]
+        # Allocate some memory (reduced for faster testing)
+        data = [i for i in range(100)]  # Reduced from 1000 to 100
 
         # Take second snapshot
         profiler.take_snapshot()

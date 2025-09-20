@@ -10,6 +10,13 @@ from .indexing import IndexConfig, IndexManager, IndexType
 from .isolation import IsolationLevel, TransactionIsolation
 from .migrations import Migration, MigrationError, MigrationManager
 
+# CUDA-accelerated storage imports
+from .cuda_storage import (
+    CUDAStorageAccelerator,
+    CUDAStorageConfig,
+    get_global_cuda_storage_accelerator,
+)
+
 __all__ = [
     "DatabaseBackend",
     "DatabaseConfig",
@@ -25,4 +32,8 @@ __all__ = [
     "BackupError",
     "TransactionIsolation",
     "IsolationLevel",
+    # CUDA Storage
+    "CUDAStorageAccelerator",
+    "CUDAStorageConfig",
+    "get_global_cuda_storage_accelerator",
 ]

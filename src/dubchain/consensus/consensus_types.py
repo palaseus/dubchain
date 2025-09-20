@@ -19,6 +19,11 @@ class ConsensusType(Enum):
     DELEGATED_PROOF_OF_STAKE = "delegated_proof_of_stake"
     PRACTICAL_BYZANTINE_FAULT_TOLERANCE = "pbft"
     HYBRID = "hybrid"
+    # New consensus mechanisms
+    PROOF_OF_AUTHORITY = "proof_of_authority"
+    PROOF_OF_HISTORY = "proof_of_history"
+    PROOF_OF_SPACE_TIME = "proof_of_space_time"
+    HOTSTUFF = "hotstuff"
 
 
 class ValidatorStatus(Enum):
@@ -48,6 +53,40 @@ class PBFTPhase(Enum):
     PREPARE = "prepare"
     COMMIT = "commit"
     REPLY = "reply"
+
+
+class HotStuffPhase(Enum):
+    """HotStuff consensus phases."""
+
+    PREPARE = "prepare"
+    PRE_COMMIT = "pre_commit"
+    COMMIT = "commit"
+    DECIDE = "decide"
+
+
+class PoAStatus(Enum):
+    """Proof-of-Authority validator status."""
+
+    AUTHORITY = "authority"
+    CANDIDATE = "candidate"
+    REVOKED = "revoked"
+
+
+class PoHStatus(Enum):
+    """Proof-of-History status."""
+
+    GENERATING = "generating"
+    VERIFIED = "verified"
+    INVALID = "invalid"
+
+
+class PoSpaceStatus(Enum):
+    """Proof-of-Space/Time status."""
+
+    PLOTTING = "plotting"
+    FARMING = "farming"
+    CHALLENGING = "challenging"
+    PROVING = "proving"
 
 
 @dataclass
@@ -142,6 +181,71 @@ class PBFTMessage:
 
 
 @dataclass
+class HotStuffMessage:
+    """HotStuff consensus message."""
+
+    message_type: HotStuffPhase
+    view_number: int
+    block_hash: str
+    parent_hash: str
+    validator_id: str
+    signature: str
+    timestamp: float = field(default_factory=time.time)
+    payload: Optional[Dict[str, Any]] = None
+
+
+@dataclass
+class PoAAuthority:
+    """Proof-of-Authority authority information."""
+
+    authority_id: str
+    public_key: str
+    status: PoAStatus
+    reputation_score: float = 100.0
+    blocks_proposed: int = 0
+    last_activity: float = field(default_factory=time.time)
+    is_active: bool = True
+
+
+@dataclass
+class PoHEntry:
+    """Proof-of-History entry."""
+
+    entry_id: str
+    timestamp: float
+    hash: str
+    previous_hash: str
+    data: bytes
+    proof: str
+    validator_id: str
+
+
+@dataclass
+class PoSpacePlot:
+    """Proof-of-Space plot information."""
+
+    plot_id: str
+    farmer_id: str
+    size_bytes: int
+    plot_hash: str
+    created_at: float = field(default_factory=time.time)
+    last_challenge: float = field(default_factory=time.time)
+    challenges_won: int = 0
+    is_active: bool = True
+
+
+@dataclass
+class PoSpaceChallenge:
+    """Proof-of-Space challenge."""
+
+    challenge_id: str
+    challenge_data: bytes
+    difficulty: int
+    timestamp: float = field(default_factory=time.time)
+    expires_at: float = field(default_factory=lambda: time.time() + 300)  # 5 minutes
+
+
+@dataclass
 class ConsensusConfig:
     """Configuration for consensus mechanisms."""
 
@@ -156,6 +260,30 @@ class ConsensusConfig:
     enable_hybrid: bool = False
     hybrid_switch_threshold: float = 0.8  # 80% failure rate triggers switch
     pbft_fault_tolerance: int = 1  # f = (n-1)/3 where n is total validators
+    
+    # Proof-of-Authority specific parameters
+    poa_authority_set: List[str] = field(default_factory=list)  # List of authority IDs
+    poa_reputation_threshold: float = 50.0  # Minimum reputation to propose blocks
+    poa_slashing_threshold: float = 0.1  # 10% reputation loss for misbehavior
+    poa_rotation_period: int = 86400 * 30  # 30 days authority rotation
+    
+    # Proof-of-History specific parameters
+    poh_clock_frequency: float = 1.0  # Hz - frequency of PoH generation
+    poh_verification_window: int = 100  # Number of entries to verify
+    poh_max_skew: float = 0.1  # Maximum time skew allowed (seconds)
+    poh_leader_rotation: int = 10  # Number of PoH entries per leader
+    
+    # Proof-of-Space/Time specific parameters
+    pospace_min_plot_size: int = 1024 * 1024 * 100  # 100MB minimum plot size
+    pospace_challenge_interval: int = 30  # seconds between challenges
+    pospace_difficulty_adjustment: float = 0.1  # 10% difficulty adjustment
+    pospace_max_plot_age: int = 86400 * 365  # 1 year maximum plot age
+    
+    # HotStuff specific parameters
+    hotstuff_view_timeout: float = 5.0  # seconds before view change
+    hotstuff_max_view_changes: int = 3  # Maximum view changes before fallback
+    hotstuff_leader_rotation: int = 1  # Blocks per leader
+    hotstuff_safety_threshold: float = 0.67  # 2/3 threshold for safety
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
@@ -171,6 +299,26 @@ class ConsensusConfig:
             "enable_hybrid": self.enable_hybrid,
             "hybrid_switch_threshold": self.hybrid_switch_threshold,
             "pbft_fault_tolerance": self.pbft_fault_tolerance,
+            # PoA parameters
+            "poa_authority_set": self.poa_authority_set,
+            "poa_reputation_threshold": self.poa_reputation_threshold,
+            "poa_slashing_threshold": self.poa_slashing_threshold,
+            "poa_rotation_period": self.poa_rotation_period,
+            # PoH parameters
+            "poh_clock_frequency": self.poh_clock_frequency,
+            "poh_verification_window": self.poh_verification_window,
+            "poh_max_skew": self.poh_max_skew,
+            "poh_leader_rotation": self.poh_leader_rotation,
+            # PoSpace parameters
+            "pospace_min_plot_size": self.pospace_min_plot_size,
+            "pospace_challenge_interval": self.pospace_challenge_interval,
+            "pospace_difficulty_adjustment": self.pospace_difficulty_adjustment,
+            "pospace_max_plot_age": self.pospace_max_plot_age,
+            # HotStuff parameters
+            "hotstuff_view_timeout": self.hotstuff_view_timeout,
+            "hotstuff_max_view_changes": self.hotstuff_max_view_changes,
+            "hotstuff_leader_rotation": self.hotstuff_leader_rotation,
+            "hotstuff_safety_threshold": self.hotstuff_safety_threshold,
         }
 
     @classmethod
@@ -188,6 +336,26 @@ class ConsensusConfig:
             enable_hybrid=data.get("enable_hybrid", False),
             hybrid_switch_threshold=data.get("hybrid_switch_threshold", 0.8),
             pbft_fault_tolerance=data.get("pbft_fault_tolerance", 1),
+            # PoA parameters
+            poa_authority_set=data.get("poa_authority_set", []),
+            poa_reputation_threshold=data.get("poa_reputation_threshold", 50.0),
+            poa_slashing_threshold=data.get("poa_slashing_threshold", 0.1),
+            poa_rotation_period=data.get("poa_rotation_period", 86400 * 30),
+            # PoH parameters
+            poh_clock_frequency=data.get("poh_clock_frequency", 1.0),
+            poh_verification_window=data.get("poh_verification_window", 100),
+            poh_max_skew=data.get("poh_max_skew", 0.1),
+            poh_leader_rotation=data.get("poh_leader_rotation", 10),
+            # PoSpace parameters
+            pospace_min_plot_size=data.get("pospace_min_plot_size", 1024 * 1024 * 100),
+            pospace_challenge_interval=data.get("pospace_challenge_interval", 30),
+            pospace_difficulty_adjustment=data.get("pospace_difficulty_adjustment", 0.1),
+            pospace_max_plot_age=data.get("pospace_max_plot_age", 86400 * 365),
+            # HotStuff parameters
+            hotstuff_view_timeout=data.get("hotstuff_view_timeout", 5.0),
+            hotstuff_max_view_changes=data.get("hotstuff_max_view_changes", 3),
+            hotstuff_leader_rotation=data.get("hotstuff_leader_rotation", 1),
+            hotstuff_safety_threshold=data.get("hotstuff_safety_threshold", 0.67),
         )
 
 

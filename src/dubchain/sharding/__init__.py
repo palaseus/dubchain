@@ -41,6 +41,24 @@ from .shard_types import (
     ShardType,
 )
 
+# Enhanced sharding components
+from .enhanced_sharding import (
+    LoadBalancingStrategy,
+    ReshardingStrategy,
+    ShardHealthStatus,
+    ShardLoadMetrics,
+    ShardHealthInfo,
+    ReshardingPlan,
+    ShardOperation,
+    ShardLoadBalancer,
+    ConsistentHashBalancer,
+    LeastLoadedBalancer,
+    AdaptiveBalancer,
+    ShardReshardingManager,
+    ShardHealthMonitor,
+    EnhancedShardManager,
+)
+
 __all__ = [
     # Types
     "ShardId",
@@ -77,4 +95,19 @@ __all__ = [
     "ShardTopology",
     "ShardDiscovery",
     "ShardRouting",
+    # Enhanced Sharding
+    "LoadBalancingStrategy",
+    "ReshardingStrategy",
+    "ShardHealthStatus",
+    "ShardLoadMetrics",
+    "ShardHealthInfo",
+    "ReshardingPlan",
+    "ShardOperation",
+    "ShardLoadBalancer",
+    "ConsistentHashBalancer",
+    "LeastLoadedBalancer",
+    "AdaptiveBalancer",
+    "ShardReshardingManager",
+    "ShardHealthMonitor",
+    "EnhancedShardManager",
 ]

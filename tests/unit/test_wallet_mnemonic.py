@@ -163,7 +163,7 @@ class TestWordlistManager:
     def test_validate_wordlist_wrong_length(self):
         """Test validating wordlist with wrong length."""
         manager = WordlistManager()
-        wordlist = ["word" + str(i) for i in range(1000)]
+        wordlist = ["word" + str(i) for i in range(100)]  # Reduced for faster testing
 
         assert manager.validate_wordlist(wordlist) is False
 

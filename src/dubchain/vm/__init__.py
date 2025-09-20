@@ -32,6 +32,13 @@ from .execution_engine import (
 from .gas_meter import GasCost, GasCostConfig, GasMeter
 from .opcodes import OPCODES, OpcodeEnum, OpcodeInfo, OpcodeRegistry, OpcodeType
 
+# CUDA-accelerated VM imports
+from .cuda_vm import (
+    CUDAVMAccelerator,
+    CUDAVMConfig,
+    get_global_cuda_vm_accelerator,
+)
+
 __all__ = [
     # Opcodes
     "OpcodeEnum",
@@ -63,4 +70,8 @@ __all__ = [
     "AdvancedExecutionEngine",
     "ExecutionMetrics",
     "ParallelExecutionContext",
+    # CUDA VM
+    "CUDAVMAccelerator",
+    "CUDAVMConfig",
+    "get_global_cuda_vm_accelerator",
 ]

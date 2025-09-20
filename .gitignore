@@ -250,6 +250,9 @@ test_artifacts/
 test_output/
 test_results/
 
+# Results folder (contains test outputs, benchmarks, profiling data)
+results/
+
 # Performance profiling
 *.prof
 *.profile

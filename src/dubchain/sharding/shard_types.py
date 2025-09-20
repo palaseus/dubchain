@@ -26,6 +26,28 @@ class ShardId(IntEnum):
     SHARD_8 = 8
     SHARD_9 = 9
     SHARD_10 = 10
+    SHARD_11 = 11
+    SHARD_12 = 12
+    SHARD_13 = 13
+    SHARD_14 = 14
+    SHARD_15 = 15
+    SHARD_16 = 16
+    SHARD_17 = 17
+    SHARD_18 = 18
+    SHARD_19 = 19
+    SHARD_20 = 20
+    SHARD_21 = 21
+    SHARD_22 = 22
+    SHARD_23 = 23
+    SHARD_24 = 24
+    SHARD_25 = 25
+    SHARD_26 = 26
+    SHARD_27 = 27
+    SHARD_28 = 28
+    SHARD_29 = 29
+    SHARD_30 = 30
+    SHARD_31 = 31
+    SHARD_32 = 32
 
 
 class ShardStatus(Enum):
