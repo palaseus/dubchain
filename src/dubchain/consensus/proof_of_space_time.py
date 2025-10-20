@@ -16,9 +16,9 @@ Key features:
 import hashlib
 import random
 import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set
-from concurrent.futures import ThreadPoolExecutor
 
 from .consensus_types import (
     ConsensusConfig,
@@ -88,7 +88,7 @@ class PlotManager:
         for _ in range(size_bytes // 32):  # Generate in 32-byte chunks
             chunk = hashlib.sha256(f"plot_data_{random.random()}".encode()).digest()
             data.extend(chunk)
-        
+
         return bytes(data)
 
     def verify_plot(self, plot: PoSpacePlot) -> bool:
@@ -132,7 +132,9 @@ class ChallengeManager:
             New PoSpaceChallenge
         """
         challenge_id = f"challenge_{int(time.time())}"
-        challenge_data = hashlib.sha256(f"challenge_{random.random()}".encode()).digest()
+        challenge_data = hashlib.sha256(
+            f"challenge_{random.random()}".encode()
+        ).digest()
 
         challenge = PoSpaceChallenge(
             challenge_id=challenge_id,
@@ -142,7 +144,9 @@ class ChallengeManager:
 
         return challenge
 
-    def solve_challenge(self, plot: PoSpacePlot, challenge: PoSpaceChallenge) -> Optional[str]:
+    def solve_challenge(
+        self, plot: PoSpacePlot, challenge: PoSpaceChallenge
+    ) -> Optional[str]:
         """
         Solve a challenge using a plot.
 
@@ -163,8 +167,10 @@ class ChallengeManager:
 
         # For very low difficulties (testing), ensure reasonable success rate
         if challenge.difficulty < 1.0:
-            success_probability = max(success_probability, 0.95)  # 95% success rate for testing
-        
+            success_probability = max(
+                success_probability, 0.95
+            )  # 95% success rate for testing
+
         # For testing, use deterministic success based on plot hash
         if challenge.difficulty < 1.0:
             # Use plot hash to determine success deterministically
@@ -179,13 +185,17 @@ class ChallengeManager:
 
         if success:
             # Generate proof
-            proof_data = f"{plot.plot_hash}{challenge.challenge_data}{time.time()}".encode()
+            proof_data = (
+                f"{plot.plot_hash}{challenge.challenge_data}{time.time()}".encode()
+            )
             proof = hashlib.sha256(proof_data).hexdigest()
             return proof
 
         return None
 
-    def verify_solution(self, plot: PoSpacePlot, challenge: PoSpaceChallenge, proof: str) -> bool:
+    def verify_solution(
+        self, plot: PoSpacePlot, challenge: PoSpaceChallenge, proof: str
+    ) -> bool:
         """
         Verify a challenge solution.
 
@@ -204,7 +214,7 @@ class ChallengeManager:
         # Verify proof is derived from plot and challenge
         expected_proof_data = f"{plot.plot_hash}{challenge.challenge_data}".encode()
         expected_proof = hashlib.sha256(expected_proof_data).hexdigest()
-        
+
         # Allow some variation for demonstration
         return proof.startswith(expected_proof[:8])
 
@@ -224,8 +234,7 @@ class ProofOfSpaceTime:
         self.state = PoSpaceState()
         self.plot_manager = PlotManager(config.pospace_min_plot_size)
         self.challenge_manager = ChallengeManager(
-            config.pospace_challenge_interval,
-            config.pospace_difficulty_adjustment
+            config.pospace_challenge_interval, config.pospace_difficulty_adjustment
         )
         self.executor = ThreadPoolExecutor(max_workers=4)
 
@@ -326,7 +335,8 @@ class ProofOfSpaceTime:
 
         # Check if proposer has valid plots
         proposer_plots = [
-            plot for plot in self.state.plots.values()
+            plot
+            for plot in self.state.plots.values()
             if plot.farmer_id == proposer_id and plot.is_active
         ]
 
@@ -338,7 +348,9 @@ class ProofOfSpaceTime:
             )
 
         # Create and solve challenge
-        challenge = self.challenge_manager.create_challenge(self.state.current_difficulty)
+        challenge = self.challenge_manager.create_challenge(
+            self.state.current_difficulty
+        )
         self.state.active_challenges[challenge.challenge_id] = challenge
 
         # Try to solve challenge with proposer's plots
@@ -399,7 +411,7 @@ class ProofOfSpaceTime:
     def _validate_block_data(self, block_data: Dict[str, Any]) -> bool:
         """Validate block data."""
         required_fields = ["block_number", "timestamp", "transactions", "previous_hash"]
-        
+
         for field in required_fields:
             if field not in block_data:
                 return False
@@ -412,7 +424,9 @@ class ProofOfSpaceTime:
 
         return True
 
-    def _generate_block_hash(self, block_data: Dict[str, Any], challenge: PoSpaceChallenge, proof: str) -> str:
+    def _generate_block_hash(
+        self, block_data: Dict[str, Any], challenge: PoSpaceChallenge, proof: str
+    ) -> str:
         """Generate block hash including challenge and proof."""
         data = f"{block_data['block_number']}{block_data['timestamp']}{challenge.challenge_id}{proof}"
         return hashlib.sha256(data.encode()).hexdigest()
@@ -421,36 +435,38 @@ class ProofOfSpaceTime:
         """Adjust challenge difficulty based on network conditions."""
         # Simple difficulty adjustment
         # In a real implementation, this would be more sophisticated
-        
+
         current_time = time.time()
         time_since_last_challenge = current_time - self.state.last_challenge_time
-        
+
         if time_since_last_challenge < self.config.pospace_challenge_interval:
             # Challenges being solved too quickly, increase difficulty
-            self.state.current_difficulty = int(self.state.current_difficulty * (1 + self.config.pospace_difficulty_adjustment))
+            self.state.current_difficulty = int(
+                self.state.current_difficulty
+                * (1 + self.config.pospace_difficulty_adjustment)
+            )
         else:
             # Challenges taking too long, decrease difficulty
-            self.state.current_difficulty = int(self.state.current_difficulty * (1 - self.config.pospace_difficulty_adjustment))
-        
+            self.state.current_difficulty = int(
+                self.state.current_difficulty
+                * (1 - self.config.pospace_difficulty_adjustment)
+            )
+
         # Ensure minimum difficulty
         self.state.current_difficulty = max(100, self.state.current_difficulty)
-        
+
         self.state.last_challenge_time = current_time
         self.state.challenge_counter += 1
 
     def get_farmer_plots(self, farmer_id: str) -> List[PoSpacePlot]:
         """Get all plots for a farmer."""
         return [
-            plot for plot in self.state.plots.values()
-            if plot.farmer_id == farmer_id
+            plot for plot in self.state.plots.values() if plot.farmer_id == farmer_id
         ]
 
     def get_active_plots(self) -> List[PoSpacePlot]:
         """Get all active plots."""
-        return [
-            plot for plot in self.state.plots.values()
-            if plot.is_active
-        ]
+        return [plot for plot in self.state.plots.values() if plot.is_active]
 
     def get_plot_info(self, plot_id: str) -> Optional[PoSpacePlot]:
         """Get information about a plot."""
@@ -476,13 +492,17 @@ class ProofOfSpaceTime:
             self.state.metrics.failed_blocks += 1
 
         # Update average block time
-        total_time = self.state.metrics.average_block_time * (self.state.metrics.total_blocks - 1)
+        total_time = self.state.metrics.average_block_time * (
+            self.state.metrics.total_blocks - 1
+        )
         self.state.metrics.average_block_time = (
             total_time + block_time
         ) / self.state.metrics.total_blocks
 
         # Update average gas used
-        total_gas = self.state.metrics.average_gas_used * (self.state.metrics.total_blocks - 1)
+        total_gas = self.state.metrics.average_gas_used * (
+            self.state.metrics.total_blocks - 1
+        )
         self.state.metrics.average_gas_used = (
             total_gas + gas_used
         ) / self.state.metrics.total_blocks
@@ -493,7 +513,7 @@ class ProofOfSpaceTime:
         """Get farming statistics."""
         active_plots = self.get_active_plots()
         total_storage = sum(plot.size_bytes for plot in active_plots)
-        
+
         return {
             "total_farmers": len(self.state.farmers),
             "total_plots": len(self.state.plots),
@@ -501,7 +521,9 @@ class ProofOfSpaceTime:
             "total_storage_bytes": total_storage,
             "current_difficulty": self.state.current_difficulty,
             "challenge_counter": self.state.challenge_counter,
-            "average_plot_size": total_storage / len(active_plots) if active_plots else 0,
+            "average_plot_size": total_storage / len(active_plots)
+            if active_plots
+            else 0,
         }
 
     def to_dict(self) -> Dict[str, Any]:
@@ -548,7 +570,9 @@ class ProofOfSpaceTime:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any], config: ConsensusConfig) -> "ProofOfSpaceTime":
+    def from_dict(
+        cls, data: Dict[str, Any], config: ConsensusConfig
+    ) -> "ProofOfSpaceTime":
         """Create from dictionary."""
         pospace = cls(config)
 

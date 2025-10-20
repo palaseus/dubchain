@@ -2,7 +2,7 @@
 """
 Interactive DubChain Node
 
-This script creates an interactive DubChain node that you can "fuck with" in real-time.
+This script creates an interactive DubChain node that you can experiment with in real-time.
 It provides a command-line interface to interact with the blockchain, create transactions,
 mine blocks, and experiment with different consensus mechanisms.
 

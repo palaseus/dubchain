@@ -14,11 +14,11 @@ Key features:
 """
 
 import hashlib
-import time
 import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set
-from concurrent.futures import ThreadPoolExecutor
 
 from .consensus_types import (
     ConsensusConfig,
@@ -48,7 +48,7 @@ class PoHState:
 class VerifiableDelayFunction:
     """
     Simple verifiable delay function implementation.
-    
+
     In a real implementation, this would use a proper VDF like Wesolowski's
     or Pietrzak's VDF. This is a simplified version for demonstration.
     """
@@ -60,33 +60,33 @@ class VerifiableDelayFunction:
     def compute(self, input_data: bytes) -> tuple[bytes, str]:
         """
         Compute VDF output and proof.
-        
+
         Args:
             input_data: Input data for VDF computation
-            
+
         Returns:
             Tuple of (output, proof)
         """
         # Simplified VDF: hash the input multiple times
         current_hash = hashlib.sha256(input_data).digest()
-        
+
         for _ in range(self.difficulty):
             current_hash = hashlib.sha256(current_hash).digest()
-        
+
         # Generate proof (simplified)
         proof = hashlib.sha256(current_hash + input_data).hexdigest()
-        
+
         return current_hash, proof
 
     def verify(self, input_data: bytes, output: bytes, proof: str) -> bool:
         """
         Verify VDF computation.
-        
+
         Args:
             input_data: Original input data
             output: VDF output
             proof: VDF proof
-            
+
         Returns:
             True if verification successful, False otherwise
         """
@@ -94,12 +94,12 @@ class VerifiableDelayFunction:
         expected_proof = hashlib.sha256(output + input_data).hexdigest()
         if expected_proof != proof:
             return False
-        
+
         # Verify output (simplified)
         current_hash = hashlib.sha256(input_data).digest()
         for _ in range(self.difficulty):
             current_hash = hashlib.sha256(current_hash).digest()
-        
+
         return current_hash == output
 
 
@@ -148,7 +148,7 @@ class ProofOfHistory:
             try:
                 # Generate new PoH entry
                 self._create_poh_entry()
-                
+
                 # Sleep based on clock frequency
                 sleep_time = 1.0 / self.config.poh_clock_frequency
                 time.sleep(sleep_time)
@@ -159,7 +159,7 @@ class ProofOfHistory:
     def _create_poh_entry(self) -> None:
         """Create a new PoH entry."""
         current_time = time.time()
-        
+
         # Get previous hash
         previous_hash = ""
         if self.state.entries:
@@ -167,7 +167,7 @@ class ProofOfHistory:
 
         # Create entry data
         entry_data = f"{current_time}{previous_hash}{len(self.state.entries)}".encode()
-        
+
         # Compute VDF
         output, proof = self.vdf.compute(entry_data)
         entry_hash = output.hex()  # Use VDF output directly, not SHA256 of output
@@ -214,7 +214,7 @@ class ProofOfHistory:
             return False
 
         self.state.validators.add(validator_id)
-        
+
         # Set first leader if none exists
         if not self.state.current_leader:
             self.state.current_leader = validator_id
@@ -235,7 +235,7 @@ class ProofOfHistory:
             return False
 
         self.state.validators.remove(validator_id)
-        
+
         # If the removed validator was the current leader, rotate to a new leader
         if self.state.current_leader == validator_id:
             self._rotate_leader()
@@ -280,7 +280,7 @@ class ProofOfHistory:
             )
 
         latest_entry = self.state.entries[-1]
-        
+
         # Validate PoH entry
         if not self._validate_poh_entry(latest_entry):
             return ConsensusResult(
@@ -312,7 +312,7 @@ class ProofOfHistory:
     def _validate_block_data(self, block_data: Dict[str, Any]) -> bool:
         """Validate block data."""
         required_fields = ["block_number", "timestamp", "transactions", "previous_hash"]
-        
+
         for field in required_fields:
             if field not in block_data:
                 return False
@@ -320,7 +320,7 @@ class ProofOfHistory:
         # Validate timestamp against PoH
         block_timestamp = block_data["timestamp"]
         current_time = time.time()
-        
+
         # Check if timestamp is within acceptable skew
         if abs(current_time - block_timestamp) > self.config.poh_max_skew:
             return False
@@ -332,7 +332,9 @@ class ProofOfHistory:
         # Verify VDF computation
         return self.vdf.verify(entry.data, bytes.fromhex(entry.hash), entry.proof)
 
-    def _generate_block_hash(self, block_data: Dict[str, Any], poh_entry: PoHEntry) -> str:
+    def _generate_block_hash(
+        self, block_data: Dict[str, Any], poh_entry: PoHEntry
+    ) -> str:
         """Generate block hash including PoH entry."""
         data = f"{block_data['block_number']}{block_data['timestamp']}{poh_entry.hash}"
         return hashlib.sha256(data.encode()).hexdigest()
@@ -353,7 +355,7 @@ class ProofOfHistory:
 
         for i in range(start_index, end_index + 1):
             entry = self.state.entries[i]
-            
+
             # Verify VDF
             if not self._validate_poh_entry(entry):
                 return False
@@ -401,13 +403,17 @@ class ProofOfHistory:
             self.state.metrics.failed_blocks += 1
 
         # Update average block time
-        total_time = self.state.metrics.average_block_time * (self.state.metrics.total_blocks - 1)
+        total_time = self.state.metrics.average_block_time * (
+            self.state.metrics.total_blocks - 1
+        )
         self.state.metrics.average_block_time = (
             total_time + block_time
         ) / self.state.metrics.total_blocks
 
         # Update average gas used
-        total_gas = self.state.metrics.average_gas_used * (self.state.metrics.total_blocks - 1)
+        total_gas = self.state.metrics.average_gas_used * (
+            self.state.metrics.total_blocks - 1
+        )
         self.state.metrics.average_gas_used = (
             total_gas + gas_used
         ) / self.state.metrics.total_blocks
@@ -448,7 +454,9 @@ class ProofOfHistory:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any], config: ConsensusConfig) -> "ProofOfHistory":
+    def from_dict(
+        cls, data: Dict[str, Any], config: ConsensusConfig
+    ) -> "ProofOfHistory":
         """Create from dictionary."""
         poh = cls(config)
 

@@ -143,8 +143,10 @@ class ProofOfAuthority:
             Authority ID of the next proposer, or None if no valid authority
         """
         active_authorities = [
-            auth for auth in self.state.authorities.values()
-            if auth.is_active and auth.status == PoAStatus.AUTHORITY
+            auth
+            for auth in self.state.authorities.values()
+            if auth.is_active
+            and auth.status == PoAStatus.AUTHORITY
             and auth.reputation_score >= self.config.poa_reputation_threshold
         ]
 
@@ -152,8 +154,12 @@ class ProofOfAuthority:
             return None
 
         # Simple round-robin selection
-        authority = active_authorities[self.state.current_authority_index % len(active_authorities)]
-        self.state.current_authority_index = (self.state.current_authority_index + 1) % len(active_authorities)
+        authority = active_authorities[
+            self.state.current_authority_index % len(active_authorities)
+        ]
+        self.state.current_authority_index = (
+            self.state.current_authority_index + 1
+        ) % len(active_authorities)
         return authority.authority_id
 
     def propose_block(self, block_data: Dict[str, Any]) -> ConsensusResult:
@@ -232,7 +238,7 @@ class ProofOfAuthority:
     def _validate_block_data(self, block_data: Dict[str, Any]) -> bool:
         """Validate block data."""
         required_fields = ["block_number", "timestamp", "transactions", "previous_hash"]
-        
+
         for field in required_fields:
             if field not in block_data:
                 return False
@@ -250,7 +256,9 @@ class ProofOfAuthority:
 
         return True
 
-    def _generate_block_hash(self, block_data: Dict[str, Any], authority_id: str) -> str:
+    def _generate_block_hash(
+        self, block_data: Dict[str, Any], authority_id: str
+    ) -> str:
         """Generate block hash."""
         data = f"{block_data['block_number']}{block_data['timestamp']}{authority_id}"
         return hashlib.sha256(data.encode()).hexdigest()
@@ -259,7 +267,8 @@ class ProofOfAuthority:
         """Rotate authority set based on performance."""
         # Simple rotation: promote candidates with high reputation
         candidates = [
-            auth for auth in self.state.authorities.values()
+            auth
+            for auth in self.state.authorities.values()
             if auth.status == PoAStatus.CANDIDATE
             and auth.reputation_score >= self.config.poa_reputation_threshold
         ]
@@ -279,7 +288,8 @@ class ProofOfAuthority:
     def get_active_authorities(self) -> List[str]:
         """Get list of active authorities."""
         return [
-            auth.authority_id for auth in self.state.authorities.values()
+            auth.authority_id
+            for auth in self.state.authorities.values()
             if auth.is_active and auth.status == PoAStatus.AUTHORITY
         ]
 
@@ -303,13 +313,17 @@ class ProofOfAuthority:
             self.state.metrics.failed_blocks += 1
 
         # Update average block time
-        total_time = self.state.metrics.average_block_time * (self.state.metrics.total_blocks - 1)
+        total_time = self.state.metrics.average_block_time * (
+            self.state.metrics.total_blocks - 1
+        )
         self.state.metrics.average_block_time = (
             total_time + block_time
         ) / self.state.metrics.total_blocks
 
         # Update average gas used
-        total_gas = self.state.metrics.average_gas_used * (self.state.metrics.total_blocks - 1)
+        total_gas = self.state.metrics.average_gas_used * (
+            self.state.metrics.total_blocks - 1
+        )
         self.state.metrics.average_gas_used = (
             total_gas + gas_used
         ) / self.state.metrics.total_blocks
@@ -365,7 +379,9 @@ class ProofOfAuthority:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any], config: ConsensusConfig) -> "ProofOfAuthority":
+    def from_dict(
+        cls, data: Dict[str, Any], config: ConsensusConfig
+    ) -> "ProofOfAuthority":
         """Create from dictionary."""
         poa = cls(config)
 

@@ -10,49 +10,43 @@ This module provides all the cryptographic functions needed for:
 - Zero-Knowledge Proofs (ZKP)
 """
 
+# GPU-accelerated crypto imports
+from .gpu_crypto import GPUConfig, GPUCrypto
 from .hashing import Hash, SHA256Hasher
 from .merkle import MerkleTree
+from .optimized_gpu_crypto import OptimizedGPUConfig, OptimizedGPUCrypto
 from .signatures import ECDSASigner, PrivateKey, PublicKey, Signature
 
-# GPU-accelerated crypto imports
-from .gpu_crypto import GPUCrypto, GPUConfig
-from .optimized_gpu_crypto import OptimizedGPUCrypto, OptimizedGPUConfig
-
 # ZKP imports
-from .zkp import (
-    # Core types
-    ZKPBackend,
-    ZKPConfig, 
-    ZKPError,
-    ZKPManager,
-    Proof,
-    ProofRequest,
-    ProofResult,
-    VerificationResult,
-    ZKPType,
-    ZKPStatus,
-    # Backends
-    ZKSNARKBackend,
-    ZKSTARKBackend, 
+from .zkp import (  # Core types; Backends; Circuits; Verification; Generation
+    BatchVerifier,
     BulletproofBackend,
-    MockZKPBackend,
-    # Circuits
-    ZKCircuit,
     CircuitBuilder,
     ConstraintSystem,
-    Witness,
-    PublicInputs,
+    MockZKPBackend,
     PrivateInputs,
-    # Verification
-    ProofVerifier,
-    BatchVerifier,
-    VerificationCache,
-    ReplayProtection,
-    # Generation
+    Proof,
     ProofGenerator,
-    TrustedSetup,
+    ProofRequest,
+    ProofResult,
+    ProofVerifier,
     ProvingKey,
+    PublicInputs,
+    ReplayProtection,
+    TrustedSetup,
+    VerificationCache,
     VerificationKey,
+    VerificationResult,
+    Witness,
+    ZKCircuit,
+    ZKPBackend,
+    ZKPConfig,
+    ZKPError,
+    ZKPManager,
+    ZKPStatus,
+    ZKPType,
+    ZKSNARKBackend,
+    ZKSTARKBackend,
 )
 
 __all__ = [
@@ -71,7 +65,7 @@ __all__ = [
     "OptimizedGPUConfig",
     # ZKP Core types
     "ZKPBackend",
-    "ZKPConfig", 
+    "ZKPConfig",
     "ZKPError",
     "ZKPManager",
     "Proof",
@@ -82,7 +76,7 @@ __all__ = [
     "ZKPStatus",
     # ZKP Backends
     "ZKSNARKBackend",
-    "ZKSTARKBackend", 
+    "ZKSTARKBackend",
     "BulletproofBackend",
     "MockZKPBackend",
     # ZKP Circuits

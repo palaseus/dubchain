@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Quick DubChain Demo - Let's Fuck With It!
+Quick DubChain Demo - Comprehensive Testing
 
 This script demonstrates various ways to interact with and stress test DubChain.
 """
@@ -12,7 +12,7 @@ from dubchain.core.consensus import ConsensusConfig
 
 
 def main():
-    print("🚀 DUBCHAIN QUICK DEMO - LET'S FUCK WITH IT!")
+    print("🚀 DUBCHAIN QUICK DEMO - COMPREHENSIVE TESTING")
     print("=" * 60)
     
     # Set up blockchain

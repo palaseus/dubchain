@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-DubChain Chaos Mode - Maximum Fuckery
+DubChain Chaos Mode - Maximum Stress Testing
 
-This script puts DubChain through absolute chaos with:
+This script puts DubChain through comprehensive stress testing with:
 - Random transactions
 - Rapid mining
 - Multiple wallets
@@ -21,7 +21,7 @@ from dubchain.core.consensus import ConsensusConfig
 
 
 class ChaosMode:
-    """Maximum chaos testing for DubChain."""
+    """Comprehensive stress testing for DubChain."""
     
     def __init__(self):
         self.blockchain = None
@@ -35,8 +35,8 @@ class ChaosMode:
         }
     
     def setup_chaos(self):
-        """Set up the chaos environment."""
-        print("🌪️  CHAOS MODE INITIALIZATION")
+        """Set up the stress testing environment."""
+        print("🌪️  STRESS TESTING MODE INITIALIZATION")
         print("=" * 50)
         
         # Create blockchain with aggressive settings
@@ -57,9 +57,9 @@ class ChaosMode:
         print(f"✅ Genesis block: {genesis_block.get_hash().to_hex()[:16]}...")
         
         # Create many wallets
-        print("\n👛 Creating chaos wallets...")
+        print("\n👛 Creating test wallets...")
         for i in range(20):
-            name = f"chaos_wallet_{i}"
+            name = f"test_wallet_{i}"
             private_key = PrivateKey.generate()
             public_key = private_key.get_public_key()
             address = public_key.to_address()
@@ -70,10 +70,10 @@ class ChaosMode:
                 'address': address
             }
         
-        print(f"✅ Created {len(self.wallets)} chaos wallets")
+        print(f"✅ Created {len(self.wallets)} test wallets")
         
         # Mine initial blocks
-        print("\n⛏️  Mining initial chaos blocks...")
+        print("\n⛏️  Mining initial test blocks...")
         for i in range(50):
             miner = random.choice(list(self.wallets.keys()))
             miner_address = self.wallets[miner]['address']
@@ -191,7 +191,7 @@ class ChaosMode:
     
     def run_chaos(self, duration=60):
         """Run chaos mode for specified duration."""
-        print(f"\n🌪️  STARTING CHAOS MODE FOR {duration} SECONDS")
+        print(f"\n🌪️  STARTING STRESS TESTING FOR {duration} SECONDS")
         print("=" * 50)
         
         self.running = True
@@ -235,8 +235,8 @@ class ChaosMode:
         # Let chaos run
         time.sleep(duration)
         
-        # Stop chaos
-        print(f"\n🛑 STOPPING CHAOS MODE")
+        # Stop stress testing
+        print(f"\n🛑 STOPPING STRESS TESTING")
         self.running = False
         
         # Wait for threads to finish
@@ -248,7 +248,7 @@ class ChaosMode:
         tx_rate = self.stats['transactions_created'] / elapsed if elapsed > 0 else 0
         block_rate = self.stats['blocks_mined'] / elapsed if elapsed > 0 else 0
         
-        print(f"\n📊 FINAL CHAOS STATS:")
+        print(f"\n📊 FINAL STRESS TEST STATS:")
         print(f"   Duration: {elapsed:.1f}s")
         print(f"   Transactions: {self.stats['transactions_created']} ({tx_rate:.1f} tx/s)")
         print(f"   Blocks: {self.stats['blocks_mined']} ({block_rate:.1f} blocks/s)")
@@ -277,20 +277,20 @@ class ChaosMode:
 
 def main():
     """Main function."""
-    print("🌪️  DUBCHAIN CHAOS MODE - MAXIMUM FUCKERY")
+    print("🌪️  DUBCHAIN STRESS TESTING MODE - MAXIMUM LOAD")
     print("=" * 60)
-    print("This will put DubChain through absolute chaos!")
+    print("This will put DubChain through comprehensive stress testing!")
     print("=" * 60)
     
     chaos = ChaosMode()
     chaos.setup_chaos()
     
-    # Run chaos for 30 seconds
+    # Run stress testing for 30 seconds
     chaos.run_chaos(30)
     
-    print("\n🎉 CHAOS MODE COMPLETED!")
+    print("\n🎉 STRESS TESTING COMPLETED!")
     print("=" * 60)
-    print("✨ DubChain survived the chaos!")
+    print("✨ DubChain survived the stress testing!")
     print("  ✅ Handled massive transaction load")
     print("  ✅ Mined blocks under pressure")
     print("  ✅ Maintained blockchain integrity")

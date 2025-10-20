@@ -101,7 +101,7 @@ This project emphasizes:
 - **Thread-Safe Operations**: Concurrent GPU operations with proper synchronization
 
 ### Comprehensive Testing
-- **Unit Testing**: Individual component testing with 87% coverage
+- **Unit Testing**: Individual component testing with 34% coverage
 - **Integration Testing**: Component interaction testing
 - **Property-Based Testing**: Hypothesis-based edge case discovery
 - **Performance Testing**: Benchmarking and optimization
@@ -604,8 +604,8 @@ The platform is designed for educational purposes:
 DubChain includes a comprehensive testing framework with multiple testing strategies:
 
 ### Test Coverage
-- **Overall Coverage**: 87% code coverage
-- **Unit Tests**: 3,357 tests covering individual components
+- **Overall Coverage**: 34% code coverage
+- **Unit Tests**: 3,848 tests covering individual components
 - **Integration Tests**: Component interaction testing
 - **Property-Based Tests**: Hypothesis-based edge case discovery
 - **Performance Tests**: Benchmarking and optimization

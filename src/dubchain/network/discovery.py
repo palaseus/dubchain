@@ -305,9 +305,16 @@ class PeerDiscovery:
                     )
 
                     # Create peer info
+                    # TODO: Implement actual public key retrieval
+                    # This would involve:
+                    # 1. Connecting to the peer
+                    # 2. Requesting their public key
+                    # 3. Validating the key format
+                    # 4. Storing the key securely
+
                     peer_info = PeerInfo(
                         peer_id=peer_id,
-                        public_key=PublicKey.generate(),  # Placeholder
+                        public_key=PublicKey.generate(),  # Placeholder - would retrieve actual key
                         address=address,
                         port=port,
                         connection_type=ConnectionType.SEED,

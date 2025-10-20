@@ -15,9 +15,9 @@ Key features:
 
 import hashlib
 import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set
-from concurrent.futures import ThreadPoolExecutor
 
 from .consensus_types import (
     ConsensusConfig,
@@ -40,7 +40,9 @@ class HotStuffState:
     leader_index: int = 0
     validators: List[str] = field(default_factory=list)
     messages: Dict[str, List[HotStuffMessage]] = field(default_factory=dict)
-    prepared_blocks: Dict[str, str] = field(default_factory=dict)  # block_hash -> parent_hash
+    prepared_blocks: Dict[str, str] = field(
+        default_factory=dict
+    )  # block_hash -> parent_hash
     committed_blocks: Set[str] = field(default_factory=set)
     view_change_timeout: float = 0.0
     view_change_counter: int = 0
@@ -78,7 +80,7 @@ class HotStuffConsensus:
             return False
 
         self.state.validators.append(validator_id)
-        
+
         # Set first leader if none exists
         if not self.state.current_leader:
             self.state.current_leader = validator_id
@@ -99,7 +101,7 @@ class HotStuffConsensus:
             return False
 
         self.state.validators.remove(validator_id)
-        
+
         # Update leader if necessary
         if self.state.current_leader == validator_id:
             self._rotate_leader()
@@ -112,7 +114,9 @@ class HotStuffConsensus:
             self.state.current_leader = None
             return
 
-        self.state.leader_index = (self.state.leader_index + 1) % len(self.state.validators)
+        self.state.leader_index = (self.state.leader_index + 1) % len(
+            self.state.validators
+        )
         self.state.current_leader = self.state.validators[self.state.leader_index]
         self.state.current_view += 1
 
@@ -191,7 +195,9 @@ class HotStuffConsensus:
             },
         )
 
-    def _execute_hotstuff_protocol(self, block_data: Dict[str, Any], block_hash: str, proposer_id: str) -> Dict[str, Any]:
+    def _execute_hotstuff_protocol(
+        self, block_data: Dict[str, Any], block_hash: str, proposer_id: str
+    ) -> Dict[str, Any]:
         """Execute the HotStuff consensus protocol."""
         try:
             # Phase 1: Prepare
@@ -237,7 +243,7 @@ class HotStuffConsensus:
 
         # Collect prepare votes
         prepare_votes = self._collect_votes(prepare_message, HotStuffPhase.PREPARE)
-        
+
         if len(prepare_votes) < self._get_safety_threshold():
             return {"success": False, "error_message": "Insufficient prepare votes"}
 
@@ -256,8 +262,10 @@ class HotStuffConsensus:
         )
 
         # Collect pre-commit votes
-        precommit_votes = self._collect_votes(precommit_message, HotStuffPhase.PRE_COMMIT)
-        
+        precommit_votes = self._collect_votes(
+            precommit_message, HotStuffPhase.PRE_COMMIT
+        )
+
         if len(precommit_votes) < self._get_safety_threshold():
             return {"success": False, "error_message": "Insufficient pre-commit votes"}
 
@@ -277,7 +285,7 @@ class HotStuffConsensus:
 
         # Collect commit votes
         commit_votes = self._collect_votes(commit_message, HotStuffPhase.COMMIT)
-        
+
         if len(commit_votes) < self._get_safety_threshold():
             return {"success": False, "error_message": "Insufficient commit votes"}
 
@@ -297,16 +305,18 @@ class HotStuffConsensus:
 
         # Collect decide votes
         decide_votes = self._collect_votes(decide_message, HotStuffPhase.DECIDE)
-        
+
         if len(decide_votes) < self._get_safety_threshold():
             return {"success": False, "error_message": "Insufficient decide votes"}
 
         return {"success": True, "phase": "decide"}
 
-    def _collect_votes(self, message: HotStuffMessage, phase: HotStuffPhase) -> List[HotStuffMessage]:
+    def _collect_votes(
+        self, message: HotStuffMessage, phase: HotStuffPhase
+    ) -> List[HotStuffMessage]:
         """Collect votes for a specific phase."""
         votes = []
-        
+
         # Simulate collecting votes from validators
         for validator_id in self.state.validators:
             if validator_id != message.validator_id:  # Don't vote for own message
@@ -340,7 +350,7 @@ class HotStuffConsensus:
     def _validate_block_data(self, block_data: Dict[str, Any]) -> bool:
         """Validate block data."""
         required_fields = ["block_number", "timestamp", "transactions", "previous_hash"]
-        
+
         for field in required_fields:
             if field not in block_data:
                 return False
@@ -401,13 +411,17 @@ class HotStuffConsensus:
             self.state.metrics.failed_blocks += 1
 
         # Update average block time
-        total_time = self.state.metrics.average_block_time * (self.state.metrics.total_blocks - 1)
+        total_time = self.state.metrics.average_block_time * (
+            self.state.metrics.total_blocks - 1
+        )
         self.state.metrics.average_block_time = (
             total_time + block_time
         ) / self.state.metrics.total_blocks
 
         # Update average gas used
-        total_gas = self.state.metrics.average_gas_used * (self.state.metrics.total_blocks - 1)
+        total_gas = self.state.metrics.average_gas_used * (
+            self.state.metrics.total_blocks - 1
+        )
         self.state.metrics.average_gas_used = (
             total_gas + gas_used
         ) / self.state.metrics.total_blocks
@@ -467,7 +481,9 @@ class HotStuffConsensus:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any], config: ConsensusConfig) -> "HotStuffConsensus":
+    def from_dict(
+        cls, data: Dict[str, Any], config: ConsensusConfig
+    ) -> "HotStuffConsensus":
         """Create from dictionary."""
         hotstuff = cls(config)
 

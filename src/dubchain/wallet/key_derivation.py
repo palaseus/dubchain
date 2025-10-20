@@ -178,8 +178,14 @@ class KeyDerivation:
         self.seed = seed
 
     def derive_key(self, path: DerivationPath) -> PrivateKey:
-        """Derive private key from path."""
-        raise NotImplementedError
+        """
+        Derive private key from path.
+        
+        This is an abstract base class method that must be implemented by subclasses.
+        The NotImplementedError is intentional - concrete implementations should
+        inherit from this class and provide their own derive_key implementation.
+        """
+        raise NotImplementedError("derive_key must be implemented by subclasses")
 
     def derive_public_key(self, path: DerivationPath) -> PublicKey:
         """Derive public key from path."""

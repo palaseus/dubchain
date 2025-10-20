@@ -23,6 +23,9 @@ from .contract import (
     ContractType,
     SmartContract,
 )
+
+# CUDA-accelerated VM imports
+from .cuda_vm import CUDAVMAccelerator, CUDAVMConfig, get_global_cuda_vm_accelerator
 from .execution_engine import (
     ExecutionContext,
     ExecutionEngine,
@@ -31,13 +34,6 @@ from .execution_engine import (
 )
 from .gas_meter import GasCost, GasCostConfig, GasMeter
 from .opcodes import OPCODES, OpcodeEnum, OpcodeInfo, OpcodeRegistry, OpcodeType
-
-# CUDA-accelerated VM imports
-from .cuda_vm import (
-    CUDAVMAccelerator,
-    CUDAVMConfig,
-    get_global_cuda_vm_accelerator,
-)
 
 __all__ = [
     # Opcodes

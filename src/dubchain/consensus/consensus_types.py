@@ -260,25 +260,25 @@ class ConsensusConfig:
     enable_hybrid: bool = False
     hybrid_switch_threshold: float = 0.8  # 80% failure rate triggers switch
     pbft_fault_tolerance: int = 1  # f = (n-1)/3 where n is total validators
-    
+
     # Proof-of-Authority specific parameters
     poa_authority_set: List[str] = field(default_factory=list)  # List of authority IDs
     poa_reputation_threshold: float = 50.0  # Minimum reputation to propose blocks
     poa_slashing_threshold: float = 0.1  # 10% reputation loss for misbehavior
     poa_rotation_period: int = 86400 * 30  # 30 days authority rotation
-    
+
     # Proof-of-History specific parameters
     poh_clock_frequency: float = 1.0  # Hz - frequency of PoH generation
     poh_verification_window: int = 100  # Number of entries to verify
     poh_max_skew: float = 0.1  # Maximum time skew allowed (seconds)
     poh_leader_rotation: int = 10  # Number of PoH entries per leader
-    
+
     # Proof-of-Space/Time specific parameters
     pospace_min_plot_size: int = 1024 * 1024 * 100  # 100MB minimum plot size
     pospace_challenge_interval: int = 30  # seconds between challenges
     pospace_difficulty_adjustment: float = 0.1  # 10% difficulty adjustment
     pospace_max_plot_age: int = 86400 * 365  # 1 year maximum plot age
-    
+
     # HotStuff specific parameters
     hotstuff_view_timeout: float = 5.0  # seconds before view change
     hotstuff_max_view_changes: int = 3  # Maximum view changes before fallback
@@ -349,7 +349,9 @@ class ConsensusConfig:
             # PoSpace parameters
             pospace_min_plot_size=data.get("pospace_min_plot_size", 1024 * 1024 * 100),
             pospace_challenge_interval=data.get("pospace_challenge_interval", 30),
-            pospace_difficulty_adjustment=data.get("pospace_difficulty_adjustment", 0.1),
+            pospace_difficulty_adjustment=data.get(
+                "pospace_difficulty_adjustment", 0.1
+            ),
             pospace_max_plot_age=data.get("pospace_max_plot_age", 86400 * 365),
             # HotStuff parameters
             hotstuff_view_timeout=data.get("hotstuff_view_timeout", 5.0),

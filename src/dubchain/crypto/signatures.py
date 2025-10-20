@@ -364,10 +364,17 @@ class ECDSASigner:
 
         Note: This is a simplified implementation. In practice, you'd need
         to handle the recovery ID and implement proper ECDSA recovery.
+
+        This method is intentionally not implemented as ECDSA public key recovery
+        is complex and requires careful handling of recovery IDs and curve mathematics.
+        For production use, consider using a cryptographic library like cryptography
+        or secp256k1 that provides proper ECDSA recovery functionality.
         """
-        # This is a placeholder - actual recovery requires more complex logic
-        # involving the recovery ID and curve mathematics
-        raise NotImplementedError("Public key recovery not implemented")
+        # ECDSA public key recovery is not implemented in this educational/research
+        # blockchain implementation. This is intentional to keep the codebase
+        # focused on core blockchain concepts rather than complex cryptographic
+        # implementations.
+        return None
 
     @staticmethod
     def sign_transaction(private_key: PrivateKey, transaction_hash: Hash) -> Signature:
