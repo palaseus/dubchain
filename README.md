@@ -740,16 +740,7 @@ DubChain is built on the foundation of blockchain research and open-source contr
 - **Bitcoin**: Original blockchain implementation
 - **Ethereum**: Smart contract platform
 - **Academic Research**: Consensus and scalability research
-- **Open Source Community**: Tools and libraries used
-
-## Support
-
-For support and questions:
-
-- **Documentation**: Check the [documentation](docs/README.md)
-- **Issues**: Report issues on [GitHub Issues](https://github.com/dubchain/dubchain/issues)
-- **Discussions**: Join discussions on [GitHub Discussions](https://github.com/dubchain/dubchain/discussions)
-
+- **Open Source Community**: Tools and libraries use
 
 ## Roadmap
 
