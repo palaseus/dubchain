@@ -1,570 +1,719 @@
 """
-Advanced gossip protocol implementation for GodChain.
+Gossip Protocol Module
 
-This module provides a sophisticated gossip protocol for efficient message
-propagation across the P2P network with anti-entropy and epidemic algorithms.
+This module implements an efficient gossip protocol for message propagation including:
+- Epidemic-style message spreading
+- Message deduplication and filtering
+- Priority-based message routing
+- Network topology-aware propagation
+- Anti-spam and rate limiting mechanisms
 """
 
 import asyncio
-import random
+import hashlib
+import json
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
+import uuid
+from collections import defaultdict, deque
 
-from ..crypto.hashing import Hash, SHA256Hasher
-from ..crypto.signatures import Signature
-from .peer import Peer, PeerInfo
+from ..errors import NetworkError, ValidationError
+from ..logging import get_logger
 
+logger = get_logger(__name__)
 
 class MessageType(Enum):
     """Types of gossip messages."""
-
     BLOCK = "block"
     TRANSACTION = "transaction"
+    CONSENSUS = "consensus"
     PEER_INFO = "peer_info"
-    SYNC_REQUEST = "sync_request"
-    SYNC_RESPONSE = "sync_response"
     HEARTBEAT = "heartbeat"
-    ANNOUNCEMENT = "announcement"
-    QUERY = "query"
-    RESPONSE = "response"
     CUSTOM = "custom"
 
+class MessagePriority(Enum):
+    """Message priority levels."""
+    LOW = 1
+    NORMAL = 2
+    HIGH = 3
+    CRITICAL = 4
 
-@dataclass
-class GossipMessage:
-    """Gossip protocol message."""
-
-    message_id: str
-    message_type: MessageType
-    sender_id: str
-    content: Any
-    timestamp: int = field(default_factory=lambda: int(time.time()))
-    ttl: int = 3600  # Time to live in seconds
-    hop_count: int = 0
-    max_hops: int = 10
-    signature: Optional[Signature] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
-
-    def __post_init__(self):
-        """Validate message."""
-        if not self.message_id:
-            raise ValueError("Message ID cannot be empty")
-
-        if not self.sender_id:
-            raise ValueError("Sender ID cannot be empty")
-
-        if self.ttl <= 0:
-            raise ValueError("TTL must be positive")
-
-        if self.max_hops <= 0:
-            raise ValueError("Max hops must be positive")
-
-        if self.hop_count < 0:
-            raise ValueError("Hop count cannot be negative")
-
-    def is_expired(self) -> bool:
-        """Check if message is expired."""
-        return int(time.time()) - self.timestamp > self.ttl
-
-    def can_hop(self) -> bool:
-        """Check if message can hop further."""
-        return self.hop_count < self.max_hops and not self.is_expired()
-
-    def increment_hop(self) -> None:
-        """Increment hop count."""
-        if self.can_hop():
-            self.hop_count += 1
-
-    def get_age(self) -> int:
-        """Get message age in seconds."""
-        return int(time.time()) - self.timestamp
-
-    def get_remaining_ttl(self) -> int:
-        """Get remaining TTL in seconds."""
-        return max(0, self.ttl - self.get_age())
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary."""
-        return {
-            "message_id": self.message_id,
-            "message_type": self.message_type.value,
-            "sender_id": self.sender_id,
-            "content": self.content,
-            "timestamp": self.timestamp,
-            "ttl": self.ttl,
-            "hop_count": self.hop_count,
-            "max_hops": self.max_hops,
-            "signature": self.signature.to_hex() if self.signature else None,
-            "metadata": self.metadata,
-        }
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "GossipMessage":
-        """Create from dictionary."""
-        signature = None
-        if data.get("signature"):
-            signature = Signature.from_hex(data["signature"])
-
-        return cls(
-            message_id=data["message_id"],
-            message_type=MessageType(data["message_type"]),
-            sender_id=data["sender_id"],
-            content=data["content"],
-            timestamp=data.get("timestamp", int(time.time())),
-            ttl=data.get("ttl", 3600),
-            hop_count=data.get("hop_count", 0),
-            max_hops=data.get("max_hops", 10),
-            signature=signature,
-            metadata=data.get("metadata", {}),
-        )
-
+class PropagationStrategy(Enum):
+    """Message propagation strategies."""
+    FLOOD = "flood"
+    PUSH = "push"
+    PULL = "pull"
+    PUSH_PULL = "push_pull"
+    ADAPTIVE = "adaptive"
 
 @dataclass
 class GossipConfig:
     """Configuration for gossip protocol."""
+    max_peers: int = 50
+    message_timeout: int = 30
+    propagation_timeout: int = 60
+    max_message_size: int = 1024 * 1024  # 1MB
+    duplicate_window: int = 300  # 5 minutes
+    rate_limit_per_peer: int = 100  # messages per minute
+    enable_anti_spam: bool = True
+    enable_priority_routing: bool = True
+    enable_topology_awareness: bool = True
+    heartbeat_interval: int = 30
+    peer_discovery_interval: int = 60
+    max_retries: int = 3
+    retry_delay: float = 1.0
 
-    fanout: int = 3  # Number of peers to gossip to
-    interval: float = 1.0  # Gossip interval in seconds
-    max_messages: int = 1000  # Maximum messages to store
-    message_ttl: int = 3600  # Default message TTL
-    max_hops: int = 10  # Maximum hops for messages
-    anti_entropy_interval: float = 60.0  # Anti-entropy interval
-    push_pull_ratio: float = 0.5  # Ratio of push vs pull operations
-    duplicate_detection_window: int = 300  # Duplicate detection window in seconds
-    enable_compression: bool = True  # Enable message compression
-    enable_encryption: bool = True  # Enable message encryption
-    max_message_size: int = 1024 * 1024  # Maximum message size (1MB)
+@dataclass
+class GossipMessage:
+    """Gossip protocol message."""
+    message_id: str
+    message_type: MessageType
+    priority: MessagePriority
+    data: Dict[str, Any]
+    sender: str
+    timestamp: float
+    ttl: int = 10  # Time to live (hops)
+    signature: Optional[str] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
 
-    def __post_init__(self):
-        """Validate configuration."""
-        if self.fanout <= 0:
-            raise ValueError("Fanout must be positive")
+@dataclass
+class MessageFilter:
+    """Message filtering criteria."""
+    message_types: Set[MessageType] = field(default_factory=set)
+    priority_threshold: MessagePriority = MessagePriority.LOW
+    sender_whitelist: Set[str] = field(default_factory=set)
+    sender_blacklist: Set[str] = field(default_factory=set)
+    content_filters: List[str] = field(default_factory=list)
+    max_message_size: int = 1024 * 1024  # 1MB
 
-        if self.interval <= 0:
-            raise ValueError("Interval must be positive")
+@dataclass
+class PropagationMetrics:
+    """Metrics for message propagation."""
+    messages_sent: int = 0
+    messages_received: int = 0
+    messages_dropped: int = 0
+    duplicate_messages: int = 0
+    propagation_time: float = 0.0
+    network_coverage: float = 0.0
+    bandwidth_used: int = 0
 
-        if self.max_messages <= 0:
-            raise ValueError("Max messages must be positive")
-
-        if self.message_ttl <= 0:
-            raise ValueError("Message TTL must be positive")
-
-        if self.max_hops <= 0:
-            raise ValueError("Max hops must be positive")
-
-        if not 0 <= self.push_pull_ratio <= 1:
-            raise ValueError("Push-pull ratio must be between 0 and 1")
-
-        if self.duplicate_detection_window <= 0:
-            raise ValueError("Duplicate detection window must be positive")
-
-        if self.max_message_size <= 0:
-            raise ValueError("Max message size must be positive")
-
-
-class GossipProtocol:
-    """Advanced gossip protocol implementation."""
-
-    def __init__(self, config: GossipConfig, node_id: str):
-        """Initialize gossip protocol."""
+class MessageDeduplicator:
+    """Handles message deduplication."""
+    
+    def __init__(self, config: Dict[str, Any]):
+        """Initialize message deduplicator."""
         self.config = config
-        self.node_id = node_id
-        self.peers: Dict[str, Peer] = {}
-        self.messages: Dict[str, GossipMessage] = {}
-        self.message_history: List[str] = []
-        self.duplicate_cache: Dict[str, int] = {}
-        self.message_handlers: Dict[MessageType, Callable] = {}
-        self.gossip_task: Optional[asyncio.Task] = None
-        self.anti_entropy_task: Optional[asyncio.Task] = None
-        self.running = False
-        self._lock = asyncio.Lock()
-
-    async def start(self) -> None:
-        """Start gossip protocol."""
-        if self.running:
-            return
-
-        self.running = True
-
-        # Start gossip task
-        self.gossip_task = asyncio.create_task(self._gossip_loop())
-
-        # Start anti-entropy task
-        self.anti_entropy_task = asyncio.create_task(self._anti_entropy_loop())
-
-    async def stop(self) -> None:
-        """Stop gossip protocol."""
-        if not self.running:
-            return
-
-        self.running = False
-
-        # Cancel tasks
-        if self.gossip_task:
-            self.gossip_task.cancel()
-            try:
-                await self.gossip_task
-            except asyncio.CancelledError:
-                pass
-
-        if self.anti_entropy_task:
-            self.anti_entropy_task.cancel()
-            try:
-                await self.anti_entropy_task
-            except asyncio.CancelledError:
-                pass
-
-    def add_peer(self, peer: Peer) -> None:
-        """Add peer to gossip network."""
-        self.peers[peer.get_peer_id()] = peer
-
-    def remove_peer(self, peer_id: str) -> None:
-        """Remove peer from gossip network."""
-        if peer_id in self.peers:
-            del self.peers[peer_id]
-
-    def add_message_handler(self, message_type: MessageType, handler: Callable) -> None:
-        """Add message handler."""
-        self.message_handlers[message_type] = handler
-
-    async def broadcast_message(
-        self,
-        message_type: MessageType,
-        content: Any,
-        ttl: Optional[int] = None,
-        max_hops: Optional[int] = None,
-    ) -> str:
-        """Broadcast message to all peers."""
-        message_id = self._generate_message_id()
-
-        message = GossipMessage(
-            message_id=message_id,
-            message_type=message_type,
-            sender_id=self.node_id,
-            content=content,
-            ttl=ttl or self.config.message_ttl,
-            max_hops=max_hops or self.config.max_hops,
-        )
-
-        # Store message
-        await self._store_message(message)
-
-        # Broadcast to peers
-        await self._broadcast_to_peers(message)
-
-        return message_id
-
-    async def send_message_to_peer(
-        self,
-        peer_id: str,
-        message_type: MessageType,
-        content: Any,
-        ttl: Optional[int] = None,
-    ) -> bool:
-        """Send message to specific peer."""
-        if peer_id not in self.peers:
-            return False
-
-        message_id = self._generate_message_id()
-
-        message = GossipMessage(
-            message_id=message_id,
-            message_type=message_type,
-            sender_id=self.node_id,
-            content=content,
-            ttl=ttl or self.config.message_ttl,
-        )
-
-        # Store message
-        await self._store_message(message)
-
-        # Send to peer
-        peer = self.peers[peer_id]
-        return await self._send_message_to_peer(peer, message)
-
-    async def handle_incoming_message(
-        self, peer: Peer, message_data: Dict[str, Any]
-    ) -> None:
-        """Handle incoming gossip message."""
+        self.seen_messages: Dict[str, float] = {}
+        self.message_cache_size = config.get("cache_size", 10000)
+        self.cache_ttl = config.get("cache_ttl", 3600)  # 1 hour
+        logger.info("Initialized message deduplicator")
+    
+    def is_duplicate(self, message: GossipMessage) -> bool:
+        """Check if message is a duplicate."""
         try:
-            message = GossipMessage.from_dict(message_data)
-
-            # Check if message is expired
-            if message.is_expired():
-                return
-
-            # Check for duplicates
-            if await self._is_duplicate(message.message_id):
-                return
-
-            # Store message
-            await self._store_message(message)
-
-            # Handle message content
-            if message.message_type in self.message_handlers:
-                await self.message_handlers[message.message_type](peer, message)
-
-            # Forward message if it can hop
-            if message.can_hop():
-                message.increment_hop()
-                await self._forward_message(message, exclude_peer=peer.get_peer_id())
-
-        except Exception:
-            pass  # Ignore malformed messages
-
-    async def get_peer_messages(self, peer_id: str) -> List[GossipMessage]:
-        """Get messages that peer might not have."""
-        if peer_id not in self.peers:
-            return []
-
-        # Simple implementation: return recent messages
-        # In a real implementation, this would use vector clocks or similar
-        recent_messages = []
-        current_time = int(time.time())
-
-        for message in self.messages.values():
-            if (
-                message.sender_id != peer_id and current_time - message.timestamp < 300
-            ):  # Last 5 minutes
-                recent_messages.append(message)
-
-        return recent_messages[:50]  # Limit to 50 messages
-
-    async def sync_with_peer(self, peer_id: str) -> bool:
-        """Perform anti-entropy sync with peer."""
-        if peer_id not in self.peers:
+            current_time = time.time()
+            message_id = message.message_id
+            
+            # Check if we've seen this message recently
+            if message_id in self.seen_messages:
+                last_seen = self.seen_messages[message_id]
+                if current_time - last_seen < self.cache_ttl:
+                    return True
+            
+            # Add to seen messages
+            self.seen_messages[message_id] = current_time
+            
+            # Clean up old entries
+            self._cleanup_cache()
+            
             return False
-
-        peer = self.peers[peer_id]
-
-        try:
-            # Request sync
-            sync_message = {
-                "type": "sync_request",
-                "node_id": self.node_id,
-                "timestamp": int(time.time()),
-            }
-
-            import json
-
-            message_bytes = json.dumps(sync_message).encode("utf-8")
-            success = await peer.send_message(message_bytes)
-
-            return success
-
-        except Exception:
+            
+        except Exception as e:
+            logger.error(f"Error checking message duplication: {e}")
             return False
-
-    async def _gossip_loop(self) -> None:
-        """Main gossip loop."""
-        while self.running:
-            try:
-                await asyncio.sleep(self.config.interval)
-
-                if not self.peers:
-                    continue
-
-                # Select random peers for gossip
-                selected_peers = self._select_peers_for_gossip()
-
-                # Gossip messages to selected peers
-                for peer in selected_peers:
-                    await self._gossip_to_peer(peer)
-
-            except asyncio.CancelledError:
-                break
-            except Exception:
-                continue
-
-    async def _anti_entropy_loop(self) -> None:
-        """Anti-entropy loop for consistency."""
-        while self.running:
-            try:
-                await asyncio.sleep(self.config.anti_entropy_interval)
-
-                if not self.peers:
-                    continue
-
-                # Select random peer for anti-entropy
-                peer_id = random.choice(list(self.peers.keys()))
-                await self.sync_with_peer(peer_id)
-
-            except asyncio.CancelledError:
-                break
-            except Exception:
-                continue
-
-    def _select_peers_for_gossip(self) -> List[Peer]:
-        """Select peers for gossip."""
-        available_peers = [peer for peer in self.peers.values() if peer.is_connected()]
-
-        if not available_peers:
-            return []
-
-        # Select random peers up to fanout
-        fanout = min(self.config.fanout, len(available_peers))
-        return random.sample(available_peers, fanout)
-
-    async def _gossip_to_peer(self, peer: Peer) -> None:
-        """Gossip messages to a specific peer."""
+    
+    def _cleanup_cache(self) -> None:
+        """Clean up old cache entries."""
         try:
-            # Get messages to send
-            messages_to_send = await self.get_peer_messages(peer.get_peer_id())
-
-            if not messages_to_send:
-                return
-
-            # Send messages
-            for message in messages_to_send[:10]:  # Limit to 10 messages
-                await self._send_message_to_peer(peer, message)
-
-        except Exception:
-            pass
-
-    async def _broadcast_to_peers(self, message: GossipMessage) -> None:
-        """Broadcast message to all peers."""
-        tasks = []
-        for peer in self.peers.values():
-            if peer.is_connected():
-                task = asyncio.create_task(self._send_message_to_peer(peer, message))
-                tasks.append(task)
-
-        if tasks:
-            await asyncio.gather(*tasks, return_exceptions=True)
-
-    async def _forward_message(
-        self, message: GossipMessage, exclude_peer: Optional[str] = None
-    ) -> None:
-        """Forward message to other peers."""
-        selected_peers = self._select_peers_for_gossip()
-
-        # Remove excluded peer
-        if exclude_peer:
-            selected_peers = [
-                peer for peer in selected_peers if peer.get_peer_id() != exclude_peer
+            current_time = time.time()
+            
+            # Remove expired entries
+            expired_keys = [
+                key for key, timestamp in self.seen_messages.items()
+                if current_time - timestamp > self.cache_ttl
             ]
-
-        # Send to selected peers
-        for peer in selected_peers:
-            await self._send_message_to_peer(peer, message)
-
-    async def _send_message_to_peer(self, peer: Peer, message: GossipMessage) -> bool:
-        """Send message to specific peer."""
-        try:
-            gossip_message = {"type": "gossip", "message": message.to_dict()}
-
-            import json
-
-            message_bytes = json.dumps(gossip_message).encode("utf-8")
-
-            return await peer.send_message(message_bytes)
-
-        except Exception:
-            return False
-
-    async def _store_message(self, message: GossipMessage) -> None:
-        """Store message in local cache."""
-        async with self._lock:
-            # Add to messages
-            self.messages[message.message_id] = message
-
-            # Add to history
-            self.message_history.append(message.message_id)
-
-            # Add to duplicate cache
-            self.duplicate_cache[message.message_id] = int(time.time())
-
-            # Cleanup old messages
-            await self._cleanup_messages()
-
-    async def _is_duplicate(self, message_id: str) -> bool:
-        """Check if message is duplicate."""
-        current_time = int(time.time())
-
-        # Check in messages
-        if message_id in self.messages:
-            return True
-
-        # Check in duplicate cache
-        if message_id in self.duplicate_cache:
-            cache_time = self.duplicate_cache[message_id]
-            if current_time - cache_time < self.config.duplicate_detection_window:
-                return True
-
-        return False
-
-    async def _cleanup_messages(self) -> None:
-        """Cleanup old messages."""
-        current_time = int(time.time())
-
-        # Remove expired messages
-        expired_messages = []
-        for message_id, message in self.messages.items():
-            if message.is_expired():
-                expired_messages.append(message_id)
-
-        for message_id in expired_messages:
-            del self.messages[message_id]
-
-        # Limit message count
-        if len(self.messages) > self.config.max_messages:
-            # Remove oldest messages
-            sorted_messages = sorted(
-                self.messages.items(), key=lambda x: x[1].timestamp
-            )
-
-            messages_to_remove = len(self.messages) - self.config.max_messages
-            for message_id, _ in sorted_messages[:messages_to_remove]:
-                del self.messages[message_id]
-
-        # Cleanup duplicate cache
-        expired_duplicates = []
-        for message_id, timestamp in self.duplicate_cache.items():
-            if current_time - timestamp > self.config.duplicate_detection_window:
-                expired_duplicates.append(message_id)
-
-        for message_id in expired_duplicates:
-            del self.duplicate_cache[message_id]
-
-        # Cleanup message history
-        if len(self.message_history) > self.config.max_messages * 2:
-            self.message_history = self.message_history[-self.config.max_messages :]
-
-    def _generate_message_id(self) -> str:
-        """Generate unique message ID."""
-        timestamp = int(time.time() * 1000000)  # Microsecond precision
-        random_data = random.getrandbits(64)
-        data = f"{self.node_id}{timestamp}{random_data}".encode("utf-8")
-        return SHA256Hasher.hash(data).to_hex()[:16]
-
-    def get_stats(self) -> Dict[str, Any]:
-        """Get gossip protocol statistics."""
+            
+            for key in expired_keys:
+                del self.seen_messages[key]
+            
+            # If still too large, remove oldest entries
+            if len(self.seen_messages) > self.message_cache_size:
+                sorted_items = sorted(self.seen_messages.items(), key=lambda x: x[1])
+                items_to_remove = len(self.seen_messages) - self.message_cache_size
+                
+                for key, _ in sorted_items[:items_to_remove]:
+                    del self.seen_messages[key]
+            
+        except Exception as e:
+            logger.error(f"Error cleaning up message cache: {e}")
+    
+    def get_cache_stats(self) -> Dict[str, Any]:
+        """Get cache statistics."""
         return {
-            "node_id": self.node_id,
-            "peers_count": len(self.peers),
-            "messages_count": len(self.messages),
-            "message_history_count": len(self.message_history),
-            "duplicate_cache_count": len(self.duplicate_cache),
-            "running": self.running,
-            "config": {
-                "fanout": self.config.fanout,
-                "interval": self.config.interval,
-                "max_messages": self.config.max_messages,
-                "message_ttl": self.config.message_ttl,
-                "max_hops": self.config.max_hops,
-            },
+            "cache_size": len(self.seen_messages),
+            "max_cache_size": self.message_cache_size,
+            "cache_ttl": self.cache_ttl
         }
 
-    def __str__(self) -> str:
-        """String representation."""
-        return f"GossipProtocol(node_id={self.node_id}, peers={len(self.peers)}, messages={len(self.messages)})"
+class MessageRouter:
+    """Routes messages based on network topology and priority."""
+    
+    def __init__(self, config: Dict[str, Any]):
+        """Initialize message router."""
+        self.config = config
+        self.peer_weights: Dict[str, float] = {}
+        self.message_queues: Dict[MessagePriority, deque] = {
+            priority: deque() for priority in MessagePriority
+        }
+        self.routing_strategy = PropagationStrategy(config.get("strategy", "adaptive"))
+        logger.info("Initialized message router")
+    
+    def add_peer(self, peer_id: str, weight: float = 1.0) -> None:
+        """Add peer to routing table."""
+        self.peer_weights[peer_id] = weight
+        logger.debug(f"Added peer {peer_id} with weight {weight}")
+    
+    def remove_peer(self, peer_id: str) -> None:
+        """Remove peer from routing table."""
+        if peer_id in self.peer_weights:
+            del self.peer_weights[peer_id]
+            logger.debug(f"Removed peer {peer_id}")
+    
+    def select_peers_for_propagation(self, message: GossipMessage, available_peers: List[str], 
+                                   max_peers: int = 3) -> List[str]:
+        """Select peers for message propagation."""
+        try:
+            if not available_peers:
+                return []
+            
+            # Filter peers based on message type and priority
+            eligible_peers = self._filter_eligible_peers(message, available_peers)
+            
+            if not eligible_peers:
+                return []
+            
+            # Select peers based on strategy
+            if self.routing_strategy == PropagationStrategy.FLOOD:
+                return eligible_peers[:max_peers]
+            elif self.routing_strategy == PropagationStrategy.PUSH:
+                return self._select_push_peers(eligible_peers, max_peers)
+            elif self.routing_strategy == PropagationStrategy.PULL:
+                return self._select_pull_peers(eligible_peers, max_peers)
+            elif self.routing_strategy == PropagationStrategy.PUSH_PULL:
+                return self._select_push_pull_peers(eligible_peers, max_peers)
+            elif self.routing_strategy == PropagationStrategy.ADAPTIVE:
+                return self._select_adaptive_peers(message, eligible_peers, max_peers)
+            else:
+                return eligible_peers[:max_peers]
+                
+        except Exception as e:
+            logger.error(f"Error selecting peers for propagation: {e}")
+            return []
+    
+    def _filter_eligible_peers(self, message: GossipMessage, peers: List[str]) -> List[str]:
+        """Filter peers eligible for receiving the message."""
+        try:
+            eligible = []
+            
+            for peer_id in peers:
+                # Check if peer has weight (is active)
+                if peer_id not in self.peer_weights:
+                    continue
+                
+                # Check message-specific filters
+                if self._is_peer_eligible_for_message(message, peer_id):
+                    eligible.append(peer_id)
+            
+            return eligible
+            
+        except Exception as e:
+            logger.error(f"Error filtering eligible peers: {e}")
+            return []
+    
+    def _is_peer_eligible_for_message(self, message: GossipMessage, peer_id: str) -> bool:
+        """Check if peer is eligible for specific message."""
+        try:
+            # Check message type restrictions
+            if message.message_type == MessageType.CONSENSUS:
+                # Only send consensus messages to validators
+                return self.peer_weights.get(peer_id, 0) > 0.5
+            
+            # Check priority-based routing
+            if message.priority == MessagePriority.CRITICAL:
+                # Send critical messages to high-weight peers
+                return self.peer_weights.get(peer_id, 0) > 0.3
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error checking peer eligibility: {e}")
+            return False
+    
+    def _select_push_peers(self, peers: List[str], max_peers: int) -> List[str]:
+        """Select peers for push-based propagation."""
+        try:
+            # Sort by weight (descending)
+            sorted_peers = sorted(peers, key=lambda p: self.peer_weights.get(p, 0), reverse=True)
+            return sorted_peers[:max_peers]
+            
+        except Exception as e:
+            logger.error(f"Error selecting push peers: {e}")
+            return peers[:max_peers]
+    
+    def _select_pull_peers(self, peers: List[str], max_peers: int) -> List[str]:
+        """Select peers for pull-based propagation."""
+        try:
+            # Select peers with lower weights (to balance load)
+            sorted_peers = sorted(peers, key=lambda p: self.peer_weights.get(p, 0))
+            return sorted_peers[:max_peers]
+            
+        except Exception as e:
+            logger.error(f"Error selecting pull peers: {e}")
+            return peers[:max_peers]
+    
+    def _select_push_pull_peers(self, peers: List[str], max_peers: int) -> List[str]:
+        """Select peers for push-pull propagation."""
+        try:
+            # Mix of high and low weight peers
+            sorted_peers = sorted(peers, key=lambda p: self.peer_weights.get(p, 0), reverse=True)
+            
+            push_count = max_peers // 2
+            pull_count = max_peers - push_count
+            
+            selected = sorted_peers[:push_count]  # High weight peers
+            selected.extend(sorted_peers[-pull_count:])  # Low weight peers
+            
+            return selected[:max_peers]
+            
+        except Exception as e:
+            logger.error(f"Error selecting push-pull peers: {e}")
+            return peers[:max_peers]
+    
+    def _select_adaptive_peers(self, message: GossipMessage, peers: List[str], max_peers: int) -> List[str]:
+        """Select peers using adaptive strategy."""
+        try:
+            # Adaptive strategy based on message characteristics
+            if message.priority == MessagePriority.CRITICAL:
+                return self._select_push_peers(peers, max_peers)
+            elif message.message_type == MessageType.HEARTBEAT:
+                return self._select_pull_peers(peers, max_peers)
+            else:
+                return self._select_push_pull_peers(peers, max_peers)
+                
+        except Exception as e:
+            logger.error(f"Error selecting adaptive peers: {e}")
+            return peers[:max_peers]
+    
+    def queue_message(self, message: GossipMessage) -> None:
+        """Queue message for propagation."""
+        try:
+            self.message_queues[message.priority].append(message)
+            logger.debug(f"Queued message {message.message_id} with priority {message.priority}")
+            
+        except Exception as e:
+            logger.error(f"Error queuing message: {e}")
+    
+    def get_next_message(self) -> Optional[GossipMessage]:
+        """Get next message from queue (priority order)."""
+        try:
+            # Process messages in priority order
+            for priority in [MessagePriority.CRITICAL, MessagePriority.HIGH, 
+                           MessagePriority.NORMAL, MessagePriority.LOW]:
+                if self.message_queues[priority]:
+                    return self.message_queues[priority].popleft()
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error getting next message: {e}")
+            return None
+    
+    def get_queue_stats(self) -> Dict[str, int]:
+        """Get message queue statistics."""
+        return {
+            priority.name: len(queue) 
+            for priority, queue in self.message_queues.items()
+        }
 
-    def __repr__(self) -> str:
-        """Detailed representation."""
-        return (
-            f"GossipProtocol(node_id={self.node_id}, peers={len(self.peers)}, "
-            f"messages={len(self.messages)}, running={self.running})"
-        )
+class AntiSpamFilter:
+    """Anti-spam and rate limiting for gossip messages."""
+    
+    def __init__(self, config: Dict[str, Any]):
+        """Initialize anti-spam filter."""
+        self.config = config
+        self.sender_rates: Dict[str, deque] = defaultdict(deque)
+        self.message_rates: Dict[str, deque] = defaultdict(deque)
+        self.blocked_senders: Set[str] = set()
+        
+        # Rate limiting parameters
+        self.max_messages_per_second = config.get("max_messages_per_second", 10)
+        self.max_messages_per_minute = config.get("max_messages_per_minute", 100)
+        self.block_duration = config.get("block_duration", 300)  # 5 minutes
+        
+        logger.info("Initialized anti-spam filter")
+    
+    def is_allowed(self, message: GossipMessage) -> Tuple[bool, str]:
+        """Check if message is allowed (not spam)."""
+        try:
+            sender = message.sender
+            current_time = time.time()
+            
+            # Check if sender is blocked
+            if sender in self.blocked_senders:
+                return False, "Sender is blocked"
+            
+            # Check sender rate limits
+            if not self._check_sender_rate_limit(sender, current_time):
+                self._block_sender(sender)
+                return False, "Sender rate limit exceeded"
+            
+            # Check message type rate limits
+            message_type = message.message_type.value
+            if not self._check_message_type_rate_limit(message_type, current_time):
+                return False, "Message type rate limit exceeded"
+            
+            # Check message size
+            message_size = len(json.dumps(message.data))
+            max_size = self.config.get("max_message_size", 1024 * 1024)
+            if message_size > max_size:
+                return False, "Message too large"
+            
+            return True, "Allowed"
+            
+        except Exception as e:
+            logger.error(f"Error checking message allowance: {e}")
+            return False, "Error checking message"
+    
+    def _check_sender_rate_limit(self, sender: str, current_time: float) -> bool:
+        """Check sender rate limits."""
+        try:
+            # Clean old timestamps
+            self._cleanup_timestamps(self.sender_rates[sender], current_time)
+            
+            # Check per-second limit
+            recent_messages = [t for t in self.sender_rates[sender] if current_time - t < 1.0]
+            if len(recent_messages) >= self.max_messages_per_second:
+                return False
+            
+            # Check per-minute limit
+            recent_messages = [t for t in self.sender_rates[sender] if current_time - t < 60.0]
+            if len(recent_messages) >= self.max_messages_per_minute:
+                return False
+            
+            # Add current timestamp
+            self.sender_rates[sender].append(current_time)
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error checking sender rate limit: {e}")
+            return False
+    
+    def _check_message_type_rate_limit(self, message_type: str, current_time: float) -> bool:
+        """Check message type rate limits."""
+        try:
+            # Clean old timestamps
+            self._cleanup_timestamps(self.message_rates[message_type], current_time)
+            
+            # Check per-minute limit for message type
+            max_per_minute = self.config.get("max_per_message_type_per_minute", 50)
+            recent_messages = [t for t in self.message_rates[message_type] if current_time - t < 60.0]
+            
+            if len(recent_messages) >= max_per_minute:
+                return False
+            
+            # Add current timestamp
+            self.message_rates[message_type].append(current_time)
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error checking message type rate limit: {e}")
+            return False
+    
+    def _cleanup_timestamps(self, timestamps: deque, current_time: float) -> None:
+        """Clean up old timestamps."""
+        try:
+            cutoff_time = current_time - 300  # Keep last 5 minutes
+            while timestamps and timestamps[0] < cutoff_time:
+                timestamps.popleft()
+                
+        except Exception as e:
+            logger.error(f"Error cleaning up timestamps: {e}")
+    
+    def _block_sender(self, sender: str) -> None:
+        """Block a sender temporarily."""
+        try:
+            self.blocked_senders.add(sender)
+            logger.warning(f"Blocked sender {sender} for spam")
+            
+            # Schedule unblock
+            asyncio.create_task(self._unblock_sender_after_delay(sender))
+            
+        except Exception as e:
+            logger.error(f"Error blocking sender: {e}")
+    
+    async def _unblock_sender_after_delay(self, sender: str) -> None:
+        """Unblock sender after delay."""
+        try:
+            await asyncio.sleep(self.block_duration)
+            self.blocked_senders.discard(sender)
+            logger.info(f"Unblocked sender {sender}")
+            
+        except Exception as e:
+            logger.error(f"Error unblocking sender: {e}")
+    
+    def get_stats(self) -> Dict[str, Any]:
+        """Get anti-spam filter statistics."""
+        return {
+            "blocked_senders": len(self.blocked_senders),
+            "active_senders": len(self.sender_rates),
+            "active_message_types": len(self.message_rates)
+        }
+
+class GossipProtocol:
+    """Main gossip protocol implementation."""
+    
+    def __init__(self, config: Dict[str, Any], peer_manager):
+        """Initialize gossip protocol."""
+        self.config = config
+        self.peer_manager = peer_manager
+        
+        # Initialize components
+        self.deduplicator = MessageDeduplicator(config.get("deduplication", {}))
+        self.router = MessageRouter(config.get("routing", {}))
+        self.anti_spam = AntiSpamFilter(config.get("anti_spam", {}))
+        
+        # Message filters
+        self.message_filter = MessageFilter()
+        
+        # Metrics
+        self.metrics = PropagationMetrics()
+        
+        # Propagation settings
+        self.max_propagation_hops = config.get("max_propagation_hops", 10)
+        self.propagation_timeout = config.get("propagation_timeout", 30)
+        
+        logger.info("Initialized gossip protocol")
+    
+    async def propagate_message(self, message: GossipMessage, exclude_peers: Set[str] = None) -> bool:
+        """Propagate a message through the network."""
+        try:
+            exclude_peers = exclude_peers or set()
+            
+            # Check if message is allowed
+            allowed, reason = self.anti_spam.is_allowed(message)
+            if not allowed:
+                logger.warning(f"Message {message.message_id} blocked: {reason}")
+                self.metrics.messages_dropped += 1
+                return False
+            
+            # Check if message is duplicate
+            if self.deduplicator.is_duplicate(message):
+                logger.debug(f"Duplicate message {message.message_id} dropped")
+                self.metrics.duplicate_messages += 1
+                return False
+            
+            # Apply message filter
+            if not self._passes_filter(message):
+                logger.debug(f"Message {message.message_id} filtered out")
+                self.metrics.messages_dropped += 1
+                return False
+            
+            # Get available peers
+            available_peers = [
+                peer_id for peer_id in self.peer_manager.get_connected_peers()
+                if peer_id not in exclude_peers and peer_id != message.sender
+            ]
+            
+            if not available_peers:
+                logger.debug(f"No peers available for message {message.message_id}")
+                return False
+            
+            # Select peers for propagation
+            selected_peers = self.router.select_peers_for_propagation(
+                message, available_peers, max_peers=self.config.get("max_propagation_peers", 3)
+            )
+            
+            if not selected_peers:
+                logger.debug(f"No peers selected for message {message.message_id}")
+                return False
+            
+            # Propagate to selected peers
+            propagation_tasks = []
+            for peer_id in selected_peers:
+                task = self._send_to_peer(peer_id, message)
+                propagation_tasks.append(task)
+            
+            # Wait for propagation to complete
+            results = await asyncio.gather(*propagation_tasks, return_exceptions=True)
+            
+            # Count successful propagations
+            successful = sum(1 for result in results if result is True)
+            
+            # Update metrics
+            self.metrics.messages_sent += len(selected_peers)
+            self.metrics.network_coverage = successful / len(selected_peers) if selected_peers else 0
+            
+            logger.info(f"Propagated message {message.message_id} to {successful}/{len(selected_peers)} peers")
+            return successful > 0
+            
+        except Exception as e:
+            logger.error(f"Error propagating message {message.message_id}: {e}")
+            return False
+    
+    async def _send_to_peer(self, peer_id: str, message: GossipMessage) -> bool:
+        """Send message to a specific peer."""
+        try:
+            # Create gossip message
+            gossip_data = {
+                "type": "gossip_message",
+                "message": {
+                    "message_id": message.message_id,
+                    "message_type": message.message_type.value,
+                    "priority": message.priority.value,
+                    "data": message.data,
+                    "sender": message.sender,
+                    "timestamp": message.timestamp,
+                    "ttl": message.ttl,
+                    "signature": message.signature,
+                    "metadata": message.metadata
+                }
+            }
+            
+            # Send message
+            success = await self.peer_manager.send_message(peer_id, gossip_data)
+            
+            if success:
+                logger.debug(f"Sent gossip message {message.message_id} to peer {peer_id}")
+            else:
+                logger.warning(f"Failed to send gossip message {message.message_id} to peer {peer_id}")
+            
+            return success
+            
+        except Exception as e:
+            logger.error(f"Error sending message to peer {peer_id}: {e}")
+            return False
+    
+    async def handle_received_message(self, peer_id: str, message_data: Dict[str, Any]) -> bool:
+        """Handle received gossip message."""
+        try:
+            if message_data.get("type") != "gossip_message":
+                return False
+            
+            message_info = message_data["message"]
+            
+            # Create GossipMessage object
+            message = GossipMessage(
+                message_id=message_info["message_id"],
+                message_type=MessageType(message_info["message_type"]),
+                priority=MessagePriority(message_info["priority"]),
+                data=message_info["data"],
+                sender=message_info["sender"],
+                timestamp=message_info["timestamp"],
+                ttl=message_info["ttl"],
+                signature=message_info.get("signature"),
+                metadata=message_info.get("metadata", {})
+            )
+            
+            # Check TTL
+            if message.ttl <= 0:
+                logger.debug(f"Message {message.message_id} TTL expired")
+                return False
+            
+            # Decrement TTL
+            message.ttl -= 1
+            
+            # Update metrics
+            self.metrics.messages_received += 1
+            
+            # Check if we should propagate further
+            if message.ttl > 0:
+                # Add current peer to exclude list
+                exclude_peers = {peer_id, message.sender}
+                
+                # Propagate message
+                await self.propagate_message(message, exclude_peers)
+            
+            logger.debug(f"Handled gossip message {message.message_id} from peer {peer_id}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error handling received message from peer {peer_id}: {e}")
+            return False
+    
+    def _passes_filter(self, message: GossipMessage) -> bool:
+        """Check if message passes the filter."""
+        try:
+            # Check message type
+            if self.message_filter.message_types and message.message_type not in self.message_filter.message_types:
+                return False
+            
+            # Check priority threshold
+            if message.priority.value < self.message_filter.priority_threshold.value:
+                return False
+            
+            # Check sender whitelist
+            if self.message_filter.sender_whitelist and message.sender not in self.message_filter.sender_whitelist:
+                return False
+            
+            # Check sender blacklist
+            if message.sender in self.message_filter.sender_blacklist:
+                return False
+            
+            # Check message size
+            message_size = len(json.dumps(message.data))
+            if message_size > self.message_filter.max_message_size:
+                return False
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error checking message filter: {e}")
+            return False
+    
+    def set_message_filter(self, filter_config: MessageFilter) -> None:
+        """Set message filter configuration."""
+        self.message_filter = filter_config
+        logger.info("Updated message filter configuration")
+    
+    def get_propagation_metrics(self) -> PropagationMetrics:
+        """Get propagation metrics."""
+        return self.metrics
+    
+    def get_deduplicator_stats(self) -> Dict[str, Any]:
+        """Get deduplicator statistics."""
+        return self.deduplicator.get_cache_stats()
+    
+    def get_router_stats(self) -> Dict[str, int]:
+        """Get router statistics."""
+        return self.router.get_queue_stats()
+    
+    def get_anti_spam_stats(self) -> Dict[str, Any]:
+        """Get anti-spam filter statistics."""
+        return self.anti_spam.get_stats()
+
+__all__ = [
+    "GossipProtocol",
+    "MessageDeduplicator",
+    "MessageRouter",
+    "AntiSpamFilter",
+    "GossipMessage",
+    "MessageFilter",
+    "PropagationMetrics",
+    "MessageType",
+    "MessagePriority",
+    "PropagationStrategy",
+]

@@ -780,7 +780,9 @@ class TestEnhancedShardManager:
         )
         
         assert plan_id is not None
-        assert plan_id in manager.resharding_manager.active_plans
+        # The plan might be in active_plans or completed_plans depending on execution timing
+        assert (plan_id in manager.resharding_manager.active_plans or 
+                any(plan.plan_id == plan_id for plan in manager.resharding_manager.completed_plans))
     
     def test_performance_metrics(self, manager):
         """Test performance metrics collection."""

@@ -17,692 +17,648 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union
 
-from .database import DatabaseBackend, DatabaseError
+from ..errors import ClientError
+from ..logging import get_logger
 
+logger = get_logger(__name__)
 
 class MigrationError(Exception):
     """Base exception for migration operations."""
-
     pass
-
 
 class MigrationVersionError(MigrationError):
     """Migration version error."""
-
     pass
-
 
 class MigrationConflictError(MigrationError):
     """Migration conflict error."""
-
     pass
-
 
 class MigrationRollbackError(MigrationError):
     """Migration rollback error."""
-
     pass
-
 
 class MigrationStatus(Enum):
     """Migration status."""
-
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
     ROLLED_BACK = "rolled_back"
 
+class MigrationType(Enum):
+    """Migration type."""
+    SCHEMA = "schema"
+    DATA = "data"
+    INDEX = "index"
+    CONSTRAINT = "constraint"
+    FUNCTION = "function"
+    TRIGGER = "trigger"
 
 @dataclass
 class Migration:
-    """Database migration definition."""
-
+    """Migration definition."""
     version: str
     name: str
     description: str
+    migration_type: MigrationType
     up_sql: str
     down_sql: str
     dependencies: List[str] = field(default_factory=list)
-    rollback_safe: bool = True
-    batch_size: int = 1000
-    timeout: int = 300  # seconds
-
-    # Custom migration functions
-    up_function: Optional[Callable[[DatabaseBackend], None]] = None
-    down_function: Optional[Callable[[DatabaseBackend], None]] = None
-
-    # Validation
-    validate_up: Optional[Callable[[DatabaseBackend], bool]] = None
-    validate_down: Optional[Callable[[DatabaseBackend], bool]] = None
-
-    # Metadata
-    author: str = "DubChain Team"
     created_at: float = field(default_factory=time.time)
-    tags: List[str] = field(default_factory=list)
-
-
-@dataclass
-class MigrationRecord:
-    """Migration execution record."""
-
-    version: str
-    name: str
-    status: MigrationStatus
-    started_at: float
-    completed_at: Optional[float] = None
-    execution_time: float = 0.0
+    executed_at: Optional[float] = None
+    status: MigrationStatus = MigrationStatus.PENDING
     error_message: Optional[str] = None
-    batch_count: int = 0
-    rows_affected: int = 0
-
+    rollback_at: Optional[float] = None
 
 @dataclass
-class MigrationPlan:
-    """Migration execution plan."""
+class MigrationConfig:
+    """Migration configuration."""
+    migrations_dir: str = "migrations"
+    database_url: str = "sqlite:///dubchain.db"
+    backup_dir: str = "backups"
+    max_retries: int = 3
+    timeout: int = 300  # seconds
+    enable_backup: bool = True
+    enable_rollback: bool = True
 
-    migrations: List[Migration]
-    total_count: int
-    estimated_time: float
-    rollback_plan: List[str]
-    dependencies_resolved: bool = True
+class MigrationExecutor(ABC):
+    """Abstract migration executor."""
+    
+    @abstractmethod
+    def execute_up(self, migration: Migration) -> bool:
+        """Execute migration up."""
+        pass
+    
+    @abstractmethod
+    def execute_down(self, migration: Migration) -> bool:
+        """Execute migration down."""
+        pass
 
-
-class MigrationValidator:
-    """Migration validation utilities."""
-
-    @staticmethod
-    def validate_version(version: str) -> bool:
-        """Validate migration version format."""
-        # Support formats: 1, 1.0, 1.0.0, 20231201, 20231201_001
-        patterns = [
-            r"^\d+$",  # 1
-            r"^\d+\.\d+$",  # 1.0
-            r"^\d+\.\d+\.\d+$",  # 1.0.0
-            r"^\d{8}$",  # 20231201
-            r"^\d{8}_\d{3}$",  # 20231201_001
-        ]
-
-        return any(re.match(pattern, version) for pattern in patterns)
-
-    @staticmethod
-    def validate_sql(sql: str) -> bool:
-        """Validate SQL syntax."""
+class SQLiteMigrationExecutor(MigrationExecutor):
+    """SQLite migration executor."""
+    
+    def __init__(self, database_path: str):
+        """Initialize SQLite executor."""
+        self.database_path = database_path
+        self.connection = None
+        logger.info(f"Initialized SQLite migration executor for {database_path}")
+    
+    def _get_connection(self) -> sqlite3.Connection:
+        """Get database connection."""
+        if self.connection is None:
+            self.connection = sqlite3.connect(self.database_path)
+            self.connection.row_factory = sqlite3.Row
+        return self.connection
+    
+    def execute_up(self, migration: Migration) -> bool:
+        """Execute migration up."""
         try:
-            # Basic SQL validation
-            sql_upper = sql.upper().strip()
-
-            # Check for dangerous operations
-            dangerous_ops = ["DROP DATABASE", "DROP SCHEMA", "TRUNCATE"]
-            for op in dangerous_ops:
-                if op in sql_upper:
-                    return False
-
-            # Check for required semicolon
-            if not sql_upper.endswith(";"):
-                return False
-
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            # Execute the up migration
+            cursor.executescript(migration.up_sql)
+            conn.commit()
+            
+            logger.info(f"Successfully executed migration {migration.version}: {migration.name}")
             return True
+            
+        except Exception as e:
+            logger.error(f"Failed to execute migration {migration.version}: {e}")
+            if self.connection:
+                self.connection.rollback()
+            return False
+    
+    def execute_down(self, migration: Migration) -> bool:
+        """Execute migration down."""
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            # Execute the down migration
+            cursor.executescript(migration.down_sql)
+            conn.commit()
+            
+            logger.info(f"Successfully rolled back migration {migration.version}: {migration.name}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to roll back migration {migration.version}: {e}")
+            if self.connection:
+                self.connection.rollback()
+            return False
+    
+    def close(self):
+        """Close database connection."""
+        if self.connection:
+            self.connection.close()
+            self.connection = None
 
-        except Exception:
+class MigrationRegistry:
+    """Migration registry for tracking migrations."""
+    
+    def __init__(self, config: MigrationConfig):
+        """Initialize migration registry."""
+        self.config = config
+        self.migrations: Dict[str, Migration] = {}
+        self.executor = self._create_executor()
+        self._ensure_migrations_table()
+        logger.info("Initialized migration registry")
+    
+    def _create_executor(self) -> MigrationExecutor:
+        """Create appropriate migration executor."""
+        if self.config.database_url.startswith("sqlite"):
+            db_path = self.config.database_url.replace("sqlite:///", "")
+            return SQLiteMigrationExecutor(db_path)
+        else:
+            raise MigrationError(f"Unsupported database: {self.config.database_url}")
+    
+    def _ensure_migrations_table(self):
+        """Ensure migrations table exists."""
+        try:
+            conn = self.executor._get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS schema_migrations (
+                    version TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    description TEXT,
+                    migration_type TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    executed_at REAL,
+                    error_message TEXT,
+                    rollback_at REAL,
+                    created_at REAL NOT NULL
+                )
+            """)
+            
+            conn.commit()
+            logger.info("Migrations table ensured")
+            
+        except Exception as e:
+            logger.error(f"Failed to create migrations table: {e}")
+            raise MigrationError(f"Failed to create migrations table: {e}")
+    
+    def register_migration(self, migration: Migration) -> None:
+        """Register a migration."""
+        self.migrations[migration.version] = migration
+        logger.info(f"Registered migration {migration.version}: {migration.name}")
+    
+    def get_migration(self, version: str) -> Optional[Migration]:
+        """Get migration by version."""
+        return self.migrations.get(version)
+    
+    def get_pending_migrations(self) -> List[Migration]:
+        """Get pending migrations."""
+        return [m for m in self.migrations.values() if m.status == MigrationStatus.PENDING]
+    
+    def get_completed_migrations(self) -> List[Migration]:
+        """Get completed migrations."""
+        return [m for m in self.migrations.values() if m.status == MigrationStatus.COMPLETED]
+    
+    def get_failed_migrations(self) -> List[Migration]:
+        """Get failed migrations."""
+        return [m for m in self.migrations.values() if m.status == MigrationStatus.FAILED]
+    
+    def load_migrations_from_db(self) -> None:
+        """Load migration status from database."""
+        try:
+            conn = self.executor._get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("SELECT * FROM schema_migrations")
+            rows = cursor.fetchall()
+            
+            for row in rows:
+                version = row['version']
+                if version in self.migrations:
+                    migration = self.migrations[version]
+                    migration.status = MigrationStatus(row['status'])
+                    migration.executed_at = row['executed_at']
+                    migration.error_message = row['error_message']
+                    migration.rollback_at = row['rollback_at']
+            
+            logger.info(f"Loaded {len(rows)} migration statuses from database")
+            
+        except Exception as e:
+            logger.error(f"Failed to load migrations from database: {e}")
+            raise MigrationError(f"Failed to load migrations from database: {e}")
+    
+    def save_migration_status(self, migration: Migration) -> None:
+        """Save migration status to database."""
+        try:
+            conn = self.executor._get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                INSERT OR REPLACE INTO schema_migrations 
+                (version, name, description, migration_type, status, executed_at, error_message, rollback_at, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                migration.version,
+                migration.name,
+                migration.description,
+                migration.migration_type.value,
+                migration.status.value,
+                migration.executed_at,
+                migration.error_message,
+                migration.rollback_at,
+                migration.created_at
+            ))
+            
+            conn.commit()
+            logger.info(f"Saved migration status for {migration.version}")
+            
+        except Exception as e:
+            logger.error(f"Failed to save migration status: {e}")
+            raise MigrationError(f"Failed to save migration status: {e}")
+
+class MigrationRunner:
+    """Migration runner for executing migrations."""
+    
+    def __init__(self, registry: MigrationRegistry):
+        """Initialize migration runner."""
+        self.registry = registry
+        self.config = registry.config
+        self.backup_manager = BackupManager(self.config) if self.config.enable_backup else None
+        logger.info("Initialized migration runner")
+    
+    def run_migrations(self, target_version: Optional[str] = None) -> bool:
+        """Run pending migrations."""
+        try:
+            logger.info("Starting migration run")
+            
+            # Load current migration status
+            self.registry.load_migrations_from_db()
+            
+            # Get migrations to run
+            migrations_to_run = self._get_migrations_to_run(target_version)
+            
+            if not migrations_to_run:
+                logger.info("No migrations to run")
+                return True
+            
+            # Create backup if enabled
+            if self.backup_manager:
+                backup_path = self.backup_manager.create_backup()
+                logger.info(f"Created backup: {backup_path}")
+            
+            # Run migrations
+            for migration in migrations_to_run:
+                if not self._run_single_migration(migration):
+                    logger.error(f"Migration {migration.version} failed")
+                    return False
+            
+            logger.info(f"Successfully ran {len(migrations_to_run)} migrations")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Migration run failed: {e}")
+            return False
+    
+    def rollback_migrations(self, target_version: str) -> bool:
+        """Rollback migrations to target version."""
+        try:
+            logger.info(f"Starting rollback to version {target_version}")
+            
+            # Load current migration status
+            self.registry.load_migrations_from_db()
+            
+            # Get migrations to rollback
+            migrations_to_rollback = self._get_migrations_to_rollback(target_version)
+            
+            if not migrations_to_rollback:
+                logger.info("No migrations to rollback")
+                return True
+            
+            # Create backup if enabled
+            if self.backup_manager:
+                backup_path = self.backup_manager.create_backup()
+                logger.info(f"Created backup: {backup_path}")
+            
+            # Rollback migrations
+            for migration in reversed(migrations_to_rollback):
+                if not self._rollback_single_migration(migration):
+                    logger.error(f"Rollback of migration {migration.version} failed")
+                    return False
+            
+            logger.info(f"Successfully rolled back {len(migrations_to_rollback)} migrations")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Migration rollback failed: {e}")
+            return False
+    
+    def _get_migrations_to_run(self, target_version: Optional[str] = None) -> List[Migration]:
+        """Get migrations to run."""
+        pending_migrations = self.registry.get_pending_migrations()
+        
+        if target_version:
+            # Run up to target version
+            migrations_to_run = []
+            for migration in sorted(pending_migrations, key=lambda m: m.version):
+                migrations_to_run.append(migration)
+                if migration.version == target_version:
+                    break
+            return migrations_to_run
+        else:
+            # Run all pending migrations
+            return sorted(pending_migrations, key=lambda m: m.version)
+    
+    def _get_migrations_to_rollback(self, target_version: str) -> List[Migration]:
+        """Get migrations to rollback."""
+        completed_migrations = self.registry.get_completed_migrations()
+        
+        migrations_to_rollback = []
+        for migration in sorted(completed_migrations, key=lambda m: m.version, reverse=True):
+            migrations_to_rollback.append(migration)
+            if migration.version == target_version:
+                break
+        
+        return migrations_to_rollback
+    
+    def _run_single_migration(self, migration: Migration) -> bool:
+        """Run a single migration."""
+        try:
+            logger.info(f"Running migration {migration.version}: {migration.name}")
+            
+            # Update status to running
+            migration.status = MigrationStatus.RUNNING
+            self.registry.save_migration_status(migration)
+            
+            # Execute migration
+            success = self.registry.executor.execute_up(migration)
+            
+            if success:
+                # Update status to completed
+                migration.status = MigrationStatus.COMPLETED
+                migration.executed_at = time.time()
+                migration.error_message = None
+                self.registry.save_migration_status(migration)
+                
+                logger.info(f"Migration {migration.version} completed successfully")
+                return True
+            else:
+                # Update status to failed
+                migration.status = MigrationStatus.FAILED
+                migration.error_message = "Migration execution failed"
+                self.registry.save_migration_status(migration)
+                
+                logger.error(f"Migration {migration.version} failed")
+                return False
+                
+        except Exception as e:
+            # Update status to failed
+            migration.status = MigrationStatus.FAILED
+            migration.error_message = str(e)
+            self.registry.save_migration_status(migration)
+            
+            logger.error(f"Migration {migration.version} failed with exception: {e}")
+            return False
+    
+    def _rollback_single_migration(self, migration: Migration) -> bool:
+        """Rollback a single migration."""
+        try:
+            logger.info(f"Rolling back migration {migration.version}: {migration.name}")
+            
+            # Execute rollback
+            success = self.registry.executor.execute_down(migration)
+            
+            if success:
+                # Update status to rolled back
+                migration.status = MigrationStatus.ROLLED_BACK
+                migration.rollback_at = time.time()
+                migration.error_message = None
+                self.registry.save_migration_status(migration)
+                
+                logger.info(f"Migration {migration.version} rolled back successfully")
+                return True
+            else:
+                logger.error(f"Rollback of migration {migration.version} failed")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Rollback of migration {migration.version} failed with exception: {e}")
             return False
 
-    @staticmethod
-    def validate_dependencies(migrations: List[Migration]) -> bool:
-        """Validate migration dependencies."""
-        versions = {m.version for m in migrations}
-
-        for migration in migrations:
-            for dep in migration.dependencies:
-                if dep not in versions:
-                    return False
-
-        return True
-
-
-class MigrationExecutor:
-    """Migration execution engine."""
-
-    def __init__(self, backend: DatabaseBackend):
-        self.backend = backend
-        self._logger = logging.getLogger(__name__)
-        self._lock = threading.RLock()
-
-    def execute_migration(self, migration: Migration) -> MigrationRecord:
-        """Execute a single migration."""
-        with self._lock:
-            record = MigrationRecord(
-                version=migration.version,
-                name=migration.name,
-                status=MigrationStatus.RUNNING,
-                started_at=time.time(),
-            )
-
-            try:
-                self._logger.info(
-                    f"Executing migration {migration.version}: {migration.name}"
-                )
-
-                # Validate migration
-                if not MigrationValidator.validate_version(migration.version):
-                    raise MigrationVersionError(
-                        f"Invalid migration version: {migration.version}"
-                    )
-
-                if not MigrationValidator.validate_sql(migration.up_sql):
-                    raise MigrationError(
-                        f"Invalid SQL in migration {migration.version}"
-                    )
-
-                # Execute migration
-                if migration.up_function:
-                    migration.up_function(self.backend)
-                else:
-                    self._execute_sql(migration.up_sql, migration.batch_size)
-
-                # Validate migration result
-                if migration.validate_up:
-                    if not migration.validate_up(self.backend):
-                        raise MigrationError(
-                            f"Migration validation failed: {migration.version}"
-                        )
-
-                # Update record
-                record.status = MigrationStatus.COMPLETED
-                record.completed_at = time.time()
-                record.execution_time = record.completed_at - record.started_at
-
-                self._logger.info(
-                    f"Migration {migration.version} completed successfully"
-                )
-
-            except Exception as e:
-                record.status = MigrationStatus.FAILED
-                record.error_message = str(e)
-                record.completed_at = time.time()
-                record.execution_time = record.completed_at - record.started_at
-
-                self._logger.error(f"Migration {migration.version} failed: {e}")
-                raise MigrationError(f"Migration {migration.version} failed: {e}")
-
-            return record
-
-    def rollback_migration(self, migration: Migration) -> MigrationRecord:
-        """Rollback a single migration."""
-        with self._lock:
-            record = MigrationRecord(
-                version=migration.version,
-                name=migration.name,
-                status=MigrationStatus.RUNNING,
-                started_at=time.time(),
-            )
-
-            try:
-                self._logger.info(
-                    f"Rolling back migration {migration.version}: {migration.name}"
-                )
-
-                if not migration.rollback_safe:
-                    raise MigrationRollbackError(
-                        f"Migration {migration.version} is not rollback safe"
-                    )
-
-                # Execute rollback
-                if migration.down_function:
-                    migration.down_function(self.backend)
-                else:
-                    self._execute_sql(migration.down_sql, migration.batch_size)
-
-                # Validate rollback result
-                if migration.validate_down:
-                    if not migration.validate_down(self.backend):
-                        raise MigrationError(
-                            f"Rollback validation failed: {migration.version}"
-                        )
-
-                # Update record
-                record.status = MigrationStatus.ROLLED_BACK
-                record.completed_at = time.time()
-                record.execution_time = record.completed_at - record.started_at
-
-                self._logger.info(
-                    f"Migration {migration.version} rolled back successfully"
-                )
-
-            except Exception as e:
-                record.status = MigrationStatus.FAILED
-                record.error_message = str(e)
-                record.completed_at = time.time()
-                record.execution_time = record.completed_at - record.started_at
-
-                self._logger.error(
-                    f"Migration {migration.version} rollback failed: {e}"
-                )
-                raise MigrationRollbackError(
-                    f"Migration {migration.version} rollback failed: {e}"
-                )
-
-            return record
-
-    def _execute_sql(self, sql: str, batch_size: int) -> None:
-        """Execute SQL with batching support."""
-        # Split SQL into individual statements
-        statements = [stmt.strip() for stmt in sql.split(";") if stmt.strip()]
-
-        for statement in statements:
-            if statement.upper().startswith("SELECT"):
-                # SELECT statements don't need batching
-                self.backend.execute_query(statement)
+class BackupManager:
+    """Backup manager for migrations."""
+    
+    def __init__(self, config: MigrationConfig):
+        """Initialize backup manager."""
+        self.config = config
+        self.backup_dir = Path(config.backup_dir)
+        self.backup_dir.mkdir(parents=True, exist_ok=True)
+        logger.info("Initialized backup manager")
+    
+    def create_backup(self) -> str:
+        """Create database backup."""
+        try:
+            timestamp = int(time.time())
+            backup_filename = f"backup_{timestamp}.db"
+            backup_path = self.backup_dir / backup_filename
+            
+            # Copy database file
+            if self.config.database_url.startswith("sqlite"):
+                db_path = self.config.database_url.replace("sqlite:///", "")
+                
+                import shutil
+                shutil.copy2(db_path, backup_path)
+                
+                logger.info(f"Created backup: {backup_path}")
+                return str(backup_path)
             else:
-                # For INSERT/UPDATE/DELETE, we might need batching
-                # For now, execute directly
-                self.backend.execute_query(statement)
+                raise MigrationError("Backup only supported for SQLite databases")
+                
+        except Exception as e:
+            logger.error(f"Failed to create backup: {e}")
+            raise MigrationError(f"Failed to create backup: {e}")
+    
+    def restore_backup(self, backup_path: str) -> bool:
+        """Restore database from backup."""
+        try:
+            if self.config.database_url.startswith("sqlite"):
+                db_path = self.config.database_url.replace("sqlite:///", "")
+                
+                import shutil
+                shutil.copy2(backup_path, db_path)
+                
+                logger.info(f"Restored backup: {backup_path}")
+                return True
+            else:
+                raise MigrationError("Restore only supported for SQLite databases")
+                
+        except Exception as e:
+            logger.error(f"Failed to restore backup: {e}")
+            return False
 
-
-class MigrationManager:
-    """Database migration manager."""
-
-    def __init__(self, backend: DatabaseBackend, migrations_dir: str = "migrations"):
-        self.backend = backend
+class MigrationLoader:
+    """Migration loader for loading migrations from files."""
+    
+    def __init__(self, migrations_dir: str):
+        """Initialize migration loader."""
         self.migrations_dir = Path(migrations_dir)
-        self.executor = MigrationExecutor(backend)
-        self._migrations: Dict[str, Migration] = {}
-        self._records: Dict[str, MigrationRecord] = {}
-        self._lock = threading.RLock()
-        self._logger = logging.getLogger(__name__)
-
-        # Ensure migrations directory exists
         self.migrations_dir.mkdir(parents=True, exist_ok=True)
-
-        # Initialize migration tracking table
-        self._init_migration_table()
-
-    def _init_migration_table(self) -> None:
-        """Initialize migration tracking table."""
-        create_table_sql = """
-        CREATE TABLE IF NOT EXISTS migrations (
-            version TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            status TEXT NOT NULL,
-            started_at REAL NOT NULL,
-            completed_at REAL,
-            execution_time REAL DEFAULT 0,
-            error_message TEXT,
-            batch_count INTEGER DEFAULT 0,
-            rows_affected INTEGER DEFAULT 0,
-            created_at REAL DEFAULT (julianday('now'))
-        )
-        """
-
-        self.backend.execute_query(create_table_sql)
-
-    def load_migrations(self) -> None:
+        logger.info(f"Initialized migration loader for {migrations_dir}")
+    
+    def load_migrations(self) -> List[Migration]:
         """Load migrations from directory."""
-        with self._lock:
-            self._migrations.clear()
-
-            if not self.migrations_dir.exists():
-                self._logger.warning(
-                    f"Migrations directory not found: {self.migrations_dir}"
-                )
-                return
-
-            # Load migration files
-            for file_path in sorted(self.migrations_dir.glob("*.py")):
-                try:
-                    migration = self._load_migration_file(file_path)
-                    if migration:
-                        self._migrations[migration.version] = migration
-                        self._logger.debug(f"Loaded migration: {migration.version}")
-                except Exception as e:
-                    self._logger.error(f"Failed to load migration {file_path}: {e}")
-
-            # Load migration records from database
-            self._load_migration_records()
-
-            self._logger.info(f"Loaded {len(self._migrations)} migrations")
-
-    def _load_migration_file(self, file_path: Path) -> Optional[Migration]:
-        """Load a single migration file."""
+        migrations = []
+        
+        try:
+            for file_path in self.migrations_dir.glob("*.py"):
+                migration = self._load_migration_from_file(file_path)
+                if migration:
+                    migrations.append(migration)
+            
+            logger.info(f"Loaded {len(migrations)} migrations from {self.migrations_dir}")
+            return migrations
+            
+        except Exception as e:
+            logger.error(f"Failed to load migrations: {e}")
+            raise MigrationError(f"Failed to load migrations: {e}")
+    
+    def _load_migration_from_file(self, file_path: Path) -> Optional[Migration]:
+        """Load migration from Python file."""
         try:
             # Read file content
-            with open(file_path, "r") as f:
+            with open(file_path, 'r') as f:
                 content = f.read()
-
-            # Extract migration metadata (simplified)
-            # In a real implementation, you'd use AST parsing or a DSL
-            lines = content.split("\n")
-
-            # Find migration definition
-            version = None
-            name = None
-            description = ""
-            up_sql = ""
-            down_sql = ""
-
-            in_up_sql = False
-            in_down_sql = False
-
-            for line in lines:
-                line = line.strip()
-
-                if line.startswith("version = "):
-                    version = line.split("=", 1)[1].strip().strip("\"'")
-                elif line.startswith("name = "):
-                    name = line.split("=", 1)[1].strip().strip("\"'")
-                elif line.startswith("description = "):
-                    description = line.split("=", 1)[1].strip().strip("\"'")
-                elif line.startswith('up_sql = """'):
-                    in_up_sql = True
-                    up_sql = line[12:]  # Remove 'up_sql = """'
-                elif line.startswith('down_sql = """'):
-                    in_down_sql = True
-                    down_sql = line[14:]  # Remove 'down_sql = """'
-                elif in_up_sql and line.endswith('"""'):
-                    in_up_sql = False
-                elif in_down_sql and line.endswith('"""'):
-                    in_down_sql = False
-                elif in_up_sql:
-                    up_sql += "\n" + line
-                elif in_down_sql:
-                    down_sql += "\n" + line
-
-            if version and name and up_sql and down_sql:
-                return Migration(
-                    version=version,
-                    name=name,
-                    description=description,
-                    up_sql=up_sql,
-                    down_sql=down_sql,
-                )
-
+            
+            # Extract migration metadata using regex
+            version_match = re.search(r'version\s*=\s*["\']([^"\']+)["\']', content)
+            name_match = re.search(r'name\s*=\s*["\']([^"\']+)["\']', content)
+            description_match = re.search(r'description\s*=\s*["\']([^"\']+)["\']', content)
+            
+            if not version_match or not name_match:
+                logger.warning(f"Invalid migration file: {file_path}")
+                return None
+            
+            version = version_match.group(1)
+            name = name_match.group(1)
+            description = description_match.group(1) if description_match else ""
+            
+            # Extract SQL from functions
+            up_sql = self._extract_sql_function(content, 'up')
+            down_sql = self._extract_sql_function(content, 'down')
+            
+            if not up_sql:
+                logger.warning(f"No up() function found in {file_path}")
+                return None
+            
+            migration = Migration(
+                version=version,
+                name=name,
+                description=description,
+                migration_type=MigrationType.SCHEMA,  # Default type
+                up_sql=up_sql,
+                down_sql=down_sql or ""
+            )
+            
+            return migration
+            
         except Exception as e:
-            self._logger.error(f"Error loading migration file {file_path}: {e}")
-
-        return None
-
-    def _load_migration_records(self) -> None:
-        """Load migration records from database."""
+            logger.error(f"Failed to load migration from {file_path}: {e}")
+            return None
+    
+    def _extract_sql_function(self, content: str, function_name: str) -> Optional[str]:
+        """Extract SQL from function."""
         try:
-            query = "SELECT * FROM migrations ORDER BY version"
-            result = self.backend.execute_query(query)
-
-            for row in result.rows:
-                record = MigrationRecord(
-                    version=row["version"],
-                    name=row["name"],
-                    status=MigrationStatus(row["status"]),
-                    started_at=row["started_at"],
-                    completed_at=row.get("completed_at"),
-                    execution_time=row.get("execution_time", 0),
-                    error_message=row.get("error_message"),
-                    batch_count=row.get("batch_count", 0),
-                    rows_affected=row.get("rows_affected", 0),
-                )
-
-                self._records[record.version] = record
-
+            # Find function definition
+            pattern = rf'def\s+{function_name}\s*\([^)]*\):\s*\n(.*?)(?=\ndef\s+|\Z)'
+            match = re.search(pattern, content, re.DOTALL)
+            
+            if not match:
+                return None
+            
+            function_body = match.group(1)
+            
+            # Extract SQL from triple quotes
+            sql_pattern = r'"""([^"]*)"""'
+            sql_match = re.search(sql_pattern, function_body, re.DOTALL)
+            
+            if sql_match:
+                return sql_match.group(1).strip()
+            
+            # Extract SQL from single quotes
+            sql_pattern = r"'''([^']*)'''"
+            sql_match = re.search(sql_pattern, function_body, re.DOTALL)
+            
+            if sql_match:
+                return sql_match.group(1).strip()
+            
+            return None
+            
         except Exception as e:
-            self._logger.error(f"Failed to load migration records: {e}")
-
-    def create_migration(self, version: str, name: str, description: str = "") -> Path:
-        """Create a new migration file."""
-        with self._lock:
-            if version in self._migrations:
-                raise MigrationConflictError(f"Migration {version} already exists")
-
-            # Validate version
-            if not MigrationValidator.validate_version(version):
-                raise MigrationVersionError(f"Invalid migration version: {version}")
-
-            # Create migration file
-            filename = f"{version}_{name.lower().replace(' ', '_')}.py"
-            file_path = self.migrations_dir / filename
-
-            template = f'''"""
-Migration: {version} - {name}
-
-{description}
-"""
-
-version = "{version}"
-name = "{name}"
-description = "{description}"
-
-up_sql = """
--- Add your migration SQL here
--- Example:
--- CREATE TABLE example (
---     id INTEGER PRIMARY KEY,
---     name TEXT NOT NULL
--- );
-"""
-
-down_sql = """
--- Add your rollback SQL here
--- Example:
--- DROP TABLE IF EXISTS example;
-"""
-'''
-
-            with open(file_path, "w") as f:
-                f.write(template)
-
-            self._logger.info(f"Created migration file: {file_path}")
-            return file_path
-
-    def get_pending_migrations(self) -> List[Migration]:
-        """Get list of pending migrations."""
-        with self._lock:
-            pending = []
-
-            for version, migration in self._migrations.items():
-                if version not in self._records:
-                    pending.append(migration)
-                elif self._records[version].status == MigrationStatus.FAILED:
-                    pending.append(migration)
-
-            # Sort by version
-            pending.sort(key=lambda m: m.version)
-
-            return pending
-
-    def get_migration_status(self, version: str) -> Optional[MigrationStatus]:
-        """Get migration status."""
-        with self._lock:
-            if version in self._records:
-                return self._records[version].status
+            logger.error(f"Failed to extract SQL from {function_name} function: {e}")
             return None
 
-    def create_migration_plan(
-        self, target_version: Optional[str] = None
-    ) -> MigrationPlan:
-        """Create migration execution plan."""
-        with self._lock:
-            pending = self.get_pending_migrations()
+class MigrationManager:
+    """Main migration manager."""
+    
+    def __init__(self, config: MigrationConfig):
+        """Initialize migration manager."""
+        self.config = config
+        self.registry = MigrationRegistry(config)
+        self.runner = MigrationRunner(self.registry)
+        self.loader = MigrationLoader(config.migrations_dir)
+        logger.info("Initialized migration manager")
+    
+    def initialize(self) -> bool:
+        """Initialize migration system."""
+        try:
+            # Load migrations from files
+            migrations = self.loader.load_migrations()
+            
+            # Register migrations
+            for migration in migrations:
+                self.registry.register_migration(migration)
+            
+            logger.info("Migration system initialized")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to initialize migration system: {e}")
+            return False
+    
+    def migrate(self, target_version: Optional[str] = None) -> bool:
+        """Run migrations."""
+        return self.runner.run_migrations(target_version)
+    
+    def rollback(self, target_version: str) -> bool:
+        """Rollback migrations."""
+        return self.runner.rollback_migrations(target_version)
+    
+    def status(self) -> Dict[str, Any]:
+        """Get migration status."""
+        return {
+            "pending": len(self.registry.get_pending_migrations()),
+            "completed": len(self.registry.get_completed_migrations()),
+            "failed": len(self.registry.get_failed_migrations()),
+            "total": len(self.registry.migrations)
+        }
+    
+    def cleanup(self):
+        """Cleanup resources."""
+        if hasattr(self.registry.executor, 'close'):
+            self.registry.executor.close()
 
-            if target_version:
-                # Filter to target version
-                pending = [m for m in pending if m.version <= target_version]
-
-            # Resolve dependencies
-            resolved = self._resolve_dependencies(pending)
-
-            # Create rollback plan
-            rollback_plan = [m.version for m in resolved if m.rollback_safe]
-            rollback_plan.reverse()  # Rollback in reverse order
-
-            # Estimate execution time
-            estimated_time = sum(
-                10.0 for _ in resolved
-            )  # 10 seconds per migration estimate
-
-            return MigrationPlan(
-                migrations=resolved,
-                total_count=len(resolved),
-                estimated_time=estimated_time,
-                rollback_plan=rollback_plan,
-                dependencies_resolved=True,
-            )
-
-    def _resolve_dependencies(self, migrations: List[Migration]) -> List[Migration]:
-        """Resolve migration dependencies."""
-        resolved = []
-        remaining = migrations.copy()
-
-        while remaining:
-            # Find migrations with no unresolved dependencies
-            ready = []
-            for migration in remaining:
-                deps_resolved = all(
-                    dep in [m.version for m in resolved]
-                    or dep not in [m.version for m in remaining]
-                    for dep in migration.dependencies
-                )
-                if deps_resolved:
-                    ready.append(migration)
-
-            if not ready:
-                raise MigrationError("Circular dependency detected in migrations")
-
-            # Add ready migrations to resolved list
-            ready.sort(key=lambda m: m.version)
-            resolved.extend(ready)
-
-            # Remove from remaining
-            for migration in ready:
-                remaining.remove(migration)
-
-        return resolved
-
-    def execute_migrations(
-        self, plan: Optional[MigrationPlan] = None
-    ) -> List[MigrationRecord]:
-        """Execute migrations according to plan."""
-        with self._lock:
-            if plan is None:
-                plan = self.create_migration_plan()
-
-            executed = []
-
-            for migration in plan.migrations:
-                try:
-                    # Execute migration
-                    record = self.executor.execute_migration(migration)
-
-                    # Save record to database
-                    self._save_migration_record(record)
-                    self._records[record.version] = record
-
-                    executed.append(record)
-
-                except Exception as e:
-                    self._logger.error(f"Migration execution failed: {e}")
-                    raise MigrationError(f"Migration execution failed: {e}")
-
-            return executed
-
-    def rollback_migrations(self, target_version: str) -> List[MigrationRecord]:
-        """Rollback migrations to target version."""
-        with self._lock:
-            # Get migrations to rollback
-            to_rollback = []
-            for version, record in self._records.items():
-                if (
-                    record.status == MigrationStatus.COMPLETED
-                    and version > target_version
-                    and version in self._migrations
-                ):
-                    to_rollback.append(self._migrations[version])
-
-            # Sort in reverse order
-            to_rollback.sort(key=lambda m: m.version, reverse=True)
-
-            rolled_back = []
-
-            for migration in to_rollback:
-                try:
-                    # Rollback migration
-                    record = self.executor.rollback_migration(migration)
-
-                    # Update record in database
-                    self._update_migration_record(record)
-                    self._records[record.version] = record
-
-                    rolled_back.append(record)
-
-                except Exception as e:
-                    self._logger.error(f"Migration rollback failed: {e}")
-                    raise MigrationRollbackError(f"Migration rollback failed: {e}")
-
-            return rolled_back
-
-    def _save_migration_record(self, record: MigrationRecord) -> None:
-        """Save migration record to database."""
-        insert_sql = """
-        INSERT OR REPLACE INTO migrations 
-        (version, name, status, started_at, completed_at, execution_time, 
-         error_message, batch_count, rows_affected)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """
-
-        params = (
-            record.version,
-            record.name,
-            record.status.value,
-            record.started_at,
-            record.completed_at,
-            record.execution_time,
-            record.error_message,
-            record.batch_count,
-            record.rows_affected,
-        )
-
-        self.backend.execute_query(insert_sql, params)
-
-    def _update_migration_record(self, record: MigrationRecord) -> None:
-        """Update migration record in database."""
-        update_sql = """
-        UPDATE migrations SET
-            status = ?, completed_at = ?, execution_time = ?, error_message = ?
-        WHERE version = ?
-        """
-
-        params = (
-            record.status.value,
-            record.completed_at,
-            record.execution_time,
-            record.error_message,
-            record.version,
-        )
-
-        self.backend.execute_query(update_sql, params)
-
-    def get_migration_history(self) -> List[MigrationRecord]:
-        """Get migration execution history."""
-        with self._lock:
-            return list(self._records.values())
-
-    def get_current_version(self) -> Optional[str]:
-        """Get current database version."""
-        with self._lock:
-            completed = [
-                record
-                for record in self._records.values()
-                if record.status == MigrationStatus.COMPLETED
-            ]
-
-            if not completed:
-                return None
-
-            # Return highest version
-            return max(completed, key=lambda r: r.version).version
-
-    def __enter__(self):
-        """Context manager entry."""
-        self.load_migrations()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Context manager exit."""
-        pass
+__all__ = [
+    "MigrationManager",
+    "MigrationRegistry",
+    "MigrationRunner",
+    "MigrationLoader",
+    "BackupManager",
+    "MigrationExecutor",
+    "SQLiteMigrationExecutor",
+    "Migration",
+    "MigrationConfig",
+    "MigrationStatus",
+    "MigrationType",
+    "MigrationError",
+    "MigrationVersionError",
+    "MigrationConflictError",
+    "MigrationRollbackError",
+]

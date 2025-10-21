@@ -333,9 +333,29 @@ class HDWallet:
         """Verify signature with account public key."""
         account = self.get_account(account_index)
 
-        # This would integrate with the signature verification
-        # For now, return True as placeholder
-        return True
+        # Implement actual signature verification
+        try:
+            from ..crypto.signatures import Signature
+            
+            # Parse signature if it's a hex string
+            if isinstance(signature, str):
+                signature_bytes = bytes.fromhex(signature)
+            else:
+                signature_bytes = signature
+            
+            # Create signature object
+            sig = Signature.from_bytes(signature_bytes)
+            
+            # Get account's public key
+            public_key = account.public_key
+            
+            # Verify signature
+            return public_key.verify_signature(data, sig)
+            
+        except Exception as e:
+            # Log error and return False
+            print(f"Signature verification failed: {e}")
+            return False
 
     def export_private_key(self, account_index: int) -> str:
         """Export private key for account."""

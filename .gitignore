@@ -249,6 +249,8 @@ private_keys/
 test_artifacts/
 test_output/
 test_results/
+test_benchmark_results/
+test_profiling_artifacts/
 
 # Results folder (contains test outputs, benchmarks, profiling data)
 results/
@@ -273,6 +275,28 @@ docs/build/
 
 # Jupyter notebook checkpoints
 .ipynb_checkpoints/
+
+# ML model files
+*.pkl
+*.joblib
+*.h5
+*.pb
+models/
+checkpoints/
+
+# Hardware acceleration artifacts
+*.cubin
+*.ptx
+*.fatbin
+
+# Bridge and chain data
+bridge_data/
+chain_data/
+cross_chain_data/
+
+# Security test results
+security_reports/
+penetration_reports/
 
 # Docker
 .dockerignore

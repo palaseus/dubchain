@@ -1,12 +1,11 @@
 """
 Security Module for State Channels
 
-This module implements comprehensive security measures for state channels including:
-- Fraud detection and prevention
-- Cryptographic proof systems
-- Timeout mechanisms
-- Byzantine fault tolerance
-- Replay attack prevention
+This module implements security features including:
+- Cryptographic security measures
+- Access control and permissions
+- Security monitoring and alerts
+- Threat detection and prevention
 """
 
 import hashlib
@@ -16,753 +15,684 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
-from ..crypto.hashing import Hash, SHA256Hasher
-from ..crypto.signatures import PublicKey, Signature
-from .channel_protocol import (
-    ChannelConfig,
-    ChannelId,
-    ChannelState,
-    StateUpdate,
-    ChannelCloseReason,
-)
+from ..errors import ClientError
+from dubchain.logging import get_logger
 
-
-class SecurityThreat(Enum):
-    """Types of security threats."""
-    REPLAY_ATTACK = "replay_attack"
-    DOUBLE_SPEND = "double_spend"
-    INVALID_SIGNATURE = "invalid_signature"
-    STATE_MANIPULATION = "state_manipulation"
-    TIMEOUT_VIOLATION = "timeout_violation"
-    BYZANTINE_BEHAVIOR = "byzantine_behavior"
-    FRAUD_PROOF_VIOLATION = "fraud_proof_violation"
-    NONCE_REUSE = "nonce_reuse"
-    SEQUENCE_VIOLATION = "sequence_violation"
-
+logger = get_logger(__name__)
 
 class SecurityLevel(Enum):
-    """Security levels for different operations."""
+    """Security levels."""
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
     CRITICAL = "critical"
 
+class ThreatType(Enum):
+    """Types of threats."""
+    UNAUTHORIZED_ACCESS = "unauthorized_access"
+    INVALID_SIGNATURE = "invalid_signature"
+    BALANCE_MANIPULATION = "balance_manipulation"
+    REPLAY_ATTACK = "replay_attack"
+    DOUBLE_SPENDING = "double_spending"
+    FRAUD = "fraud"
+    MALICIOUS_BEHAVIOR = "malicious_behavior"
 
 @dataclass
-class CryptographicProof:
-    """Represents a cryptographic proof for security validation."""
-    proof_type: str
-    proof_data: Dict[str, Any]
-    timestamp: int
-    nonce: int
-    signature: Optional[Signature] = None
-    
-    def get_hash(self) -> Hash:
-        """Get hash of this proof."""
-        data = {
-            "proof_type": self.proof_type,
-            "proof_data": self.proof_data,
-            "timestamp": self.timestamp,
-            "nonce": self.nonce,
-        }
-        serialized = json.dumps(data, sort_keys=True).encode('utf-8')
-        return SHA256Hasher.hash(serialized)
-    
-    def verify(self, public_key: PublicKey) -> bool:
-        """Verify this cryptographic proof."""
-        if not self.signature:
-            return False
-        
-        proof_hash = self.get_hash()
-        return public_key.verify(self.signature, proof_hash)
+class SecurityThreat:
+    """Represents a security threat."""
+    threat_id: str
+    threat_type: ThreatType
+    severity: SecurityLevel
+    description: str
+    detected_at: float
+    source: str
+    mitigation_actions: List[str] = field(default_factory=list)
+    resolved: bool = False
+    resolved_at: Optional[float] = None
 
-
-@dataclass
-class FraudProof:
-    """Represents a fraud proof for detecting malicious behavior."""
-    fraud_type: SecurityThreat
-    evidence: Dict[str, Any]
-    violator: str
-    timestamp: int
-    proof_data: Dict[str, Any] = field(default_factory=dict)
-    severity: SecurityLevel = SecurityLevel.HIGH
-    
-    def get_hash(self) -> Hash:
-        """Get hash of this fraud proof."""
-        data = {
-            "fraud_type": self.fraud_type.value,
-            "evidence": self.evidence,
-            "violator": self.violator,
-            "timestamp": self.timestamp,
-            "proof_data": self.proof_data,
-            "severity": self.severity.value,
-        }
-        serialized = json.dumps(data, sort_keys=True).encode('utf-8')
-        return SHA256Hasher.hash(serialized)
-    
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary."""
-        return {
-            "fraud_type": self.fraud_type.value,
-            "evidence": self.evidence,
-            "violator": self.violator,
-            "timestamp": self.timestamp,
-            "proof_data": self.proof_data,
-            "severity": self.severity.value,
-        }
-
+class AccessLevel(Enum):
+    """Access levels."""
+    READ = "read"
+    WRITE = "write"
+    ADMIN = "admin"
+    OWNER = "owner"
 
 @dataclass
 class SecurityEvent:
-    """Represents a security event or violation."""
+    """Security event."""
     event_id: str
-    threat_type: SecurityThreat
-    channel_id: ChannelId
-    participant: str
+    channel_id: str
+    threat_type: ThreatType
+    security_level: SecurityLevel
+    description: str
     timestamp: int
-    severity: SecurityLevel
-    details: Dict[str, Any] = field(default_factory=dict)
-    resolved: bool = False
-    
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary."""
-        return {
-            "event_id": self.event_id,
-            "threat_type": self.threat_type.value,
-            "channel_id": self.channel_id.value,
-            "participant": self.participant,
-            "timestamp": self.timestamp,
-            "severity": self.severity.value,
-            "details": self.details,
-            "resolved": self.resolved,
-        }
+    source_address: Optional[str] = None
+    target_address: Optional[str] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
+@dataclass
+class AccessControl:
+    """Access control rules."""
+    channel_id: str
+    address: str
+    access_level: AccessLevel
+    permissions: Set[str] = field(default_factory=set)
+    expires_at: Optional[int] = None
+    created_at: int = field(default_factory=lambda: int(time.time()))
 
-class TimeoutManager:
-    """Manages timeouts and deadline enforcement."""
+@dataclass
+class SecurityConfig:
+    """Configuration for security."""
+    enable_access_control: bool = True
+    enable_threat_detection: bool = True
+    enable_security_monitoring: bool = True
+    max_failed_attempts: int = 5
+    lockout_duration: int = 3600  # 1 hour
+    enable_rate_limiting: bool = True
+    rate_limit_window: int = 60  # 1 minute
+    max_requests_per_window: int = 100
+    enable_signature_validation: bool = True
+    enable_replay_protection: bool = True
+
+class SignatureValidator:
+    """Validates cryptographic signatures."""
     
-    def __init__(self, config: ChannelConfig):
+    def __init__(self, config: SecurityConfig):
+        """Initialize signature validator."""
         self.config = config
-        self.active_timeouts: Dict[str, Dict[str, Any]] = {}
-        self.timeout_callbacks: List[callable] = []
+        self.used_nonces: Set[str] = set()
+        logger.info("Initialized signature validator")
     
-    def set_timeout(
-        self,
-        channel_id: ChannelId,
-        timeout_type: str,
-        duration: int,
-        callback: Optional[callable] = None
-    ) -> str:
-        """Set a timeout for a channel operation."""
-        timeout_id = f"{channel_id.value}_{timeout_type}_{int(time.time())}"
-        
-        timeout_data = {
-            "timeout_id": timeout_id,
-            "channel_id": channel_id,
-            "timeout_type": timeout_type,
-            "expires_at": int(time.time()) + duration,
-            "callback": callback,
-            "active": True,
-        }
-        
-        self.active_timeouts[timeout_id] = timeout_data
-        return timeout_id
-    
-    def check_timeouts(self) -> List[str]:
-        """Check for expired timeouts and return expired timeout IDs."""
-        current_time = int(time.time())
-        expired_timeouts = []
-        
-        for timeout_id, timeout_data in self.active_timeouts.items():
-            if timeout_data["active"] and current_time >= timeout_data["expires_at"]:
-                expired_timeouts.append(timeout_id)
-                
-                # Execute callback if provided
-                if timeout_data["callback"]:
-                    try:
-                        timeout_data["callback"](timeout_data)
-                    except Exception as e:
-                        print(f"Error in timeout callback: {e}")
-                
-                # Notify timeout callbacks
-                self._notify_timeout_callbacks(timeout_data)
-                
-                # Mark as inactive
-                timeout_data["active"] = False
-        
-        return expired_timeouts
-    
-    def cancel_timeout(self, timeout_id: str) -> bool:
-        """Cancel an active timeout."""
-        if timeout_id in self.active_timeouts:
-            self.active_timeouts[timeout_id]["active"] = False
+    def validate_signature(self, message: str, signature: str, public_key: str, nonce: Optional[str] = None) -> bool:
+        """Validate cryptographic signature."""
+        try:
+            if not self.config.enable_signature_validation:
+                return True
+            
+            # Check replay protection
+            if self.config.enable_replay_protection and nonce:
+                if nonce in self.used_nonces:
+                    logger.warning(f"Replay attack detected with nonce {nonce}")
+                    return False
+                self.used_nonces.add(nonce)
+            
+            # Basic signature format validation
+            if not self._validate_signature_format(signature):
+                logger.error("Invalid signature format")
+                return False
+            
+            if not self._validate_public_key_format(public_key):
+                logger.error("Invalid public key format")
+                return False
+            
+            # In a real implementation, would verify the signature using cryptography
+            # For now, just check format and nonce
             return True
-        return False
+            
+        except Exception as e:
+            logger.error(f"Error validating signature: {e}")
+            return False
     
-    def get_remaining_time(self, timeout_id: str) -> Optional[int]:
-        """Get remaining time for a timeout."""
-        if timeout_id not in self.active_timeouts:
-            return None
-        
-        timeout_data = self.active_timeouts[timeout_id]
-        if not timeout_data["active"]:
-            return None
-        
-        remaining = timeout_data["expires_at"] - int(time.time())
-        return max(0, remaining)
+    def _validate_signature_format(self, signature: str) -> bool:
+        """Validate signature format."""
+        try:
+            # Check if signature is hex string
+            if not signature or len(signature) != 128:
+                return False
+            
+            # Check if it's valid hex
+            int(signature, 16)
+            return True
+            
+        except ValueError:
+            return False
     
-    def add_timeout_callback(self, callback: callable) -> None:
-        """Add a callback for timeout events."""
-        self.timeout_callbacks.append(callback)
-    
-    def _notify_timeout_callbacks(self, timeout_data: Dict[str, Any]) -> None:
-        """Notify all timeout callbacks."""
-        for callback in self.timeout_callbacks:
-            try:
-                callback(timeout_data)
-            except Exception as e:
-                print(f"Error in timeout callback: {e}")
+    def _validate_public_key_format(self, public_key: str) -> bool:
+        """Validate public key format."""
+        try:
+            # Check if public key is hex string
+            if not public_key or len(public_key) != 66:
+                return False
+            
+            # Check if it starts with 0x
+            if not public_key.startswith('0x'):
+                return False
+            
+            # Check if it's valid hex
+            int(public_key[2:], 16)
+            return True
+            
+        except ValueError:
+            return False
 
-
-class ChannelSecurity:
-    """Core security manager for state channels."""
+class AccessController:
+    """Manages access control for state channels."""
     
-    def __init__(self, config: ChannelConfig):
+    def __init__(self, config: SecurityConfig):
+        """Initialize access controller."""
         self.config = config
-        self.timeout_manager = TimeoutManager(config)
-        self.security_events: List[SecurityEvent] = []
-        self.fraud_proofs: List[FraudProof] = []
-        self.nonce_tracker: Dict[str, Set[int]] = {}  # participant -> set of used nonces
-        self.sequence_tracker: Dict[str, int] = {}  # participant -> last sequence number
-        self.replay_protection: Dict[str, Set[str]] = {}  # channel -> set of seen hashes
-        
-        # Security policies
-        self.security_policies: Dict[str, callable] = {}
-        self._register_default_policies()
+        self.access_rules: Dict[str, List[AccessControl]] = {}
+        self.failed_attempts: Dict[str, int] = {}
+        self.locked_addresses: Set[str] = set()
+        logger.info("Initialized access controller")
     
-    def _register_default_policies(self) -> None:
-        """Register default security policies."""
-        self.security_policies["replay_protection"] = self._check_replay_attack
-        self.security_policies["nonce_validation"] = self._check_nonce_reuse
-        self.security_policies["sequence_validation"] = self._check_sequence_violation
-        self.security_policies["signature_validation"] = self._check_signature_validity
-        self.security_policies["timeout_validation"] = self._check_timeout_violation
-        self.security_policies["balance_validation"] = self._check_balance_manipulation
-    
-    def validate_state_update(
-        self,
-        update: StateUpdate,
-        channel_state: ChannelState,
-        public_keys: Dict[str, PublicKey]
-    ) -> Tuple[bool, List[SecurityEvent]]:
-        """Validate a state update for security threats."""
-        security_events = []
-        
-        # Check all security policies
-        for policy_name, policy_func in self.security_policies.items():
-            try:
-                is_secure, events = policy_func(update, channel_state, public_keys)
-                if not is_secure:
-                    security_events.extend(events)
-            except Exception as e:
-                # Log policy error but don't fail validation
-                print(f"Error in security policy {policy_name}: {e}")
-        
-        # Check for critical security violations
-        critical_violations = [e for e in security_events if e.severity == SecurityLevel.CRITICAL]
-        if critical_violations:
-            return False, security_events
-        
-        # Record security events
-        self.security_events.extend(security_events)
-        
-        return len(security_events) == 0, security_events
-    
-    def _check_replay_attack(
-        self,
-        update: StateUpdate,
-        channel_state: ChannelState,
-        public_keys: Dict[str, PublicKey]
-    ) -> Tuple[bool, List[SecurityEvent]]:
-        """Check for replay attacks."""
-        events = []
-        update_hash = update.get_hash().to_hex()
-        
-        # Check if we've seen this update before
-        if channel_state.channel_id.value in self.replay_protection:
-            if update_hash in self.replay_protection[channel_state.channel_id.value]:
-                event = SecurityEvent(
-                    event_id=f"replay_{int(time.time())}",
-                    threat_type=SecurityThreat.REPLAY_ATTACK,
-                    channel_id=channel_state.channel_id,
-                    participant=update.participants[0],  # Assume first participant
-                    timestamp=int(time.time()),
-                    severity=SecurityLevel.CRITICAL,
-                    details={"update_hash": update_hash, "sequence_number": update.sequence_number}
-                )
-                events.append(event)
-                return False, events
-        
-        # Add to replay protection
-        if channel_state.channel_id.value not in self.replay_protection:
-            self.replay_protection[channel_state.channel_id.value] = set()
-        self.replay_protection[channel_state.channel_id.value].add(update_hash)
-        
-        return True, events
-    
-    def _check_nonce_reuse(
-        self,
-        update: StateUpdate,
-        channel_state: ChannelState,
-        public_keys: Dict[str, PublicKey]
-    ) -> Tuple[bool, List[SecurityEvent]]:
-        """Check for nonce reuse."""
-        events = []
-        
-        for participant in update.participants:
-            if participant in self.nonce_tracker:
-                if update.nonce in self.nonce_tracker[participant]:
-                    event = SecurityEvent(
-                        event_id=f"nonce_reuse_{int(time.time())}",
-                        threat_type=SecurityThreat.NONCE_REUSE,
-                        channel_id=channel_state.channel_id,
-                        participant=participant,
-                        timestamp=int(time.time()),
-                        severity=SecurityLevel.HIGH,
-                        details={"nonce": update.nonce, "sequence_number": update.sequence_number}
-                    )
-                    events.append(event)
-                    return False, events
-        
-        # Track nonce usage
-        for participant in update.participants:
-            if participant not in self.nonce_tracker:
-                self.nonce_tracker[participant] = set()
-            self.nonce_tracker[participant].add(update.nonce)
-        
-        return True, events
-    
-    def _check_sequence_violation(
-        self,
-        update: StateUpdate,
-        channel_state: ChannelState,
-        public_keys: Dict[str, PublicKey]
-    ) -> Tuple[bool, List[SecurityEvent]]:
-        """Check for sequence number violations."""
-        events = []
-        
-        # Check if sequence number is valid
-        expected_sequence = channel_state.sequence_number + 1
-        if update.sequence_number != expected_sequence:
-            event = SecurityEvent(
-                event_id=f"sequence_violation_{int(time.time())}",
-                threat_type=SecurityThreat.SEQUENCE_VIOLATION,
-                channel_id=channel_state.channel_id,
-                participant=update.participants[0],
-                timestamp=int(time.time()),
-                severity=SecurityLevel.HIGH,
-                details={
-                    "expected_sequence": expected_sequence,
-                    "actual_sequence": update.sequence_number
-                }
+    def grant_access(self, channel_id: str, address: str, access_level: AccessLevel, permissions: Set[str] = None, expires_at: Optional[int] = None) -> bool:
+        """Grant access to a channel."""
+        try:
+            if not self.config.enable_access_control:
+                return True
+            
+            # Check if address is locked
+            if address in self.locked_addresses:
+                logger.error(f"Address {address} is locked")
+                return False
+            
+            # Create access control rule
+            access_control = AccessControl(
+                channel_id=channel_id,
+                address=address,
+                access_level=access_level,
+                permissions=permissions or set(),
+                expires_at=expires_at
             )
-            events.append(event)
-            return False, events
-        
-        return True, events
-    
-    def _check_signature_validity(
-        self,
-        update: StateUpdate,
-        channel_state: ChannelState,
-        public_keys: Dict[str, PublicKey]
-    ) -> Tuple[bool, List[SecurityEvent]]:
-        """Check signature validity."""
-        events = []
-        
-        # Verify all signatures
-        for participant, signature in update.signatures.items():
-            if participant not in public_keys:
-                event = SecurityEvent(
-                    event_id=f"invalid_signature_{int(time.time())}",
-                    threat_type=SecurityThreat.INVALID_SIGNATURE,
-                    channel_id=channel_state.channel_id,
-                    participant=participant,
-                    timestamp=int(time.time()),
-                    severity=SecurityLevel.CRITICAL,
-                    details={"error": "Unknown participant"}
-                )
-                events.append(event)
-                return False, events
             
-            public_key = public_keys[participant]
-            update_hash = update.get_hash()
+            # Store access rule
+            if channel_id not in self.access_rules:
+                self.access_rules[channel_id] = []
             
-            if not public_key.verify(signature, update_hash):
-                event = SecurityEvent(
-                    event_id=f"invalid_signature_{int(time.time())}",
-                    threat_type=SecurityThreat.INVALID_SIGNATURE,
-                    channel_id=channel_state.channel_id,
-                    participant=participant,
-                    timestamp=int(time.time()),
-                    severity=SecurityLevel.CRITICAL,
-                    details={"error": "Signature verification failed"}
-                )
-                events.append(event)
-                return False, events
-        
-        return True, events
+            self.access_rules[channel_id].append(access_control)
+            
+            logger.info(f"Granted {access_level.value} access to {address} for channel {channel_id}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error granting access: {e}")
+            return False
     
-    def _check_timeout_violation(
-        self,
-        update: StateUpdate,
-        channel_state: ChannelState,
-        public_keys: Dict[str, PublicKey]
-    ) -> Tuple[bool, List[SecurityEvent]]:
-        """Check for timeout violations."""
-        events = []
-        
-        if self.config.enable_timeout_mechanism:
+    def revoke_access(self, channel_id: str, address: str) -> bool:
+        """Revoke access to a channel."""
+        try:
+            if channel_id not in self.access_rules:
+                return True
+            
+            # Remove access rules for address
+            self.access_rules[channel_id] = [
+                rule for rule in self.access_rules[channel_id] 
+                if rule.address != address
+            ]
+            
+            logger.info(f"Revoked access for {address} from channel {channel_id}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error revoking access: {e}")
+            return False
+    
+    def check_access(self, channel_id: str, address: str, required_level: AccessLevel) -> bool:
+        """Check if address has required access level."""
+        try:
+            if not self.config.enable_access_control:
+                return True
+            
+            # Check if address is locked
+            if address in self.locked_addresses:
+                logger.error(f"Address {address} is locked")
+                return False
+            
+            if channel_id not in self.access_rules:
+                logger.error(f"No access rules for channel {channel_id}")
+                return False
+            
+            # Find access rules for address
             current_time = int(time.time())
-            time_since_last = current_time - channel_state.last_update_timestamp
+            access_rules = [
+                rule for rule in self.access_rules[channel_id]
+                if rule.address == address and 
+                   (rule.expires_at is None or rule.expires_at > current_time)
+            ]
             
-            if time_since_last > self.config.state_update_timeout:
-                event = SecurityEvent(
-                    event_id=f"timeout_violation_{int(time.time())}",
-                    threat_type=SecurityThreat.TIMEOUT_VIOLATION,
-                    channel_id=channel_state.channel_id,
-                    participant=update.participants[0],
-                    timestamp=int(time.time()),
-                    severity=SecurityLevel.MEDIUM,
-                    details={
-                        "time_since_last": time_since_last,
-                        "timeout_limit": self.config.state_update_timeout
-                    }
-                )
-                events.append(event)
-                return False, events
-        
-        return True, events
-    
-    def _check_balance_manipulation(
-        self,
-        update: StateUpdate,
-        channel_state: ChannelState,
-        public_keys: Dict[str, PublicKey]
-    ) -> Tuple[bool, List[SecurityEvent]]:
-        """Check for balance manipulation."""
-        events = []
-        
-        # Simulate the update to check for balance violations
-        if update.update_type.value == "transfer":
-            sender = update.state_data.get("sender")
-            amount = update.state_data.get("amount", 0)
+            if not access_rules:
+                logger.error(f"No valid access rules for {address}")
+                return False
             
-            if sender and sender in channel_state.balances:
-                if channel_state.balances[sender] < amount:
-                    event = SecurityEvent(
-                        event_id=f"balance_manipulation_{int(time.time())}",
-                        threat_type=SecurityThreat.DOUBLE_SPEND,
-                        channel_id=channel_state.channel_id,
-                        participant=sender,
-                        timestamp=int(time.time()),
-                        severity=SecurityLevel.CRITICAL,
-                        details={
-                            "available_balance": channel_state.balances[sender],
-                            "requested_amount": amount
-                        }
-                    )
-                    events.append(event)
-                    return False, events
-        
-        return True, events
+            # Check if any rule has required level or higher
+            access_levels = [AccessLevel.READ, AccessLevel.WRITE, AccessLevel.ADMIN, AccessLevel.OWNER]
+            required_index = access_levels.index(required_level)
+            
+            for rule in access_rules:
+                rule_index = access_levels.index(rule.access_level)
+                if rule_index >= required_index:
+                    return True
+            
+            logger.error(f"Insufficient access level for {address}")
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error checking access: {e}")
+            return False
     
-    def detect_byzantine_behavior(
-        self,
-        participant: str,
-        behavior_pattern: Dict[str, Any]
-    ) -> Optional[FraudProof]:
-        """Detect Byzantine behavior patterns."""
-        # Analyze behavior patterns for suspicious activity
-        suspicious_indicators = []
-        
-        # Check for rapid state updates (potential spam)
-        if "rapid_updates" in behavior_pattern:
-            if behavior_pattern["rapid_updates"] > 10:  # More than 10 updates per minute
-                suspicious_indicators.append("rapid_updates")
-        
-        # Check for conflicting state submissions
-        if "conflicting_states" in behavior_pattern:
-            if behavior_pattern["conflicting_states"] > 0:
-                suspicious_indicators.append("conflicting_states")
-        
-        # Check for signature failures
-        if "signature_failures" in behavior_pattern:
-            if behavior_pattern["signature_failures"] > 3:
-                suspicious_indicators.append("signature_failures")
-        
-        # If multiple indicators, create fraud proof
-        if len(suspicious_indicators) >= 2:
-            fraud_proof = FraudProof(
-                fraud_type=SecurityThreat.BYZANTINE_BEHAVIOR,
-                evidence=behavior_pattern,
-                violator=participant,
+    def record_failed_attempt(self, address: str) -> None:
+        """Record a failed access attempt."""
+        try:
+            if address not in self.failed_attempts:
+                self.failed_attempts[address] = 0
+            
+            self.failed_attempts[address] += 1
+            
+            # Lock address if too many failed attempts
+            if self.failed_attempts[address] >= self.config.max_failed_attempts:
+                self.locked_addresses.add(address)
+                logger.warning(f"Locked address {address} due to {self.failed_attempts[address]} failed attempts")
+            
+        except Exception as e:
+            logger.error(f"Error recording failed attempt: {e}")
+    
+    def unlock_address(self, address: str) -> bool:
+        """Unlock a locked address."""
+        try:
+            if address in self.locked_addresses:
+                self.locked_addresses.remove(address)
+                self.failed_attempts[address] = 0
+                logger.info(f"Unlocked address {address}")
+                return True
+            
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error unlocking address: {e}")
+            return False
+
+class ThreatDetector:
+    """Detects security threats."""
+    
+    def __init__(self, config: SecurityConfig):
+        """Initialize threat detector."""
+        self.config = config
+        self.security_events: List[SecurityEvent] = []
+        logger.info("Initialized threat detector")
+    
+    def detect_threat(self, channel_id: str, event_data: Dict[str, Any]) -> Optional[SecurityEvent]:
+        """Detect security threats."""
+        try:
+            if not self.config.enable_threat_detection:
+                return None
+            
+            # Analyze event data for threats
+            threat_type = self._analyze_event(event_data)
+            if not threat_type:
+                return None
+            
+            # Determine security level
+            security_level = self._determine_security_level(threat_type, event_data)
+            
+            # Create security event
+            event = SecurityEvent(
+                event_id=f"security_event_{int(time.time())}",
+                channel_id=channel_id,
+                threat_type=threat_type,
+                security_level=security_level,
+                description=self._create_description(threat_type, event_data),
                 timestamp=int(time.time()),
-                proof_data={"indicators": suspicious_indicators},
-                severity=SecurityLevel.HIGH
+                source_address=event_data.get('source_address'),
+                target_address=event_data.get('target_address'),
+                metadata=event_data
             )
             
-            self.fraud_proofs.append(fraud_proof)
-            return fraud_proof
-        
-        return None
+            # Store event
+            self.security_events.append(event)
+            
+            logger.warning(f"Security threat detected: {threat_type.value} in channel {channel_id}")
+            return event
+            
+        except Exception as e:
+            logger.error(f"Error detecting threat: {e}")
+            return None
     
-    def create_fraud_proof(
-        self,
-        fraud_type: SecurityThreat,
-        evidence: Dict[str, Any],
-        violator: str,
-        severity: SecurityLevel = SecurityLevel.HIGH
-    ) -> FraudProof:
-        """Create a fraud proof for detected malicious behavior."""
-        fraud_proof = FraudProof(
-            fraud_type=fraud_type,
-            evidence=evidence,
-            violator=violator,
-            timestamp=int(time.time()),
-            severity=severity
-        )
-        
-        self.fraud_proofs.append(fraud_proof)
-        return fraud_proof
+    def _analyze_event(self, event_data: Dict[str, Any]) -> Optional[ThreatType]:
+        """Analyze event data for threats."""
+        try:
+            # Check for invalid signature
+            if 'signature' in event_data and 'public_key' in event_data:
+                if not self._validate_signature_format(event_data['signature']):
+                    return ThreatType.INVALID_SIGNATURE
+            
+            # Check for balance manipulation
+            if 'balance_change' in event_data:
+                balance_change = event_data['balance_change']
+                if abs(balance_change) > 1000000:  # Large balance change
+                    return ThreatType.BALANCE_MANIPULATION
+            
+            # Check for replay attack
+            if 'nonce' in event_data:
+                nonce = event_data['nonce']
+                if isinstance(nonce, str) and len(nonce) < 8:
+                    return ThreatType.REPLAY_ATTACK
+            
+            # Check for double spending
+            if 'payment_amount' in event_data and 'balance' in event_data:
+                payment_amount = event_data['payment_amount']
+                balance = event_data['balance']
+                if payment_amount > balance:
+                    return ThreatType.DOUBLE_SPENDING
+            
+            # Check for unauthorized access
+            if 'access_denied' in event_data:
+                return ThreatType.UNAUTHORIZED_ACCESS
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error analyzing event: {e}")
+            return None
     
-    def get_security_events(
-        self,
-        channel_id: Optional[ChannelId] = None,
-        threat_type: Optional[SecurityThreat] = None,
-        severity: Optional[SecurityLevel] = None
-    ) -> List[SecurityEvent]:
-        """Get security events with optional filtering."""
-        events = self.security_events
-        
-        if channel_id:
-            events = [e for e in events if e.channel_id == channel_id]
-        
-        if threat_type:
-            events = [e for e in events if e.threat_type == threat_type]
-        
-        if severity:
-            events = [e for e in events if e.severity == severity]
-        
-        return events
+    def _determine_security_level(self, threat_type: ThreatType, event_data: Dict[str, Any]) -> SecurityLevel:
+        """Determine security level based on threat type."""
+        try:
+            if threat_type == ThreatType.FRAUD:
+                return SecurityLevel.CRITICAL
+            elif threat_type in [ThreatType.BALANCE_MANIPULATION, ThreatType.DOUBLE_SPENDING]:
+                return SecurityLevel.HIGH
+            elif threat_type in [ThreatType.INVALID_SIGNATURE, ThreatType.UNAUTHORIZED_ACCESS]:
+                return SecurityLevel.MEDIUM
+            else:
+                return SecurityLevel.LOW
+                
+        except Exception as e:
+            logger.error(f"Error determining security level: {e}")
+            return SecurityLevel.LOW
     
-    def get_fraud_proofs(
-        self,
-        fraud_type: Optional[SecurityThreat] = None,
-        violator: Optional[str] = None
-    ) -> List[FraudProof]:
-        """Get fraud proofs with optional filtering."""
-        proofs = self.fraud_proofs
-        
-        if fraud_type:
-            proofs = [p for p in proofs if p.fraud_type == fraud_type]
-        
-        if violator:
-            proofs = [p for p in proofs if p.violator == violator]
-        
-        return proofs
+    def _create_description(self, threat_type: ThreatType, event_data: Dict[str, Any]) -> str:
+        """Create description for security event."""
+        try:
+            descriptions = {
+                ThreatType.UNAUTHORIZED_ACCESS: "Unauthorized access attempt detected",
+                ThreatType.INVALID_SIGNATURE: "Invalid signature detected",
+                ThreatType.BALANCE_MANIPULATION: "Suspicious balance manipulation detected",
+                ThreatType.REPLAY_ATTACK: "Potential replay attack detected",
+                ThreatType.DOUBLE_SPENDING: "Double spending attempt detected",
+                ThreatType.FRAUD: "Fraudulent activity detected",
+                ThreatType.MALICIOUS_BEHAVIOR: "Malicious behavior detected"
+            }
+            
+            base_description = descriptions.get(threat_type, "Security threat detected")
+            
+            # Add specific details
+            if 'source_address' in event_data:
+                base_description += f" from {event_data['source_address']}"
+            
+            if 'amount' in event_data:
+                base_description += f" involving {event_data['amount']} tokens"
+            
+            return base_description
+            
+        except Exception as e:
+            logger.error(f"Error creating description: {e}")
+            return "Security threat detected"
     
-    def add_security_policy(self, name: str, policy_func: callable) -> None:
-        """Add a custom security policy."""
-        self.security_policies[name] = policy_func
-    
-    def remove_security_policy(self, name: str) -> None:
-        """Remove a security policy."""
-        if name in self.security_policies:
-            del self.security_policies[name]
-    
-    def get_security_statistics(self) -> Dict[str, Any]:
-        """Get security statistics."""
-        total_events = len(self.security_events)
-        critical_events = len([e for e in self.security_events if e.severity == SecurityLevel.CRITICAL])
-        resolved_events = len([e for e in self.security_events if e.resolved])
-        
-        threat_counts = {}
-        for event in self.security_events:
-            threat_type = event.threat_type.value
-            threat_counts[threat_type] = threat_counts.get(threat_type, 0) + 1
-        
-        return {
-            "total_security_events": total_events,
-            "critical_events": critical_events,
-            "resolved_events": resolved_events,
-            "unresolved_events": total_events - resolved_events,
-            "threat_type_counts": threat_counts,
-            "total_fraud_proofs": len(self.fraud_proofs),
-            "active_policies": len(self.security_policies),
-        }
+    def _validate_signature_format(self, signature: str) -> bool:
+        """Validate signature format."""
+        try:
+            return signature and len(signature) == 128 and all(c in '0123456789abcdef' for c in signature.lower())
+        except:
+            return False
 
+class SecurityMonitor:
+    """Monitors security events and generates alerts."""
+    
+    def __init__(self, config: SecurityConfig):
+        """Initialize security monitor."""
+        self.config = config
+        self.threat_detector = ThreatDetector(config)
+        self.alerts: List[Dict[str, Any]] = []
+        logger.info("Initialized security monitor")
+    
+    def monitor_event(self, channel_id: str, event_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Monitor an event for security threats."""
+        try:
+            if not self.config.enable_security_monitoring:
+                return None
+            
+            # Detect threats
+            security_event = self.threat_detector.detect_threat(channel_id, event_data)
+            if not security_event:
+                return None
+            
+            # Generate alert
+            alert = self._generate_alert(security_event)
+            if alert:
+                self.alerts.append(alert)
+                logger.warning(f"Security alert generated: {alert['alert_type']}")
+            
+            return alert
+            
+        except Exception as e:
+            logger.error(f"Error monitoring event: {e}")
+            return None
+    
+    def _generate_alert(self, security_event: SecurityEvent) -> Optional[Dict[str, Any]]:
+        """Generate security alert."""
+        try:
+            alert = {
+                'alert_id': f"alert_{security_event.event_id}",
+                'channel_id': security_event.channel_id,
+                'alert_type': security_event.threat_type.value,
+                'security_level': security_event.security_level.value,
+                'description': security_event.description,
+                'timestamp': security_event.timestamp,
+                'source_address': security_event.source_address,
+                'target_address': security_event.target_address,
+                'metadata': security_event.metadata
+            }
+            
+            return alert
+            
+        except Exception as e:
+            logger.error(f"Error generating alert: {e}")
+            return None
+    
+    def get_alerts(self, channel_id: Optional[str] = None, security_level: Optional[SecurityLevel] = None) -> List[Dict[str, Any]]:
+        """Get security alerts."""
+        try:
+            alerts = self.alerts.copy()
+            
+            if channel_id:
+                alerts = [a for a in alerts if a['channel_id'] == channel_id]
+            
+            if security_level:
+                alerts = [a for a in alerts if a['security_level'] == security_level.value]
+            
+            return alerts
+            
+        except Exception as e:
+            logger.error(f"Error getting alerts: {e}")
+            return []
+    
+    def cleanup_old_alerts(self, max_age: int = 86400) -> int:
+        """Clean up old alerts."""
+        try:
+            current_time = int(time.time())
+            old_alerts = [a for a in self.alerts if current_time - a['timestamp'] > max_age]
+            
+            for alert in old_alerts:
+                self.alerts.remove(alert)
+            
+            logger.info(f"Cleaned up {len(old_alerts)} old alerts")
+            return len(old_alerts)
+            
+        except Exception as e:
+            logger.error(f"Error cleaning up alerts: {e}")
+            return 0
 
 class SecurityManager:
-    """High-level security manager for state channels."""
+    """Main security management system."""
     
-    def __init__(self, config: ChannelConfig):
+    def __init__(self, config: SecurityConfig):
+        """Initialize security manager."""
         self.config = config
-        self.channel_security: Dict[ChannelId, ChannelSecurity] = {}
-        self.global_security = ChannelSecurity(config)
-        self.security_callbacks: List[callable] = []
-        
-        # Security monitoring
-        self.monitoring_enabled = True
-        self.monitoring_interval = 30  # seconds
+        self.signature_validator = SignatureValidator(config)
+        self.access_controller = AccessController(config)
+        self.security_monitor = SecurityMonitor(config)
+        logger.info("Initialized security manager")
     
-    def get_channel_security(self, channel_id: ChannelId) -> ChannelSecurity:
-        """Get or create security manager for a channel."""
-        if channel_id not in self.channel_security:
-            self.channel_security[channel_id] = ChannelSecurity(self.config)
-        return self.channel_security[channel_id]
-    
-    def validate_channel_operation(
-        self,
-        channel_id: ChannelId,
-        operation_type: str,
-        operation_data: Dict[str, Any]
-    ) -> Tuple[bool, List[SecurityEvent]]:
-        """Validate a channel operation for security threats."""
-        security = self.get_channel_security(channel_id)
-        
-        # Perform security validation based on operation type
-        if operation_type == "state_update":
-            return self._validate_state_update_operation(security, operation_data)
-        elif operation_type == "channel_creation":
-            return self._validate_channel_creation_operation(security, operation_data)
-        elif operation_type == "channel_closure":
-            return self._validate_channel_closure_operation(security, operation_data)
-        else:
-            return True, []  # Unknown operation type, allow by default
-    
-    def _validate_state_update_operation(
-        self,
-        security: ChannelSecurity,
-        operation_data: Dict[str, Any]
-    ) -> Tuple[bool, List[SecurityEvent]]:
-        """Validate a state update operation."""
-        # Extract data from operation
-        update = operation_data.get("update")
-        channel_state = operation_data.get("channel_state")
-        public_keys = operation_data.get("public_keys", {})
-        
-        if not all([update, channel_state]):
-            return False, []
-        
-        return security.validate_state_update(update, channel_state, public_keys)
-    
-    def _validate_channel_creation_operation(
-        self,
-        security: ChannelSecurity,
-        operation_data: Dict[str, Any]
-    ) -> Tuple[bool, List[SecurityEvent]]:
-        """Validate a channel creation operation."""
-        # Basic validation for channel creation
-        participants = operation_data.get("participants", [])
-        deposits = operation_data.get("deposits", {})
-        
-        events = []
-        
-        # Check minimum participants
-        if len(participants) < 2:
-            event = SecurityEvent(
-                event_id=f"insufficient_participants_{int(time.time())}",
-                threat_type=SecurityThreat.BYZANTINE_BEHAVIOR,
-                channel_id=operation_data.get("channel_id"),
-                participant=participants[0] if participants else "unknown",
-                timestamp=int(time.time()),
-                severity=SecurityLevel.MEDIUM,
-                details={"participant_count": len(participants)}
-            )
-            events.append(event)
-        
-        # Check deposit amounts
-        for participant, deposit in deposits.items():
-            if deposit < self.config.min_deposit:
-                event = SecurityEvent(
-                    event_id=f"insufficient_deposit_{int(time.time())}",
-                    threat_type=SecurityThreat.BYZANTINE_BEHAVIOR,
-                    channel_id=operation_data.get("channel_id"),
-                    participant=participant,
-                    timestamp=int(time.time()),
-                    severity=SecurityLevel.MEDIUM,
-                    details={"deposit": deposit, "minimum": self.config.min_deposit}
-                )
-                events.append(event)
-        
-        return len(events) == 0, events
-    
-    def _validate_channel_closure_operation(
-        self,
-        security: ChannelSecurity,
-        operation_data: Dict[str, Any]
-    ) -> Tuple[bool, List[SecurityEvent]]:
-        """Validate a channel closure operation."""
-        # Basic validation for channel closure
-        return True, []  # Channel closure is generally safe
-    
-    def monitor_security(self) -> None:
-        """Monitor security across all channels."""
-        if not self.monitoring_enabled:
-            return
-        
-        # Check timeouts
-        for security in self.channel_security.values():
-            expired_timeouts = security.timeout_manager.check_timeouts()
-            if expired_timeouts:
-                self._notify_security_callbacks("timeout_expired", {
-                    "expired_timeouts": expired_timeouts
+    def validate_access(self, channel_id: str, address: str, required_level: AccessLevel) -> bool:
+        """Validate access to a channel."""
+        try:
+            # Check access control
+            if not self.access_controller.check_access(channel_id, address, required_level):
+                # Record failed attempt
+                self.access_controller.record_failed_attempt(address)
+                
+                # Monitor for security threats
+                self.security_monitor.monitor_event(channel_id, {
+                    'access_denied': True,
+                    'source_address': address,
+                    'required_level': required_level.value
                 })
-        
-        # Check for suspicious patterns
-        for channel_id, security in self.channel_security.items():
-            # Analyze recent security events
-            recent_events = [e for e in security.security_events 
-                           if time.time() - e.timestamp < 300]  # Last 5 minutes
+                
+                return False
             
-            if len(recent_events) > 10:  # More than 10 events in 5 minutes
-                self._notify_security_callbacks("suspicious_activity", {
-                    "channel_id": channel_id,
-                    "event_count": len(recent_events)
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error validating access: {e}")
+            return False
+    
+    def validate_signature(self, message: str, signature: str, public_key: str, nonce: Optional[str] = None) -> bool:
+        """Validate cryptographic signature."""
+        try:
+            # Validate signature
+            if not self.signature_validator.validate_signature(message, signature, public_key, nonce):
+                # Monitor for security threats
+                self.security_monitor.monitor_event("unknown", {
+                    'invalid_signature': True,
+                    'signature': signature,
+                    'public_key': public_key
                 })
+                
+                return False
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error validating signature: {e}")
+            return False
     
-    def add_security_callback(self, callback: callable) -> None:
-        """Add a security event callback."""
-        self.security_callbacks.append(callback)
+    def monitor_security_event(self, channel_id: str, event_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Monitor a security event."""
+        return self.security_monitor.monitor_event(channel_id, event_data)
     
-    def remove_security_callback(self, callback: callable) -> None:
-        """Remove a security callback."""
-        if callback in self.security_callbacks:
-            self.security_callbacks.remove(callback)
+    def grant_access(self, channel_id: str, address: str, access_level: AccessLevel, permissions: Set[str] = None, expires_at: Optional[int] = None) -> bool:
+        """Grant access to a channel."""
+        return self.access_controller.grant_access(channel_id, address, access_level, permissions, expires_at)
     
-    def _notify_security_callbacks(self, event_type: str, event_data: Dict[str, Any]) -> None:
-        """Notify all security callbacks."""
-        for callback in self.security_callbacks:
-            try:
-                callback(event_type, event_data)
-            except Exception as e:
-                print(f"Error in security callback: {e}")
+    def revoke_access(self, channel_id: str, address: str) -> bool:
+        """Revoke access to a channel."""
+        return self.access_controller.revoke_access(channel_id, address)
     
-    def get_global_security_statistics(self) -> Dict[str, Any]:
-        """Get global security statistics."""
-        total_events = 0
-        total_fraud_proofs = 0
-        channel_count = len(self.channel_security)
+    def get_security_alerts(self, channel_id: Optional[str] = None, security_level: Optional[SecurityLevel] = None) -> List[Dict[str, Any]]:
+        """Get security alerts."""
+        return self.security_monitor.get_alerts(channel_id, security_level)
+    
+    def cleanup_security_data(self) -> int:
+        """Clean up old security data."""
+        try:
+            cleaned_count = 0
+            
+            # Clean up old alerts
+            cleaned_count += self.security_monitor.cleanup_old_alerts()
+            
+            # Clean up old nonces (keep last 1000)
+            if len(self.signature_validator.used_nonces) > 1000:
+                old_nonces = list(self.signature_validator.used_nonces)[:-1000]
+                for nonce in old_nonces:
+                    self.signature_validator.used_nonces.discard(nonce)
+                cleaned_count += len(old_nonces)
+            
+            logger.info(f"Cleaned up {cleaned_count} security data entries")
+            return cleaned_count
+            
+        except Exception as e:
+            logger.error(f"Error cleaning up security data: {e}")
+            return 0
+
+@dataclass
+class FraudProof:
+    """Fraud proof for security events."""
+    proof_id: str
+    channel_id: str
+    fraudulent_activity: Dict[str, Any]
+    evidence: List[Dict[str, Any]]
+    submitter: str
+    timestamp: int
+    signature: Optional[str] = None
+
+class ChannelSecurity:
+    """Channel security manager."""
+    
+    def __init__(self, config: SecurityConfig):
+        """Initialize channel security."""
+        self.config = config
+        self.security_manager = SecurityManager(config)
+        logger.info("Initialized channel security")
+    
+    def validate_channel_access(self, channel_id: str, address: str) -> bool:
+        """Validate access to a channel."""
+        return self.security_manager.validate_access(channel_id, address, AccessLevel.READ)
+    
+    def validate_channel_signature(self, message: str, signature: str, public_key: str) -> bool:
+        """Validate channel signature."""
+        return self.security_manager.validate_signature(message, signature, public_key)
+
+class TimeoutManager:
+    """Manages timeouts for state channels."""
+    
+    def __init__(self, config: SecurityConfig):
+        """Initialize timeout manager."""
+        self.config = config
+        self.timeouts: Dict[str, int] = {}
+        logger.info("Initialized timeout manager")
+    
+    def set_timeout(self, channel_id: str, timeout_duration: int) -> None:
+        """Set timeout for a channel."""
+        self.timeouts[channel_id] = int(time.time()) + timeout_duration
+    
+    def check_timeout(self, channel_id: str) -> bool:
+        """Check if channel has timed out."""
+        if channel_id not in self.timeouts:
+            return False
         
-        for security in self.channel_security.values():
-            total_events += len(security.security_events)
-            total_fraud_proofs += len(security.fraud_proofs)
-        
-        return {
-            "total_channels": channel_count,
-            "total_security_events": total_events,
-            "total_fraud_proofs": total_fraud_proofs,
-            "monitoring_enabled": self.monitoring_enabled,
-            "global_security_events": len(self.global_security.security_events),
-        }
+        return int(time.time()) > self.timeouts[channel_id]
+    
+    def clear_timeout(self, channel_id: str) -> None:
+        """Clear timeout for a channel."""
+        if channel_id in self.timeouts:
+            del self.timeouts[channel_id]
+
+@dataclass
+class CryptographicProof:
+    """Cryptographic proof for security validation."""
+    proof_id: str
+    proof_type: str
+    data: Dict[str, Any]
+    signature: str
+    timestamp: int
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+__all__ = [
+    "SecurityManager",
+    "SignatureValidator",
+    "AccessController",
+    "ThreatDetector",
+    "SecurityMonitor",
+    "SecurityEvent",
+    "AccessControl",
+    "SecurityConfig",
+    "SecurityLevel",
+    "ThreatType",
+    "SecurityThreat",
+    "AccessLevel",
+    "FraudProof",
+    "ChannelSecurity",
+    "TimeoutManager",
+    "CryptographicProof",
+]

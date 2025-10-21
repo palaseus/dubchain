@@ -537,3 +537,99 @@ def create_timeout_error(
 def create_fatal_error(message: str, shutdown_required: bool = True) -> FatalError:
     """Create a fatal error."""
     return FatalError(message=message, shutdown_required=shutdown_required)
+
+
+class BridgeError(DubChainError):
+    """Bridge operation error."""
+
+    def __init__(
+        self,
+        message: str,
+        bridge_type: Optional[str] = None,
+        chain_id: Optional[str] = None,
+        transaction_hash: Optional[str] = None,
+        **kwargs,
+    ):
+        super().__init__(
+            message,
+            category=ErrorCategory.CHAIN,
+            severity=ErrorSeverity.HIGH,
+            **kwargs,
+        )
+        self.bridge_type = bridge_type
+        self.chain_id = chain_id
+        self.transaction_hash = transaction_hash
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert bridge error to dictionary."""
+        data = super().to_dict()
+        data.update(
+            {
+                "bridge_type": self.bridge_type,
+                "chain_id": self.chain_id,
+                "transaction_hash": self.transaction_hash,
+            }
+        )
+        return data
+
+
+class MonitoringError(DubChainError):
+    """Monitoring operation error."""
+
+    def __init__(
+        self,
+        message: str,
+        monitoring_type: Optional[str] = None,
+        metric_name: Optional[str] = None,
+        **kwargs,
+    ):
+        super().__init__(
+            message,
+            category=ErrorCategory.SYSTEM,
+            severity=ErrorSeverity.MEDIUM,
+            **kwargs,
+        )
+        self.monitoring_type = monitoring_type
+        self.metric_name = metric_name
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert monitoring error to dictionary."""
+        data = super().to_dict()
+        data.update(
+            {
+                "monitoring_type": self.monitoring_type,
+                "metric_name": self.metric_name,
+            }
+        )
+        return data
+
+
+class ClientError(DubChainError):
+    """Client operation error."""
+
+    def __init__(
+        self,
+        message: str,
+        client_type: Optional[str] = None,
+        endpoint: Optional[str] = None,
+        **kwargs,
+    ):
+        super().__init__(
+            message,
+            category=ErrorCategory.NETWORK,
+            severity=ErrorSeverity.MEDIUM,
+            **kwargs,
+        )
+        self.client_type = client_type
+        self.endpoint = endpoint
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert client error to dictionary."""
+        data = super().to_dict()
+        data.update(
+            {
+                "client_type": self.client_type,
+                "endpoint": self.endpoint,
+            }
+        )
+        return data

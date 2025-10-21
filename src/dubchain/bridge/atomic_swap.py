@@ -11,6 +11,7 @@ import secrets
 import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set, Tuple
+from enum import Enum
 
 from .bridge_types import (
     BridgeAsset,
@@ -18,6 +19,17 @@ from .bridge_types import (
     BridgeValidator,
     CrossChainTransaction,
 )
+
+
+class SwapStatus(Enum):
+    """Atomic swap status."""
+    
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    COMPLETED = "completed"
+    EXPIRED = "expired"
+    CANCELLED = "cancelled"
+    FAILED = "failed"
 
 
 @dataclass
@@ -490,3 +502,98 @@ class AtomicSwap:
         atomic_swap.swap_metrics = data["swap_metrics"]
 
         return atomic_swap
+
+
+class AtomicSwapManager:
+    """Manager for atomic swap operations."""
+    
+    def __init__(self):
+        """Initialize atomic swap manager."""
+        self.swaps: Dict[str, AtomicSwap] = {}
+        self.proposals: Dict[str, SwapProposal] = {}
+    
+    def create_swap(self, swap_id: str) -> AtomicSwap:
+        """Create a new atomic swap."""
+        swap = AtomicSwap(swap_id)
+        self.swaps[swap_id] = swap
+        return swap
+    
+    def get_swap(self, swap_id: str) -> Optional[AtomicSwap]:
+        """Get an atomic swap by ID."""
+        return self.swaps.get(swap_id)
+    
+    def create_proposal(
+        self,
+        proposal_id: str,
+        initiator: str,
+        counterparty: str,
+        source_chain: str,
+        target_chain: str,
+        source_asset: str,
+        target_asset: str,
+        source_amount: int,
+        target_amount: int,
+        timeout: int = 3600
+    ) -> SwapProposal:
+        """Create a new swap proposal."""
+        secret = secrets.token_hex(32)
+        secret_hash = hashlib.sha256(secret.encode()).hexdigest()
+        
+        proposal = SwapProposal(
+            proposal_id=proposal_id,
+            initiator=initiator,
+            counterparty=counterparty,
+            source_chain=source_chain,
+            target_chain=target_chain,
+            source_asset=source_asset,
+            target_asset=target_asset,
+            source_amount=source_amount,
+            target_amount=target_amount,
+            secret_hash=secret_hash,
+            timeout=timeout,
+            secret=secret
+        )
+        
+        self.proposals[proposal_id] = proposal
+        return proposal
+    
+    def get_proposal(self, proposal_id: str) -> Optional[SwapProposal]:
+        """Get a proposal by ID."""
+        return self.proposals.get(proposal_id)
+    
+    def accept_proposal(self, proposal_id: str) -> bool:
+        """Accept a swap proposal."""
+        proposal = self.proposals.get(proposal_id)
+        if not proposal or proposal.status != SwapStatus.PENDING.value:
+            return False
+        
+        proposal.status = SwapStatus.ACCEPTED.value
+        proposal.accepted_at = time.time()
+        return True
+    
+    def complete_proposal(self, proposal_id: str) -> bool:
+        """Complete a swap proposal."""
+        proposal = self.proposals.get(proposal_id)
+        if not proposal or proposal.status != SwapStatus.ACCEPTED.value:
+            return False
+        
+        proposal.status = SwapStatus.COMPLETED.value
+        proposal.completed_at = time.time()
+        return True
+    
+    def cancel_proposal(self, proposal_id: str) -> bool:
+        """Cancel a swap proposal."""
+        proposal = self.proposals.get(proposal_id)
+        if not proposal or proposal.status not in [SwapStatus.PENDING.value, SwapStatus.ACCEPTED.value]:
+            return False
+        
+        proposal.status = SwapStatus.CANCELLED.value
+        return True
+    
+    def get_all_proposals(self) -> List[SwapProposal]:
+        """Get all proposals."""
+        return list(self.proposals.values())
+    
+    def get_proposals_by_status(self, status: SwapStatus) -> List[SwapProposal]:
+        """Get proposals by status."""
+        return [p for p in self.proposals.values() if p.status == status.value]

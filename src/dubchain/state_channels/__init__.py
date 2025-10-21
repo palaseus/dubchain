@@ -45,6 +45,55 @@ from .security import (
     TimeoutManager,
 )
 
+# Import new comprehensive modules
+from .channel_protocol import (
+    ChannelManager as NewChannelManager,
+    StateValidator as NewStateValidator,
+    PaymentProcessor,
+    ChannelState as NewChannelState,
+    ChannelParticipant,
+    Payment,
+    ChannelConfig as NewChannelConfig,
+    ChannelStatus as NewChannelStatus,
+    PaymentType,
+)
+from .dispute_resolution import (
+    DisputeManager as NewDisputeManager,
+    DisputeResolver,
+    EvidenceValidator,
+    FraudDetector,
+    DisputeResolution as NewDisputeResolution,
+    DisputeEvidence as NewDisputeEvidence,
+    FraudProof as NewFraudProof,
+    DisputeConfig,
+    DisputeStatus as NewDisputeStatus,
+    EvidenceType,
+)
+from .off_chain_state import (
+    OffChainStateManager as NewOffChainStateManager,
+    StateCompressor,
+    StateVersioner,
+    StateValidator as OffChainStateValidator,
+    StateSnapshot,
+    StateDiff,
+    StateConfig,
+    StateVersion,
+    CompressionType,
+)
+from .security import (
+    SecurityManager as NewSecurityManager,
+    SignatureValidator,
+    AccessController,
+    ThreatDetector,
+    SecurityMonitor,
+    SecurityEvent,
+    AccessControl,
+    SecurityConfig,
+    SecurityLevel,
+    ThreatType,
+    AccessLevel,
+)
+
 __all__ = [
     # Core Protocol
     "StateChannel",
@@ -75,6 +124,46 @@ __all__ = [
     "TimeoutManager",
     "CryptographicProof",
     "FraudProof",
+    # New comprehensive modules
+    "NewChannelManager",
+    "NewStateValidator",
+    "PaymentProcessor",
+    "NewChannelState",
+    "ChannelParticipant",
+    "Payment",
+    "NewChannelConfig",
+    "NewChannelStatus",
+    "PaymentType",
+    "NewDisputeManager",
+    "DisputeResolver",
+    "EvidenceValidator",
+    "FraudDetector",
+    "NewDisputeResolution",
+    "NewDisputeEvidence",
+    "NewFraudProof",
+    "DisputeConfig",
+    "NewDisputeStatus",
+    "EvidenceType",
+    "NewOffChainStateManager",
+    "StateCompressor",
+    "StateVersioner",
+    "OffChainStateValidator",
+    "StateSnapshot",
+    "StateDiff",
+    "StateConfig",
+    "StateVersion",
+    "CompressionType",
+    "NewSecurityManager",
+    "SignatureValidator",
+    "AccessController",
+    "ThreatDetector",
+    "SecurityMonitor",
+    "SecurityEvent",
+    "AccessControl",
+    "SecurityConfig",
+    "SecurityLevel",
+    "ThreatType",
+    "AccessLevel",
 ]
 
 __version__ = "1.0.0"

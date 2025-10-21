@@ -9,23 +9,52 @@ from .connection_manager import (
     ConnectionConfig,
     ConnectionManager,
     ConnectionPool,
+    ConnectionHealthMonitor,
+    ConnectionLoadBalancer,
+    Connection,
+    ConnectionMetrics,
+    ConnectionState,
+    ConnectionType,
+    ConnectionPriority,
     ConnectionStrategy,
 )
 from .discovery import DiscoveryConfig, DiscoveryMethod, PeerDiscovery
 from .fault_tolerance import FaultTolerance, FaultToleranceConfig
 from .gossip import GossipConfig, GossipMessage, GossipProtocol, MessageType
 from .message_router import MessageRouter, RouteInfo, RoutingStrategy
-from .network_topology import NetworkTopology, TopologyConfig, TopologyManager
-from .peer import ConnectionType, Peer, PeerInfo, PeerStatus
+from .network_topology import (
+    NetworkTopologyManager,
+    TopologyDiscovery,
+    TopologyOptimizer,
+    NetworkTopology,
+    NetworkNode,
+    NetworkLink,
+    TopologyMetrics,
+    TopologyType,
+    NodeRole,
+    ConnectionQuality,
+)
+from .peer import (
+    PeerConfig,
+    PeerStatus,
+    PeerConnectionStatus,
+    PeerNode,
+    Peer,
+    PeerInfo,
+    PeerManager,
+)
 from .performance import NetworkPerformance, PerformanceConfig, PerformanceMonitor
 from .security import NetworkSecurity, SecurityConfig
 
 __all__ = [
     # Peer management
+    "PeerNode",
     "Peer",
     "PeerInfo",
+    "PeerManager",
+    "PeerConfig",
     "PeerStatus",
-    "ConnectionType",
+    "PeerConnectionStatus",
     # Gossip protocol
     "GossipProtocol",
     "GossipMessage",
@@ -38,16 +67,30 @@ __all__ = [
     # Connection management
     "ConnectionManager",
     "ConnectionPool",
+    "ConnectionHealthMonitor",
+    "ConnectionLoadBalancer",
+    "Connection",
     "ConnectionConfig",
+    "ConnectionMetrics",
+    "ConnectionState",
+    "ConnectionType",
+    "ConnectionPriority",
     "ConnectionStrategy",
     # Message routing
     "MessageRouter",
     "RoutingStrategy",
     "RouteInfo",
     # Network topology
+    "NetworkTopologyManager",
+    "TopologyDiscovery",
+    "TopologyOptimizer",
     "NetworkTopology",
-    "TopologyManager",
-    "TopologyConfig",
+    "NetworkNode",
+    "NetworkLink",
+    "TopologyMetrics",
+    "TopologyType",
+    "NodeRole",
+    "ConnectionQuality",
     # Security
     "NetworkSecurity",
     "SecurityConfig",

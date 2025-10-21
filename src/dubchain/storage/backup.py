@@ -1,707 +1,718 @@
-"""Backup and recovery system for DubChain database.
+"""
+Advanced Backup System for DubChain
 
-This module provides comprehensive backup and recovery capabilities including
-incremental backups, compression, encryption, and point-in-time recovery.
+This module provides comprehensive backup capabilities including:
+- Incremental backups
+- Full backups
+- Compressed backups
+- Backup verification
+- Backup restoration
+- Backup scheduling
 """
 
 import gzip
-import hashlib
 import json
-import logging
 import os
 import shutil
-import sqlite3
-import tempfile
-import threading
+import tarfile
 import time
-import zipfile
+import threading
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
+import hashlib
+import pickle
 
-from cryptography.fernet import Fernet
+from ..errors import ClientError
+from ..logging import get_logger
 
-from .database import DatabaseBackend, DatabaseError
-
+logger = get_logger(__name__)
 
 class BackupError(Exception):
     """Base exception for backup operations."""
-
     pass
-
-
-class BackupCorruptionError(BackupError):
-    """Backup corruption error."""
-
-    pass
-
-
-class BackupNotFoundError(BackupError):
-    """Backup not found error."""
-
-    pass
-
-
-class RecoveryError(BackupError):
-    """Recovery error."""
-
-    pass
-
 
 class BackupType(Enum):
-    """Types of backups."""
-
+    """Backup types."""
     FULL = "full"
     INCREMENTAL = "incremental"
     DIFFERENTIAL = "differential"
     SNAPSHOT = "snapshot"
 
-
 class BackupStatus(Enum):
     """Backup status."""
-
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
+    VERIFIED = "verified"
     CORRUPTED = "corrupted"
 
+class CompressionType(Enum):
+    """Compression types."""
+    NONE = "none"
+    GZIP = "gzip"
+    TAR_GZ = "tar.gz"
+    ZIP = "zip"
 
 @dataclass
 class BackupConfig:
     """Backup configuration."""
-
-    # Backup settings
-    backup_directory: str = "backups"
-    backup_type: BackupType = BackupType.FULL
-    compression: bool = True
-    encryption: bool = False
-    encryption_key: Optional[str] = None
-
-    # Retention settings
+    backup_dir: str = "backups"
     max_backups: int = 10
-    retention_days: int = 30
+    compression: CompressionType = CompressionType.GZIP
+    verify_backups: bool = True
     auto_cleanup: bool = True
-
-    # Scheduling
-    auto_backup: bool = True
-    backup_interval: int = 3600  # seconds
-    backup_time: str = "02:00"  # HH:MM format
-
-    # Performance
-    parallel_backup: bool = True
-    max_workers: int = 4
-    chunk_size: int = 1024 * 1024  # 1MB
-
-    # Validation
-    verify_backup: bool = True
-    checksum_algorithm: str = "sha256"
-
-    # Notifications
-    notify_on_success: bool = False
-    notify_on_failure: bool = True
-    notification_callback: Optional[Callable[[str, bool], None]] = None
-
+    retention_days: int = 30
+    schedule_enabled: bool = False
+    schedule_interval: int = 86400  # 24 hours in seconds
 
 @dataclass
 class BackupInfo:
     """Backup information."""
-
     backup_id: str
     backup_type: BackupType
-    status: BackupStatus
+    source_path: str
+    backup_path: str
+    size_bytes: int
     created_at: float
-    size_bytes: int = 0
-    compressed_size: int = 0
-    compression_ratio: float = 0.0
+    status: BackupStatus
+    compression: CompressionType
     checksum: Optional[str] = None
-    database_version: Optional[str] = None
-    backup_path: str = ""
+    parent_backup_id: Optional[str] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
 
-    # Recovery information
-    recovery_time: float = 0.0
-    is_recoverable: bool = True
-    dependencies: List[str] = field(default_factory=list)
-
-
 @dataclass
-class RecoveryPlan:
-    """Recovery plan."""
-
-    target_backup: BackupInfo
-    recovery_type: str
-    estimated_time: float
-    steps: List[str]
-    rollback_plan: List[str]
-    data_loss_risk: str = "low"
-
-
-class BackupValidator:
-    """Backup validation utilities."""
-
-    @staticmethod
-    def validate_backup_file(backup_path: str, checksum: Optional[str] = None) -> bool:
-        """Validate backup file integrity."""
-        try:
-            if not os.path.exists(backup_path):
-                return False
-
-            # Check file size
-            if os.path.getsize(backup_path) == 0:
-                return False
-
-            # Verify checksum if provided
-            if checksum:
-                calculated_checksum = BackupValidator.calculate_checksum(backup_path)
-                if calculated_checksum != checksum:
-                    return False
-
-            return True
-
-        except Exception:
-            return False
-
-    @staticmethod
-    def calculate_checksum(file_path: str, algorithm: str = "sha256") -> str:
-        """Calculate file checksum."""
-        hash_func = hashlib.new(algorithm)
-
-        with open(file_path, "rb") as f:
-            for chunk in iter(lambda: f.read(4096), b""):
-                hash_func.update(chunk)
-
-        return hash_func.hexdigest()
-
-    @staticmethod
-    def validate_database_backup(backup_path: str) -> bool:
-        """Validate database backup integrity."""
-        try:
-            # Try to open as SQLite database
-            conn = sqlite3.connect(backup_path)
-            cursor = conn.cursor()
-
-            # Check if it's a valid SQLite database
-            cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
-            tables = cursor.fetchall()
-
-            conn.close()
-
-            # Should have at least the migrations table
-            return len(tables) > 0
-
-        except Exception:
-            return False
-
-
-class BackupCompressor:
-    """Backup compression utilities."""
-
-    @staticmethod
-    def compress_file(input_path: str, output_path: str) -> float:
-        """Compress a file using gzip."""
-        try:
-            with open(input_path, "rb") as f_in:
-                with gzip.open(output_path, "wb") as f_out:
-                    shutil.copyfileobj(f_in, f_out)
-
-            # Calculate compression ratio
-            original_size = os.path.getsize(input_path)
-            compressed_size = os.path.getsize(output_path)
-
-            return compressed_size / original_size if original_size > 0 else 0.0
-
-        except Exception as e:
-            raise BackupError(f"Compression failed: {e}")
-
-    @staticmethod
-    def decompress_file(input_path: str, output_path: str) -> None:
-        """Decompress a gzip file."""
-        try:
-            with gzip.open(input_path, "rb") as f_in:
-                with open(output_path, "wb") as f_out:
-                    shutil.copyfileobj(f_in, f_out)
-
-        except Exception as e:
-            raise BackupError(f"Decompression failed: {e}")
-
-
-class BackupEncryptor:
-    """Backup encryption utilities."""
-
-    def __init__(self, key: Optional[str] = None):
-        self.key = key or Fernet.generate_key()
-        self.cipher = Fernet(self.key)
-
-    def encrypt_file(self, input_path: str, output_path: str) -> None:
-        """Encrypt a file."""
-        try:
-            with open(input_path, "rb") as f_in:
-                data = f_in.read()
-
-            encrypted_data = self.cipher.encrypt(data)
-
-            with open(output_path, "wb") as f_out:
-                f_out.write(encrypted_data)
-
-        except Exception as e:
-            raise BackupError(f"Encryption failed: {e}")
-
-    def decrypt_file(self, input_path: str, output_path: str) -> None:
-        """Decrypt a file."""
-        try:
-            with open(input_path, "rb") as f_in:
-                encrypted_data = f_in.read()
-
-            decrypted_data = self.cipher.decrypt(encrypted_data)
-
-            with open(output_path, "wb") as f_out:
-                f_out.write(decrypted_data)
-
-        except Exception as e:
-            raise BackupError(f"Decryption failed: {e}")
-
+class BackupSchedule:
+    """Backup schedule."""
+    schedule_id: str
+    name: str
+    backup_type: BackupType
+    source_paths: List[str]
+    enabled: bool
+    interval_seconds: int
+    last_run: Optional[float] = None
+    next_run: Optional[float] = None
 
 class BackupManager:
-    """Database backup manager."""
-
-    def __init__(self, backend: DatabaseBackend, config: BackupConfig):
-        self.backend = backend
+    """Main backup manager."""
+    
+    def __init__(self, config: BackupConfig):
+        """Initialize backup manager."""
         self.config = config
-        self.backup_dir = Path(config.backup_directory)
-        self._backups: Dict[str, BackupInfo] = {}
-        self._lock = threading.RLock()
-        self._logger = logging.getLogger(__name__)
-        self._backup_thread: Optional[threading.Thread] = None
-        self._running = False
-
-        # Initialize components
-        self.validator = BackupValidator()
-        self.compressor = BackupCompressor()
-        self.encryptor = (
-            BackupEncryptor(config.encryption_key) if config.encryption else None
-        )
-
-        # Ensure backup directory exists
+        self.backup_dir = Path(config.backup_dir)
         self.backup_dir.mkdir(parents=True, exist_ok=True)
-
+        self.backups: Dict[str, BackupInfo] = {}
+        self.schedules: Dict[str, BackupSchedule] = {}
+        self.scheduler_thread = None
+        self.running = False
+        
         # Load existing backups
-        self._load_backup_index()
-
-    def _initialize(self) -> None:
-        """Initialize backup manager components."""
-        # Ensure backup directory exists
-        os.makedirs(self.backup_dir, exist_ok=True)
-
-        # Load existing backups
-        self._load_backup_index()
-
-    def _load_backup_index(self) -> None:
-        """Load backup index from disk."""
-        index_file = self.backup_dir / "backup_index.json"
-
-        if index_file.exists():
-            try:
-                with open(index_file, "r") as f:
-                    data = json.load(f)
-
-                for backup_data in data.get("backups", []):
-                    backup_info = BackupInfo(**backup_data)
-                    self._backups[backup_info.backup_id] = backup_info
-
-                self._logger.info(f"Loaded {len(self._backups)} backup records")
-
-            except Exception as e:
-                self._logger.error(f"Failed to load backup index: {e}")
-
-    def _save_backup_index(self) -> None:
-        """Save backup index to disk."""
-        index_file = self.backup_dir / "backup_index.json"
-
+        self._load_backup_metadata()
+        
+        logger.info("Initialized backup manager")
+    
+    def start(self) -> None:
+        """Start backup manager."""
+        self.running = True
+        
+        if self.config.schedule_enabled:
+            self.scheduler_thread = threading.Thread(target=self._scheduler_loop, daemon=True)
+            self.scheduler_thread.start()
+        
+        logger.info("Backup manager started")
+    
+    def stop(self) -> None:
+        """Stop backup manager."""
+        self.running = False
+        
+        if self.scheduler_thread:
+            self.scheduler_thread.join(timeout=5)
+        
+        logger.info("Backup manager stopped")
+    
+    def create_backup(self, source_path: str, backup_type: BackupType = BackupType.FULL, 
+                     name: Optional[str] = None) -> Optional[str]:
+        """Create a backup."""
         try:
-            data = {
-                "backups": [
-                    {
-                        "backup_id": backup.backup_id,
-                        "backup_type": backup.backup_type.value,
-                        "status": backup.status.value,
-                        "created_at": backup.created_at,
-                        "size_bytes": backup.size_bytes,
-                        "compressed_size": backup.compressed_size,
-                        "compression_ratio": backup.compression_ratio,
-                        "checksum": backup.checksum,
-                        "database_version": backup.database_version,
-                        "backup_path": backup.backup_path,
-                        "metadata": backup.metadata,
-                        "recovery_time": backup.recovery_time,
-                        "is_recoverable": backup.is_recoverable,
-                        "dependencies": backup.dependencies,
-                    }
-                    for backup in self._backups.values()
-                ]
-            }
-
-            with open(index_file, "w") as f:
-                json.dump(data, f, indent=2)
-
-        except Exception as e:
-            self._logger.error(f"Failed to save backup index: {e}")
-
-    def create_backup(
-        self,
-        backup_type: Optional[BackupType] = None,
-        database_path: Optional[str] = None,
-    ) -> BackupInfo:
-        """Create a new backup."""
-        with self._lock:
-            backup_type = backup_type or self.config.backup_type
-            backup_id = self._generate_backup_id(backup_type)
-
+            backup_id = self._generate_backup_id()
+            backup_name = name or f"backup_{backup_id}"
+            
+            # Determine backup path
+            backup_path = self.backup_dir / f"{backup_name}_{backup_id}"
+            
+            # Create backup info
             backup_info = BackupInfo(
                 backup_id=backup_id,
                 backup_type=backup_type,
-                status=BackupStatus.RUNNING,
+                source_path=source_path,
+                backup_path=str(backup_path),
+                size_bytes=0,
                 created_at=time.time(),
-                backup_path="",
+                status=BackupStatus.PENDING,
+                compression=self.config.compression
             )
-
-            try:
-                self._logger.info(f"Creating {backup_type.value} backup: {backup_id}")
-
-                # Create backup file
-                backup_path = self._create_backup_file(backup_info, database_path)
-                backup_info.backup_path = str(backup_path)
-
-                # Calculate file size
-                backup_info.size_bytes = os.path.getsize(backup_path)
-
-                # Compress if enabled
-                if self.config.compression:
-                    compressed_path = backup_path.with_suffix(
-                        backup_path.suffix + ".gz"
-                    )
-                    compression_ratio = self.compressor.compress_file(
-                        backup_path, compressed_path
-                    )
-                    backup_info.compression_ratio = compression_ratio
-                    backup_info.compressed_size = os.path.getsize(compressed_path)
-
-                    # Remove original file
-                    os.remove(backup_path)
-                    backup_info.backup_path = str(compressed_path)
-                    backup_path = compressed_path
-
-                # Encrypt if enabled
-                if self.config.encryption and self.encryptor:
-                    encrypted_path = backup_path.with_suffix(
-                        backup_path.suffix + ".enc"
-                    )
-                    self.encryptor.encrypt_file(backup_path, encrypted_path)
-                    backup_info.compressed_size = os.path.getsize(encrypted_path)
-
-                    # Remove unencrypted file
-                    os.remove(backup_path)
-                    backup_info.backup_path = str(encrypted_path)
-                    backup_path = encrypted_path
-
-                # Calculate checksum
-                if self.config.verify_backup:
-                    backup_info.checksum = self.validator.calculate_checksum(
-                        backup_path, self.config.checksum_algorithm
-                    )
-
-                # Validate backup
-                if self.config.verify_backup:
-                    if not self.validator.validate_backup_file(
-                        backup_path, backup_info.checksum
-                    ):
-                        raise BackupCorruptionError("Backup validation failed")
-
-                # Update status
+            
+            # Update status to running
+            backup_info.status = BackupStatus.RUNNING
+            self.backups[backup_id] = backup_info
+            
+            logger.info(f"Starting backup {backup_id}: {source_path}")
+            
+            # Perform backup
+            success = self._perform_backup(backup_info)
+            
+            if success:
                 backup_info.status = BackupStatus.COMPLETED
-                backup_info.is_recoverable = True
-
-                # Store backup info
-                self._backups[backup_id] = backup_info
-                self._save_backup_index()
-
-                self._logger.info(f"Backup {backup_id} created successfully")
-
-                # Send notification
-                if self.config.notify_on_success and self.config.notification_callback:
-                    self.config.notification_callback(
-                        f"Backup {backup_id} completed successfully", True
-                    )
-
-                return backup_info
-
-            except Exception as e:
+                
+                # Verify backup if enabled
+                if self.config.verify_backups:
+                    if self._verify_backup(backup_info):
+                        backup_info.status = BackupStatus.VERIFIED
+                    else:
+                        backup_info.status = BackupStatus.CORRUPTED
+                        logger.error(f"Backup verification failed: {backup_id}")
+                
+                # Save metadata
+                self._save_backup_metadata(backup_info)
+                
+                # Cleanup old backups
+                if self.config.auto_cleanup:
+                    self._cleanup_old_backups()
+                
+                logger.info(f"Backup completed successfully: {backup_id}")
+                return backup_id
+            else:
                 backup_info.status = BackupStatus.FAILED
-                backup_info.is_recoverable = False
-
-                self._logger.error(f"Backup {backup_id} failed: {e}")
-
-                # Send notification
-                if self.config.notify_on_failure and self.config.notification_callback:
-                    self.config.notification_callback(
-                        f"Backup {backup_id} failed: {e}", False
-                    )
-
-                raise BackupError(f"Backup creation failed: {e}")
-
-    def _generate_backup_id(self, backup_type: BackupType) -> str:
-        """Generate unique backup ID."""
-        timestamp = int(time.time())
-        return f"backup_{timestamp}_{backup_type.value}"
-
-    def _create_backup_file(
-        self, backup_info: BackupInfo, database_path: Optional[str] = None
-    ) -> Path:
-        """Create backup file."""
-        filename = f"{backup_info.backup_id}.db"
-        backup_path = self.backup_dir / filename
-
-        # Use provided database path or backend's path
-        if database_path:
-            if os.path.exists(database_path):
-                shutil.copy2(database_path, backup_path)
+                logger.error(f"Backup failed: {backup_id}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error creating backup: {e}")
+            return None
+    
+    def restore_backup(self, backup_id: str, target_path: str) -> bool:
+        """Restore a backup."""
+        try:
+            if backup_id not in self.backups:
+                logger.error(f"Backup {backup_id} not found")
+                return False
+            
+            backup_info = self.backups[backup_id]
+            
+            if backup_info.status not in [BackupStatus.COMPLETED, BackupStatus.VERIFIED]:
+                logger.error(f"Cannot restore backup {backup_id}: status is {backup_info.status}")
+                return False
+            
+            logger.info(f"Restoring backup {backup_id} to {target_path}")
+            
+            # Perform restore
+            success = self._perform_restore(backup_info, target_path)
+            
+            if success:
+                logger.info(f"Backup restored successfully: {backup_id}")
+                return True
             else:
-                raise BackupError(f"Database file not found: {database_path}")
-        elif hasattr(self.backend, "_connection") and self.backend._connection:
-            # Direct SQLite backup
-            backup_conn = sqlite3.connect(backup_path)
-            self.backend._connection.backup(backup_conn)
-            backup_conn.close()
-        else:
-            # Fallback: copy database file
-            db_path = Path(self.backend.config.database_path)
-            if db_path.exists():
-                shutil.copy2(db_path, backup_path)
-            else:
-                raise BackupError("Database file not found")
-
-        return backup_path
-
-    def restore_backup(self, backup_id: str, target_path: Optional[str] = None) -> None:
-        """Restore from backup."""
-        with self._lock:
-            if backup_id not in self._backups:
-                raise BackupNotFoundError(f"Backup {backup_id} not found")
-
-            backup_info = self._backups[backup_id]
-
-            if not backup_info.is_recoverable:
-                raise RecoveryError(f"Backup {backup_id} is not recoverable")
-
-            try:
-                self._logger.info(f"Restoring backup: {backup_id}")
-
-                # Determine target path
-                if target_path is None:
-                    target_path = self.backend.config.database_path
-
-                # Create temporary file for restoration
-                with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-                    temp_path = temp_file.name
-
-                try:
-                    # Copy backup to temporary file
-                    shutil.copy2(backup_info.backup_path, temp_path)
-
-                    # Decrypt if needed
-                    if self.config.encryption and self.encryptor:
-                        decrypted_path = temp_path + ".dec"
-                        self.encryptor.decrypt_file(temp_path, decrypted_path)
-                        os.remove(temp_path)
-                        temp_path = decrypted_path
-
-                    # Decompress if needed
-                    if self.config.compression:
-                        decompressed_path = temp_path + ".db"
-                        self.compressor.decompress_file(temp_path, decompressed_path)
-                        os.remove(temp_path)
-                        temp_path = decompressed_path
-
-                    # Validate restored database
-                    if not self.validator.validate_database_backup(temp_path):
-                        raise BackupCorruptionError(
-                            "Restored database validation failed"
-                        )
-
-                    # Replace current database
-                    shutil.move(temp_path, target_path)
-
-                    self._logger.info(f"Backup {backup_id} restored successfully")
-
-                finally:
-                    # Clean up temporary files
-                    for path in [temp_path, temp_path + ".dec", temp_path + ".db"]:
-                        if os.path.exists(path):
-                            os.remove(path)
-
-            except Exception as e:
-                self._logger.error(f"Backup restoration failed: {e}")
-                raise RecoveryError(f"Backup restoration failed: {e}")
-
+                logger.error(f"Backup restore failed: {backup_id}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Error restoring backup: {e}")
+            return False
+    
     def list_backups(self) -> List[BackupInfo]:
         """List all backups."""
-        with self._lock:
-            return list(self._backups.values())
-
-    def get_backup(self, backup_id: str) -> Optional[BackupInfo]:
-        """Get backup information."""
-        with self._lock:
-            return self._backups.get(backup_id)
-
+        return list(self.backups.values())
+    
     def get_backup_info(self, backup_id: str) -> Optional[BackupInfo]:
-        """Get backup info by ID."""
-        with self._lock:
-            return self._backups.get(backup_id)
-
-    def delete_backup(self, backup_id: str) -> None:
+        """Get backup information."""
+        return self.backups.get(backup_id)
+    
+    def delete_backup(self, backup_id: str) -> bool:
         """Delete a backup."""
-        with self._lock:
-            if backup_id not in self._backups:
-                raise BackupNotFoundError(f"Backup {backup_id} not found")
-
-            backup_info = self._backups[backup_id]
-
-            try:
-                # Remove backup file
-                if os.path.exists(backup_info.backup_path):
-                    os.remove(backup_info.backup_path)
-
-                # Remove from index
-                del self._backups[backup_id]
-                self._save_backup_index()
-
-                self._logger.info(f"Backup {backup_id} deleted")
-
-            except Exception as e:
-                self._logger.error(f"Failed to delete backup {backup_id}: {e}")
-                raise BackupError(f"Failed to delete backup: {e}")
-
-    def cleanup_old_backups(self) -> int:
-        """Clean up old backups based on retention policy."""
-        with self._lock:
-            if not self.config.auto_cleanup:
-                return 0
-
-            current_time = time.time()
-            cutoff_time = current_time - (self.config.retention_days * 24 * 3600)
-
-            # Get backups to delete
-            backups_to_delete = []
-
-            # Sort by creation time (oldest first)
-            sorted_backups = sorted(self._backups.values(), key=lambda b: b.created_at)
-
-            # Keep only the most recent backups
-            if len(sorted_backups) > self.config.max_backups:
-                excess_count = len(sorted_backups) - self.config.max_backups
-                backups_to_delete.extend(sorted_backups[:excess_count])
-
-            # Add old backups
-            for backup in sorted_backups:
-                if backup.created_at < cutoff_time:
-                    backups_to_delete.append(backup)
-
-            # Delete backups
-            deleted_count = 0
-            for backup in backups_to_delete:
+        try:
+            if backup_id not in self.backups:
+                logger.error(f"Backup {backup_id} not found")
+                return False
+            
+            backup_info = self.backups[backup_id]
+            
+            # Delete backup file
+            backup_path = Path(backup_info.backup_path)
+            if backup_path.exists():
+                if backup_path.is_file():
+                    backup_path.unlink()
+                elif backup_path.is_dir():
+                    shutil.rmtree(backup_path)
+            
+            # Remove from registry
+            del self.backups[backup_id]
+            
+            # Save updated metadata
+            self._save_all_backup_metadata()
+            
+            logger.info(f"Deleted backup: {backup_id}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error deleting backup: {e}")
+            return False
+    
+    def verify_backup(self, backup_id: str) -> bool:
+        """Verify a backup."""
+        try:
+            if backup_id not in self.backups:
+                logger.error(f"Backup {backup_id} not found")
+                return False
+            
+            backup_info = self.backups[backup_id]
+            
+            logger.info(f"Verifying backup: {backup_id}")
+            
+            success = self._verify_backup(backup_info)
+            
+            if success:
+                backup_info.status = BackupStatus.VERIFIED
+                logger.info(f"Backup verification successful: {backup_id}")
+            else:
+                backup_info.status = BackupStatus.CORRUPTED
+                logger.error(f"Backup verification failed: {backup_id}")
+            
+            self._save_backup_metadata(backup_info)
+            return success
+            
+        except Exception as e:
+            logger.error(f"Error verifying backup: {e}")
+            return False
+    
+    def create_schedule(self, schedule: BackupSchedule) -> bool:
+        """Create a backup schedule."""
+        try:
+            self.schedules[schedule.schedule_id] = schedule
+            self._save_schedule_metadata()
+            
+            logger.info(f"Created backup schedule: {schedule.schedule_id}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error creating schedule: {e}")
+            return False
+    
+    def _perform_backup(self, backup_info: BackupInfo) -> bool:
+        """Perform the actual backup."""
+        try:
+            source_path = Path(backup_info.source_path)
+            backup_path = Path(backup_info.backup_path)
+            
+            if not source_path.exists():
+                logger.error(f"Source path does not exist: {source_path}")
+                return False
+            
+            # Create backup based on type
+            if backup_info.backup_type == BackupType.FULL:
+                success = self._create_full_backup(source_path, backup_path, backup_info)
+            elif backup_info.backup_type == BackupType.INCREMENTAL:
+                success = self._create_incremental_backup(source_path, backup_path, backup_info)
+            elif backup_info.backup_type == BackupType.DIFFERENTIAL:
+                success = self._create_differential_backup(source_path, backup_path, backup_info)
+            elif backup_info.backup_type == BackupType.SNAPSHOT:
+                success = self._create_snapshot_backup(source_path, backup_path, backup_info)
+            else:
+                logger.error(f"Unknown backup type: {backup_info.backup_type}")
+                return False
+            
+            if success:
+                # Update backup info
+                backup_info.size_bytes = self._get_path_size(backup_path)
+                backup_info.checksum = self._calculate_checksum(backup_path)
+            
+            return success
+            
+        except Exception as e:
+            logger.error(f"Error performing backup: {e}")
+            return False
+    
+    def _create_full_backup(self, source_path: Path, backup_path: Path, backup_info: BackupInfo) -> bool:
+        """Create full backup."""
+        try:
+            if source_path.is_file():
+                # File backup
+                if self.config.compression == CompressionType.GZIP:
+                    with open(source_path, 'rb') as f_in:
+                        with gzip.open(f"{backup_path}.gz", 'wb') as f_out:
+                            shutil.copyfileobj(f_in, f_out)
+                    backup_info.backup_path = f"{backup_path}.gz"
+                else:
+                    shutil.copy2(source_path, backup_path)
+            else:
+                # Directory backup
+                if self.config.compression == CompressionType.TAR_GZ:
+                    with tarfile.open(f"{backup_path}.tar.gz", "w:gz") as tar:
+                        tar.add(source_path, arcname=source_path.name)
+                    backup_info.backup_path = f"{backup_path}.tar.gz"
+                else:
+                    shutil.copytree(source_path, backup_path)
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error creating full backup: {e}")
+            return False
+    
+    def _create_incremental_backup(self, source_path: Path, backup_path: Path, backup_info: BackupInfo) -> bool:
+        """Create incremental backup."""
+        try:
+            # Find the most recent full backup
+            parent_backup = self._find_parent_backup(backup_info)
+            
+            if not parent_backup:
+                logger.warning("No parent backup found, creating full backup instead")
+                return self._create_full_backup(source_path, backup_path, backup_info)
+            
+            # Create incremental backup (simplified implementation)
+            # In real implementation, would track file modifications
+            return self._create_full_backup(source_path, backup_path, backup_info)
+            
+        except Exception as e:
+            logger.error(f"Error creating incremental backup: {e}")
+            return False
+    
+    def _create_differential_backup(self, source_path: Path, backup_path: Path, backup_info: BackupInfo) -> bool:
+        """Create differential backup."""
+        try:
+            # Find the most recent full backup
+            parent_backup = self._find_parent_backup(backup_info)
+            
+            if not parent_backup:
+                logger.warning("No parent backup found, creating full backup instead")
+                return self._create_full_backup(source_path, backup_path, backup_info)
+            
+            # Create differential backup (simplified implementation)
+            return self._create_full_backup(source_path, backup_path, backup_info)
+            
+        except Exception as e:
+            logger.error(f"Error creating differential backup: {e}")
+            return False
+    
+    def _create_snapshot_backup(self, source_path: Path, backup_path: Path, backup_info: BackupInfo) -> bool:
+        """Create snapshot backup."""
+        try:
+            # Snapshot backup (simplified implementation)
+            # In real implementation, would use filesystem snapshots
+            return self._create_full_backup(source_path, backup_path, backup_info)
+            
+        except Exception as e:
+            logger.error(f"Error creating snapshot backup: {e}")
+            return False
+    
+    def _perform_restore(self, backup_info: BackupInfo, target_path: str) -> bool:
+        """Perform the actual restore."""
+        try:
+            backup_path = Path(backup_info.backup_path)
+            target_path = Path(target_path)
+            
+            if not backup_path.exists():
+                logger.error(f"Backup file does not exist: {backup_path}")
+                return False
+            
+            # Create target directory if it doesn't exist
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            # Restore based on compression type
+            if backup_info.compression == CompressionType.GZIP and str(backup_path).endswith('.gz'):
+                with gzip.open(backup_path, 'rb') as f_in:
+                    with open(target_path, 'wb') as f_out:
+                        shutil.copyfileobj(f_in, f_out)
+            elif backup_info.compression == CompressionType.TAR_GZ and str(backup_path).endswith('.tar.gz'):
+                with tarfile.open(backup_path, "r:gz") as tar:
+                    tar.extractall(target_path.parent)
+            else:
+                if backup_path.is_file():
+                    shutil.copy2(backup_path, target_path)
+                else:
+                    shutil.copytree(backup_path, target_path)
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error performing restore: {e}")
+            return False
+    
+    def _verify_backup(self, backup_info: BackupInfo) -> bool:
+        """Verify backup integrity."""
+        try:
+            backup_path = Path(backup_info.backup_path)
+            
+            if not backup_path.exists():
+                logger.error(f"Backup file does not exist: {backup_path}")
+                return False
+            
+            # Verify checksum
+            if backup_info.checksum:
+                current_checksum = self._calculate_checksum(backup_path)
+                if current_checksum != backup_info.checksum:
+                    logger.error(f"Checksum mismatch for backup {backup_info.backup_id}")
+                    return False
+            
+            # Verify file structure
+            if backup_info.compression == CompressionType.TAR_GZ:
                 try:
-                    self.delete_backup(backup.backup_id)
-                    deleted_count += 1
+                    with tarfile.open(backup_path, "r:gz") as tar:
+                        tar.getmembers()  # This will raise an exception if corrupted
                 except Exception as e:
-                    self._logger.error(
-                        f"Failed to delete old backup {backup.backup_id}: {e}"
-                    )
-
-            if deleted_count > 0:
-                self._logger.info(f"Cleaned up {deleted_count} old backups")
-
-            return deleted_count
-
-    def start_auto_backup(self) -> None:
-        """Start automatic backup scheduling."""
-        with self._lock:
-            if self._running:
-                return
-
-            self._running = True
-            self._backup_thread = threading.Thread(
-                target=self._backup_worker, daemon=True
-            )
-            self._backup_thread.start()
-
-            self._logger.info("Started automatic backup scheduling")
-
-    def stop_auto_backup(self) -> None:
-        """Stop automatic backup scheduling."""
-        with self._lock:
-            self._running = False
-            if self._backup_thread:
-                self._backup_thread.join(timeout=5.0)
-
-            self._logger.info("Stopped automatic backup scheduling")
-
-    def _backup_worker(self) -> None:
-        """Background backup worker."""
-        while self._running:
-            try:
-                # Wait for next backup time
-                time.sleep(self.config.backup_interval)
-
-                if not self._running:
+                    logger.error(f"Tar file verification failed: {e}")
+                    return False
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error verifying backup: {e}")
+            return False
+    
+    def _find_parent_backup(self, backup_info: BackupInfo) -> Optional[BackupInfo]:
+        """Find parent backup for incremental/differential backups."""
+        try:
+            # Find the most recent full backup
+            full_backups = [
+                b for b in self.backups.values() 
+                if b.backup_type == BackupType.FULL and b.status in [BackupStatus.COMPLETED, BackupStatus.VERIFIED]
+            ]
+            
+            if not full_backups:
+                return None
+            
+            # Return the most recent full backup
+            return max(full_backups, key=lambda b: b.created_at)
+            
+        except Exception as e:
+            logger.error(f"Error finding parent backup: {e}")
+            return None
+    
+    def _generate_backup_id(self) -> str:
+        """Generate unique backup ID."""
+        return f"backup_{int(time.time())}_{hash(str(time.time())) % 10000:04d}"
+    
+    def _get_path_size(self, path: Path) -> int:
+        """Get total size of path."""
+        try:
+            if path.is_file():
+                return path.stat().st_size
+            elif path.is_dir():
+                total_size = 0
+                for file_path in path.rglob('*'):
+                    if file_path.is_file():
+                        total_size += file_path.stat().st_size
+                return total_size
+            else:
+                return 0
+        except Exception:
+            return 0
+    
+    def _calculate_checksum(self, path: Path) -> str:
+        """Calculate checksum for path."""
+        try:
+            hasher = hashlib.sha256()
+            
+            if path.is_file():
+                with open(path, 'rb') as f:
+                    for chunk in iter(lambda: f.read(4096), b""):
+                        hasher.update(chunk)
+            elif path.is_dir():
+                # Calculate checksum for directory by hashing all files
+                for file_path in sorted(path.rglob('*')):
+                    if file_path.is_file():
+                        with open(file_path, 'rb') as f:
+                            for chunk in iter(lambda: f.read(4096), b""):
+                                hasher.update(chunk)
+            
+            return hasher.hexdigest()
+            
+        except Exception as e:
+            logger.error(f"Error calculating checksum: {e}")
+            return ""
+    
+    def _cleanup_old_backups(self) -> None:
+        """Cleanup old backups based on retention policy."""
+        try:
+            cutoff_time = time.time() - (self.config.retention_days * 86400)
+            
+            # Find old backups
+            old_backups = [
+                backup_id for backup_id, backup_info in self.backups.items()
+                if backup_info.created_at < cutoff_time
+            ]
+            
+            # Delete old backups
+            for backup_id in old_backups:
+                self.delete_backup(backup_id)
+            
+            # Limit number of backups
+            if len(self.backups) > self.config.max_backups:
+                # Sort by creation time and delete oldest
+                sorted_backups = sorted(
+                    self.backups.items(),
+                    key=lambda x: x[1].created_at
+                )
+                
+                excess_count = len(self.backups) - self.config.max_backups
+                for backup_id, _ in sorted_backups[:excess_count]:
+                    self.delete_backup(backup_id)
+            
+            logger.info(f"Cleaned up {len(old_backups)} old backups")
+            
+        except Exception as e:
+            logger.error(f"Error cleaning up old backups: {e}")
+    
+    def _load_backup_metadata(self) -> None:
+        """Load backup metadata from disk."""
+        try:
+            metadata_file = self.backup_dir / "backup_metadata.json"
+            
+            if metadata_file.exists():
+                with open(metadata_file, 'r') as f:
+                    data = json.load(f)
+                
+                for backup_data in data.get('backups', []):
+                    backup_info = BackupInfo(**backup_data)
+                    self.backups[backup_info.backup_id] = backup_info
+                
+                logger.info(f"Loaded {len(self.backups)} backup metadata entries")
+            
+        except Exception as e:
+            logger.error(f"Error loading backup metadata: {e}")
+    
+    def _save_backup_metadata(self, backup_info: BackupInfo) -> None:
+        """Save backup metadata to disk."""
+        try:
+            metadata_file = self.backup_dir / "backup_metadata.json"
+            
+            # Load existing data
+            data = {"backups": []}
+            if metadata_file.exists():
+                with open(metadata_file, 'r') as f:
+                    data = json.load(f)
+            
+            # Update backup info
+            backup_data = {
+                "backup_id": backup_info.backup_id,
+                "backup_type": backup_info.backup_type.value,
+                "source_path": backup_info.source_path,
+                "backup_path": backup_info.backup_path,
+                "size_bytes": backup_info.size_bytes,
+                "created_at": backup_info.created_at,
+                "status": backup_info.status.value,
+                "compression": backup_info.compression.value,
+                "checksum": backup_info.checksum,
+                "parent_backup_id": backup_info.parent_backup_id,
+                "metadata": backup_info.metadata
+            }
+            
+            # Update or add backup data
+            backups = data["backups"]
+            for i, existing_backup in enumerate(backups):
+                if existing_backup["backup_id"] == backup_info.backup_id:
+                    backups[i] = backup_data
                     break
-
-                # Create backup
-                self.create_backup()
-
-                # Cleanup old backups
-                self.cleanup_old_backups()
-
+            else:
+                backups.append(backup_data)
+            
+            # Save updated data
+            with open(metadata_file, 'w') as f:
+                json.dump(data, f, indent=2)
+            
+        except Exception as e:
+            logger.error(f"Error saving backup metadata: {e}")
+    
+    def _save_all_backup_metadata(self) -> None:
+        """Save all backup metadata to disk."""
+        try:
+            metadata_file = self.backup_dir / "backup_metadata.json"
+            
+            data = {
+                "backups": [
+                    {
+                        "backup_id": backup_info.backup_id,
+                        "backup_type": backup_info.backup_type.value,
+                        "source_path": backup_info.source_path,
+                        "backup_path": backup_info.backup_path,
+                        "size_bytes": backup_info.size_bytes,
+                        "created_at": backup_info.created_at,
+                        "status": backup_info.status.value,
+                        "compression": backup_info.compression.value,
+                        "checksum": backup_info.checksum,
+                        "parent_backup_id": backup_info.parent_backup_id,
+                        "metadata": backup_info.metadata
+                    }
+                    for backup_info in self.backups.values()
+                ]
+            }
+            
+            with open(metadata_file, 'w') as f:
+                json.dump(data, f, indent=2)
+            
+        except Exception as e:
+            logger.error(f"Error saving all backup metadata: {e}")
+    
+    def _save_schedule_metadata(self) -> None:
+        """Save schedule metadata to disk."""
+        try:
+            metadata_file = self.backup_dir / "schedule_metadata.json"
+            
+            data = {
+                "schedules": [
+                    {
+                        "schedule_id": schedule.schedule_id,
+                        "name": schedule.name,
+                        "backup_type": schedule.backup_type.value,
+                        "source_paths": schedule.source_paths,
+                        "enabled": schedule.enabled,
+                        "interval_seconds": schedule.interval_seconds,
+                        "last_run": schedule.last_run,
+                        "next_run": schedule.next_run
+                    }
+                    for schedule in self.schedules.values()
+                ]
+            }
+            
+            with open(metadata_file, 'w') as f:
+                json.dump(data, f, indent=2)
+            
+        except Exception as e:
+            logger.error(f"Error saving schedule metadata: {e}")
+    
+    def _scheduler_loop(self) -> None:
+        """Scheduler loop for automatic backups."""
+        while self.running:
+            try:
+                current_time = time.time()
+                
+                for schedule in self.schedules.values():
+                    if (schedule.enabled and 
+                        schedule.next_run and 
+                        current_time >= schedule.next_run):
+                        
+                        logger.info(f"Running scheduled backup: {schedule.schedule_id}")
+                        
+                        # Run backup for each source path
+                        for source_path in schedule.source_paths:
+                            self.create_backup(source_path, schedule.backup_type)
+                        
+                        # Update schedule
+                        schedule.last_run = current_time
+                        schedule.next_run = current_time + schedule.interval_seconds
+                
+                time.sleep(60)  # Check every minute
+                
             except Exception as e:
-                self._logger.error(f"Automatic backup error: {e}")
+                logger.error(f"Error in scheduler loop: {e}")
 
-    def create_recovery_plan(self, backup_id: str) -> RecoveryPlan:
-        """Create a recovery plan for a backup."""
-        with self._lock:
-            if backup_id not in self._backups:
-                raise BackupNotFoundError(f"Backup {backup_id} not found")
-
-            backup_info = self._backups[backup_id]
-
-            steps = [
-                f"1. Stop database connections",
-                f"2. Create current database backup",
-                f"3. Restore backup {backup_id}",
-                f"4. Validate restored database",
-                f"5. Restart database connections",
-            ]
-
-            rollback_plan = [
-                f"1. Stop database connections",
-                f"2. Restore current database backup",
-                f"3. Restart database connections",
-            ]
-
-            return RecoveryPlan(
-                target_backup=backup_info,
-                recovery_type="full_restore",
-                estimated_time=30.0,  # 30 seconds estimate
-                steps=steps,
-                rollback_plan=rollback_plan,
-                data_loss_risk="low" if backup_info.is_recoverable else "high",
-            )
-
-    def __enter__(self):
-        """Context manager entry."""
-        if self.config.auto_backup:
-            self.start_auto_backup()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Context manager exit."""
-        self.stop_auto_backup()
+__all__ = [
+    "BackupManager",
+    "BackupInfo",
+    "BackupConfig",
+    "BackupSchedule",
+    "BackupType",
+    "BackupStatus",
+    "CompressionType",
+]

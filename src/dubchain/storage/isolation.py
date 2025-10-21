@@ -1,646 +1,714 @@
-"""Transaction isolation and concurrency control for DubChain database.
+"""
+Database Isolation and Transaction Management for DubChain
 
-This module provides advanced transaction isolation mechanisms including
-MVCC (Multi-Version Concurrency Control), deadlock detection, and
-transaction conflict resolution.
+This module provides comprehensive isolation capabilities including:
+- Transaction isolation levels
+- Lock management
+- Deadlock detection and resolution
+- MVCC (Multi-Version Concurrency Control)
+- Snapshot isolation
+- Read/write isolation
 """
 
-import logging
 import threading
 import time
 import uuid
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple
+from collections import defaultdict, deque
 
-from .database import DatabaseBackend, IsolationLevel
+from ..errors import ClientError
+from ..logging import get_logger
 
+logger = get_logger(__name__)
 
-class IsolationError(Exception):
-    """Base exception for isolation operations."""
-
-    pass
-
-
-class DeadlockError(IsolationError):
-    """Deadlock detection error."""
-
-    pass
-
-
-class TransactionConflictError(IsolationError):
-    """Transaction conflict error."""
-
-    pass
-
-
-class TransactionTimeoutError(IsolationError):
-    """Transaction timeout error."""
-
-    pass
-
-
-class TransactionState(Enum):
-    """Transaction state."""
-
-    ACTIVE = "active"
-    COMMITTED = "committed"
-    ABORTED = "aborted"
-    BLOCKED = "blocked"
-    WAITING = "waiting"
-
+class IsolationLevel(Enum):
+    """Transaction isolation levels."""
+    READ_UNCOMMITTED = "read_uncommitted"
+    READ_COMMITTED = "read_committed"
+    REPEATABLE_READ = "repeatable_read"
+    SERIALIZABLE = "serializable"
+    SNAPSHOT = "snapshot"
 
 class LockType(Enum):
     """Lock types."""
-
     SHARED = "shared"
     EXCLUSIVE = "exclusive"
     INTENT_SHARED = "intent_shared"
     INTENT_EXCLUSIVE = "intent_exclusive"
     SHARED_INTENT_EXCLUSIVE = "shared_intent_exclusive"
 
-
 class LockMode(Enum):
     """Lock modes."""
-
     READ = "read"
     WRITE = "write"
     UPDATE = "update"
 
+class TransactionStatus(Enum):
+    """Transaction status."""
+    ACTIVE = "active"
+    COMMITTED = "committed"
+    ABORTED = "aborted"
+    BLOCKED = "blocked"
 
 @dataclass
 class Lock:
-    """Database lock."""
-
+    """Lock information."""
     lock_id: str
+    resource_id: str
     transaction_id: str
-    resource: str
     lock_type: LockType
-    mode: LockMode
-    acquired_at: float
-    timeout: float = 30.0
-    is_granted: bool = False
-    waiting_transactions: Set[str] = field(default_factory=set)
-
+    granted_at: float
+    timeout: Optional[float] = None
 
 @dataclass
 class Transaction:
-    """Database transaction."""
-
+    """Transaction information."""
     transaction_id: str
-    state: TransactionState
     isolation_level: IsolationLevel
+    status: TransactionStatus
     started_at: float
-    timeout: float = 30.0
+    committed_at: Optional[float] = None
+    aborted_at: Optional[float] = None
+    locks: Set[str] = field(default_factory=set)
+    snapshot_version: Optional[int] = None
     read_set: Set[str] = field(default_factory=set)
     write_set: Set[str] = field(default_factory=set)
-    locks: Dict[str, Lock] = field(default_factory=dict)
-    waiting_for: Optional[str] = None
-    retry_count: int = 0
-    max_retries: int = 3
-
 
 @dataclass
-class DeadlockInfo:
-    """Deadlock information."""
-
-    cycle: List[str]
-    transactions: List[Transaction]
-    detected_at: float
-    resolution_strategy: str = "abort_youngest"
-
+class IsolationConfig:
+    """Isolation configuration."""
+    default_isolation_level: IsolationLevel = IsolationLevel.READ_COMMITTED
+    lock_timeout: float = 30.0  # seconds
+    deadlock_detection_interval: float = 1.0  # seconds
+    max_transaction_age: float = 300.0  # seconds
+    enable_mvcc: bool = True
+    enable_snapshot_isolation: bool = True
+    max_concurrent_transactions: int = 1000
 
 class LockManager:
-    """Database lock manager."""
-
-    def __init__(self):
-        self._locks: Dict[str, List[Lock]] = {}  # resource -> locks
-        self._lock = threading.RLock()
-        self._logger = logging.getLogger(__name__)
-
-    def acquire_lock(
-        self,
-        transaction_id: str,
-        resource: str,
-        lock_type: LockType,
-        mode: LockMode,
-        timeout: float = 30.0,
-    ) -> bool:
+    """Lock manager for resource locking."""
+    
+    def __init__(self, config: IsolationConfig):
+        """Initialize lock manager."""
+        self.config = config
+        self.locks: Dict[str, Lock] = {}
+        self.resource_locks: Dict[str, List[str]] = defaultdict(list)
+        self.transaction_locks: Dict[str, Set[str]] = defaultdict(set)
+        self.lock_queue: Dict[str, deque] = defaultdict(deque)
+        self.lock_mutex = threading.RLock()
+        
+        logger.info("Initialized lock manager")
+    
+    def acquire_lock(self, transaction_id: str, resource_id: str, 
+                    lock_type: LockType, timeout: Optional[float] = None) -> bool:
         """Acquire a lock on a resource."""
-        with self._lock:
-            lock_id = str(uuid.uuid4())
-            lock = Lock(
-                lock_id=lock_id,
-                transaction_id=transaction_id,
-                resource=resource,
-                lock_type=lock_type,
-                mode=mode,
-                acquired_at=time.time(),
-                timeout=timeout,
-            )
-
-            # Check if lock can be granted
-            if self._can_grant_lock(lock):
-                lock.is_granted = True
-                self._add_lock(lock)
-                self._logger.debug(f"Lock granted: {lock_id} for {resource}")
-                return True
-            else:
-                # Add to waiting queue
-                self._add_waiting_lock(lock)
-                self._logger.debug(f"Lock queued: {lock_id} for {resource}")
-                return False
-
-    def release_lock(self, transaction_id: str, resource: str) -> None:
-        """Release a lock on a resource."""
-        with self._lock:
-            if resource in self._locks:
-                # Remove locks for this transaction
-                locks_to_remove = []
-                for lock in self._locks[resource]:
-                    if lock.transaction_id == transaction_id:
-                        locks_to_remove.append(lock)
-
-                for lock in locks_to_remove:
-                    self._locks[resource].remove(lock)
-
-                # Grant waiting locks
-                self._grant_waiting_locks(resource)
-
-                self._logger.debug(f"Lock released: {transaction_id} for {resource}")
-
-    def release_all_locks(self, transaction_id: str) -> None:
-        """Release all locks for a transaction."""
-        with self._lock:
-            resources_to_update = []
-
-            for resource, locks in self._locks.items():
-                locks_to_remove = []
-                for lock in locks:
-                    if lock.transaction_id == transaction_id:
-                        locks_to_remove.append(lock)
-
-                if locks_to_remove:
-                    for lock in locks_to_remove:
-                        locks.remove(lock)
-                    resources_to_update.append(resource)
-
-            # Grant waiting locks for affected resources
-            for resource in resources_to_update:
-                self._grant_waiting_locks(resource)
-
-            self._logger.debug(f"All locks released for transaction: {transaction_id}")
-
-    def _can_grant_lock(self, new_lock: Lock) -> bool:
-        """Check if a lock can be granted."""
-        resource = new_lock.resource
-
-        if resource not in self._locks:
-            return True
-
-        existing_locks = self._locks[resource]
-
-        for existing_lock in existing_locks:
-            if existing_lock.transaction_id == new_lock.transaction_id:
-                # Same transaction - check for lock upgrade
-                if self._can_upgrade_lock(existing_lock, new_lock):
+        try:
+            with self.lock_mutex:
+                timeout = timeout or self.config.lock_timeout
+                lock_id = str(uuid.uuid4())
+                
+                # Check if lock can be granted immediately
+                if self._can_grant_lock(resource_id, lock_type):
+                    lock = Lock(
+                        lock_id=lock_id,
+                        resource_id=resource_id,
+                        transaction_id=transaction_id,
+                        lock_type=lock_type,
+                        granted_at=time.time()
+                    )
+                    
+                    self.locks[lock_id] = lock
+                    self.resource_locks[resource_id].append(lock_id)
+                    self.transaction_locks[transaction_id].add(lock_id)
+                    
+                    logger.debug(f"Granted lock {lock_id} to transaction {transaction_id}")
                     return True
-                else:
-                    return False
-
-            # Check for lock compatibility
-            if not self._are_locks_compatible(existing_lock, new_lock):
+                
+                # Add to lock queue
+                self.lock_queue[resource_id].append({
+                    'transaction_id': transaction_id,
+                    'lock_type': lock_type,
+                    'timeout': time.time() + timeout,
+                    'lock_id': lock_id
+                })
+                
+                logger.debug(f"Queued lock request for transaction {transaction_id}")
                 return False
-
+                
+        except Exception as e:
+            logger.error(f"Error acquiring lock: {e}")
+            return False
+    
+    def release_lock(self, transaction_id: str, resource_id: str) -> bool:
+        """Release a lock on a resource."""
+        try:
+            with self.lock_mutex:
+                # Find locks to release
+                locks_to_release = []
+                for lock_id in self.transaction_locks[transaction_id]:
+                    lock = self.locks.get(lock_id)
+                    if lock and lock.resource_id == resource_id:
+                        locks_to_release.append(lock_id)
+                
+                # Release locks
+                for lock_id in locks_to_release:
+                    self._release_single_lock(lock_id)
+                
+                # Process lock queue
+                self._process_lock_queue(resource_id)
+                
+                logger.debug(f"Released locks for transaction {transaction_id} on resource {resource_id}")
+                return True
+                
+        except Exception as e:
+            logger.error(f"Error releasing lock: {e}")
+            return False
+    
+    def release_all_locks(self, transaction_id: str) -> bool:
+        """Release all locks for a transaction."""
+        try:
+            with self.lock_mutex:
+                locks_to_release = list(self.transaction_locks[transaction_id])
+                
+                for lock_id in locks_to_release:
+                    self._release_single_lock(lock_id)
+                
+                logger.debug(f"Released all locks for transaction {transaction_id}")
+                return True
+                
+        except Exception as e:
+            logger.error(f"Error releasing all locks: {e}")
+            return False
+    
+    def _can_grant_lock(self, resource_id: str, lock_type: LockType) -> bool:
+        """Check if a lock can be granted."""
+        existing_locks = self.resource_locks.get(resource_id, [])
+        
+        if not existing_locks:
+            return True
+        
+        # Check compatibility
+        for lock_id in existing_locks:
+            existing_lock = self.locks.get(lock_id)
+            if existing_lock and not self._are_locks_compatible(existing_lock.lock_type, lock_type):
+                return False
+        
         return True
-
-    def _can_upgrade_lock(self, existing_lock: Lock, new_lock: Lock) -> bool:
-        """Check if a lock can be upgraded."""
-        # Can upgrade from shared to exclusive
-        if (
-            existing_lock.lock_type == LockType.SHARED
-            and new_lock.lock_type == LockType.EXCLUSIVE
-        ):
-            return True
-
-        # Can upgrade from intent shared to intent exclusive
-        if (
-            existing_lock.lock_type == LockType.INTENT_SHARED
-            and new_lock.lock_type == LockType.INTENT_EXCLUSIVE
-        ):
-            return True
-
-        return False
-
-    def _are_locks_compatible(self, lock1: Lock, lock2: Lock) -> bool:
-        """Check if two locks are compatible."""
-        # Same transaction
-        if lock1.transaction_id == lock2.transaction_id:
-            return True
-
-        # Lock compatibility matrix
-        compatibility = {
-            (LockType.SHARED, LockType.SHARED): True,
-            (LockType.SHARED, LockType.EXCLUSIVE): False,
-            (LockType.SHARED, LockType.INTENT_SHARED): True,
-            (LockType.SHARED, LockType.INTENT_EXCLUSIVE): False,
-            (LockType.EXCLUSIVE, LockType.SHARED): False,
-            (LockType.EXCLUSIVE, LockType.EXCLUSIVE): False,
-            (LockType.EXCLUSIVE, LockType.INTENT_SHARED): False,
-            (LockType.EXCLUSIVE, LockType.INTENT_EXCLUSIVE): False,
-            (LockType.INTENT_SHARED, LockType.SHARED): True,
-            (LockType.INTENT_SHARED, LockType.EXCLUSIVE): False,
-            (LockType.INTENT_SHARED, LockType.INTENT_SHARED): True,
-            (LockType.INTENT_SHARED, LockType.INTENT_EXCLUSIVE): True,
-            (LockType.INTENT_EXCLUSIVE, LockType.SHARED): False,
-            (LockType.INTENT_EXCLUSIVE, LockType.EXCLUSIVE): False,
-            (LockType.INTENT_EXCLUSIVE, LockType.INTENT_SHARED): True,
-            (LockType.INTENT_EXCLUSIVE, LockType.INTENT_EXCLUSIVE): True,
+    
+    def _are_locks_compatible(self, existing_type: LockType, requested_type: LockType) -> bool:
+        """Check if two lock types are compatible."""
+        compatibility_matrix = {
+            LockType.SHARED: {LockType.SHARED, LockType.INTENT_SHARED},
+            LockType.EXCLUSIVE: set(),
+            LockType.INTENT_SHARED: {LockType.SHARED, LockType.INTENT_SHARED, LockType.INTENT_EXCLUSIVE},
+            LockType.INTENT_EXCLUSIVE: {LockType.INTENT_SHARED},
+            LockType.SHARED_INTENT_EXCLUSIVE: {LockType.INTENT_SHARED}
         }
-
-        return compatibility.get((lock1.lock_type, lock2.lock_type), False)
-
-    def _add_lock(self, lock: Lock) -> None:
-        """Add a granted lock."""
-        resource = lock.resource
-        if resource not in self._locks:
-            self._locks[resource] = []
-
-        self._locks[resource].append(lock)
-
-    def _add_waiting_lock(self, lock: Lock) -> None:
-        """Add a waiting lock."""
-        resource = lock.resource
-        if resource not in self._locks:
-            self._locks[resource] = []
-
-        # Add to waiting queue
-        self._locks[resource].append(lock)
-
-        # Add to waiting transactions of existing locks
-        for existing_lock in self._locks[resource]:
-            if existing_lock.is_granted:
-                existing_lock.waiting_transactions.add(lock.transaction_id)
-
-    def _grant_waiting_locks(self, resource: str) -> None:
-        """Grant waiting locks for a resource."""
-        if resource not in self._locks:
+        
+        return requested_type in compatibility_matrix.get(existing_type, set())
+    
+    def _release_single_lock(self, lock_id: str) -> None:
+        """Release a single lock."""
+        if lock_id not in self.locks:
             return
-
-        waiting_locks = [lock for lock in self._locks[resource] if not lock.is_granted]
-
-        for lock in waiting_locks:
-            if self._can_grant_lock(lock):
-                lock.is_granted = True
-                self._logger.debug(f"Waiting lock granted: {lock.lock_id}")
-
-    def get_locks_for_transaction(self, transaction_id: str) -> List[Lock]:
-        """Get all locks for a transaction."""
-        with self._lock:
-            locks = []
-            for resource_locks in self._locks.values():
-                for lock in resource_locks:
-                    if lock.transaction_id == transaction_id:
-                        locks.append(lock)
-            return locks
-
-    def detect_deadlock(
-        self, transactions: Dict[str, Transaction]
-    ) -> Optional[DeadlockInfo]:
-        """Detect deadlock in the system."""
-        with self._lock:
-            # Build wait-for graph
-            wait_for_graph = {}
-
-            for transaction_id, transaction in transactions.items():
-                if transaction.waiting_for:
-                    wait_for_graph[transaction_id] = transaction.waiting_for
-
-            # Detect cycles using DFS
-            visited = set()
-            rec_stack = set()
-
-            def has_cycle(node):
-                visited.add(node)
-                rec_stack.add(node)
-
-                if node in wait_for_graph:
-                    neighbor = wait_for_graph[node]
-                    if neighbor not in visited:
-                        if has_cycle(neighbor):
-                            return True
-                    elif neighbor in rec_stack:
-                        return True
-
-                rec_stack.remove(node)
-                return False
-
-            # Check for cycles
-            for transaction_id in transactions:
-                if transaction_id not in visited:
-                    if has_cycle(transaction_id):
-                        # Found a cycle - build deadlock info
-                        cycle = self._extract_cycle(wait_for_graph, transaction_id)
-                        cycle_transactions = [
-                            transactions[tid] for tid in cycle if tid in transactions
-                        ]
-
-                        return DeadlockInfo(
-                            cycle=cycle,
-                            transactions=cycle_transactions,
-                            detected_at=time.time(),
-                        )
-
-            return None
-
-    def _extract_cycle(
-        self, wait_for_graph: Dict[str, str], start_node: str
-    ) -> List[str]:
-        """Extract cycle from wait-for graph."""
-        cycle = []
-        current = start_node
-        visited = set()
-
-        while current not in visited:
-            visited.add(current)
-            cycle.append(current)
-            current = wait_for_graph.get(current)
-
-            if current is None:
+        
+        lock = self.locks[lock_id]
+        
+        # Remove from resource locks
+        if lock.resource_id in self.resource_locks:
+            try:
+                self.resource_locks[lock.resource_id].remove(lock_id)
+            except ValueError:
+                pass
+        
+        # Remove from transaction locks
+        if lock.transaction_id in self.transaction_locks:
+            self.transaction_locks[lock.transaction_id].discard(lock_id)
+        
+        # Remove lock
+        del self.locks[lock_id]
+    
+    def _process_lock_queue(self, resource_id: str) -> None:
+        """Process lock queue for a resource."""
+        queue = self.lock_queue.get(resource_id, deque())
+        
+        while queue:
+            request = queue[0]
+            
+            # Check timeout
+            if time.time() > request['timeout']:
+                queue.popleft()
+                continue
+            
+            # Check if lock can be granted
+            if self._can_grant_lock(resource_id, request['lock_type']):
+                lock = Lock(
+                    lock_id=request['lock_id'],
+                    resource_id=resource_id,
+                    transaction_id=request['transaction_id'],
+                    lock_type=request['lock_type'],
+                    granted_at=time.time()
+                )
+                
+                self.locks[request['lock_id']] = lock
+                self.resource_locks[resource_id].append(request['lock_id'])
+                self.transaction_locks[request['transaction_id']].add(request['lock_id'])
+                
+                queue.popleft()
+                
+                logger.debug(f"Granted queued lock {request['lock_id']}")
+            else:
                 break
 
-        return cycle
+class DeadlockDetector:
+    """Deadlock detection and resolution."""
+    
+    def __init__(self, lock_manager: LockManager):
+        """Initialize deadlock detector."""
+        self.lock_manager = lock_manager
+        self.running = False
+        self.detection_thread = None
+        
+        logger.info("Initialized deadlock detector")
+    
+    def start(self) -> None:
+        """Start deadlock detection."""
+        self.running = True
+        self.detection_thread = threading.Thread(target=self._detection_loop, daemon=True)
+        self.detection_thread.start()
+        
+        logger.info("Deadlock detector started")
+    
+    def stop(self) -> None:
+        """Stop deadlock detection."""
+        self.running = False
+        if self.detection_thread:
+            self.detection_thread.join(timeout=5)
+        
+        logger.info("Deadlock detector stopped")
+    
+    def _detection_loop(self) -> None:
+        """Deadlock detection loop."""
+        while self.running:
+            try:
+                time.sleep(1.0)  # Check every second
+                
+                if self.running:
+                    deadlocks = self._detect_deadlocks()
+                    
+                    for deadlock in deadlocks:
+                        self._resolve_deadlock(deadlock)
+                
+            except Exception as e:
+                logger.error(f"Error in deadlock detection loop: {e}")
+    
+    def _detect_deadlocks(self) -> List[List[str]]:
+        """Detect deadlocks using wait-for graph."""
+        try:
+            # Build wait-for graph
+            wait_for_graph = self._build_wait_for_graph()
+            
+            # Find cycles
+            deadlocks = []
+            visited = set()
+            
+            for transaction_id in wait_for_graph:
+                if transaction_id not in visited:
+                    cycle = self._find_cycle(wait_for_graph, transaction_id, visited)
+                    if cycle:
+                        deadlocks.append(cycle)
+            
+            return deadlocks
+            
+        except Exception as e:
+            logger.error(f"Error detecting deadlocks: {e}")
+            return []
+    
+    def _build_wait_for_graph(self) -> Dict[str, Set[str]]:
+        """Build wait-for graph."""
+        wait_for_graph = defaultdict(set)
+        
+        with self.lock_manager.lock_mutex:
+            # For each resource, find transactions waiting for locks held by other transactions
+            for resource_id, lock_ids in self.lock_manager.resource_locks.items():
+                if len(lock_ids) > 1:
+                    # Find transactions holding locks
+                    holding_transactions = set()
+                    for lock_id in lock_ids:
+                        lock = self.lock_manager.locks.get(lock_id)
+                        if lock:
+                            holding_transactions.add(lock.transaction_id)
+                    
+                    # Find transactions waiting for locks
+                    queue = self.lock_manager.lock_queue.get(resource_id, deque())
+                    for request in queue:
+                        waiting_transaction = request['transaction_id']
+                        for holding_transaction in holding_transactions:
+                            if waiting_transaction != holding_transaction:
+                                wait_for_graph[waiting_transaction].add(holding_transaction)
+        
+        return dict(wait_for_graph)
+    
+    def _find_cycle(self, graph: Dict[str, Set[str]], start: str, visited: Set[str]) -> Optional[List[str]]:
+        """Find cycle in graph starting from start node."""
+        def dfs(node: str, path: List[str]) -> Optional[List[str]]:
+            if node in path:
+                # Found cycle
+                cycle_start = path.index(node)
+                return path[cycle_start:] + [node]
+            
+            if node in visited:
+                return None
+            
+            visited.add(node)
+            path.append(node)
+            
+            for neighbor in graph.get(node, set()):
+                cycle = dfs(neighbor, path)
+                if cycle:
+                    return cycle
+            
+            path.pop()
+            return None
+        
+        return dfs(start, [])
+    
+    def _resolve_deadlock(self, deadlock: List[str]) -> None:
+        """Resolve deadlock by aborting a transaction."""
+        try:
+            # Choose transaction to abort (simplified: abort the first one)
+            transaction_to_abort = deadlock[0]
+            
+            logger.warning(f"Deadlock detected, aborting transaction {transaction_to_abort}")
+            
+            # Abort transaction (in real implementation, would notify transaction manager)
+            # For now, just release all locks
+            self.lock_manager.release_all_locks(transaction_to_abort)
+            
+        except Exception as e:
+            logger.error(f"Error resolving deadlock: {e}")
 
+class MVCCManager:
+    """Multi-Version Concurrency Control manager."""
+    
+    def __init__(self, config: IsolationConfig):
+        """Initialize MVCC manager."""
+        self.config = config
+        self.version_counter = 0
+        self.data_versions: Dict[str, Dict[int, Any]] = defaultdict(dict)
+        self.transaction_snapshots: Dict[str, int] = {}
+        self.mvcc_mutex = threading.RLock()
+        
+        logger.info("Initialized MVCC manager")
+    
+    def create_snapshot(self, transaction_id: str) -> int:
+        """Create snapshot for transaction."""
+        with self.mvcc_mutex:
+            self.version_counter += 1
+            snapshot_version = self.version_counter
+            self.transaction_snapshots[transaction_id] = snapshot_version
+            
+            logger.debug(f"Created snapshot {snapshot_version} for transaction {transaction_id}")
+            return snapshot_version
+    
+    def read_data(self, transaction_id: str, resource_id: str) -> Optional[Any]:
+        """Read data using MVCC."""
+        with self.mvcc_mutex:
+            snapshot_version = self.transaction_snapshots.get(transaction_id)
+            if not snapshot_version:
+                return None
+            
+            # Find the latest version visible to this transaction
+            versions = self.data_versions.get(resource_id, {})
+            
+            for version in sorted(versions.keys(), reverse=True):
+                if version <= snapshot_version:
+                    return versions[version]
+            
+            return None
+    
+    def write_data(self, transaction_id: str, resource_id: str, data: Any) -> None:
+        """Write data using MVCC."""
+        with self.mvcc_mutex:
+            self.version_counter += 1
+            new_version = self.version_counter
+            
+            self.data_versions[resource_id][new_version] = data
+            
+            logger.debug(f"Wrote data version {new_version} for resource {resource_id}")
+    
+    def commit_transaction(self, transaction_id: str) -> None:
+        """Commit transaction and clean up old versions."""
+        with self.mvcc_mutex:
+            if transaction_id in self.transaction_snapshots:
+                del self.transaction_snapshots[transaction_id]
+            
+            # Clean up old versions (simplified)
+            self._cleanup_old_versions()
+            
+            logger.debug(f"Committed transaction {transaction_id}")
+    
+    def abort_transaction(self, transaction_id: str) -> None:
+        """Abort transaction."""
+        with self.mvcc_mutex:
+            if transaction_id in self.transaction_snapshots:
+                del self.transaction_snapshots[transaction_id]
+            
+            logger.debug(f"Aborted transaction {transaction_id}")
+    
+    def _cleanup_old_versions(self) -> None:
+        """Clean up old data versions."""
+        try:
+            # Find the oldest active snapshot
+            oldest_snapshot = min(self.transaction_snapshots.values()) if self.transaction_snapshots else self.version_counter
+            
+            # Remove versions older than the oldest active snapshot
+            for resource_id in list(self.data_versions.keys()):
+                versions = self.data_versions[resource_id]
+                versions_to_remove = [v for v in versions.keys() if v < oldest_snapshot]
+                
+                for version in versions_to_remove:
+                    del versions[version]
+                
+                # Remove empty resource entries
+                if not versions:
+                    del self.data_versions[resource_id]
+            
+        except Exception as e:
+            logger.error(f"Error cleaning up old versions: {e}")
+
+class TransactionManager:
+    """Transaction manager for isolation control."""
+    
+    def __init__(self, config: IsolationConfig):
+        """Initialize transaction manager."""
+        self.config = config
+        self.transactions: Dict[str, Transaction] = {}
+        self.lock_manager = LockManager(config)
+        self.mvcc_manager = MVCCManager(config) if config.enable_mvcc else None
+        self.deadlock_detector = DeadlockDetector(self.lock_manager)
+        self.transaction_mutex = threading.RLock()
+        
+        # Start deadlock detection
+        self.deadlock_detector.start()
+        
+        logger.info("Initialized transaction manager")
+    
+    def start_transaction(self, isolation_level: Optional[IsolationLevel] = None) -> str:
+        """Start a new transaction."""
+        try:
+            with self.transaction_mutex:
+                transaction_id = str(uuid.uuid4())
+                isolation_level = isolation_level or self.config.default_isolation_level
+                
+                transaction = Transaction(
+                    transaction_id=transaction_id,
+                    isolation_level=isolation_level,
+                    status=TransactionStatus.ACTIVE,
+                    started_at=time.time()
+                )
+                
+                # Create snapshot for MVCC
+                if self.mvcc_manager and isolation_level in [IsolationLevel.SNAPSHOT, IsolationLevel.SERIALIZABLE]:
+                    transaction.snapshot_version = self.mvcc_manager.create_snapshot(transaction_id)
+                
+                self.transactions[transaction_id] = transaction
+                
+                logger.debug(f"Started transaction {transaction_id} with isolation level {isolation_level}")
+                return transaction_id
+                
+        except Exception as e:
+            logger.error(f"Error starting transaction: {e}")
+            raise ClientError(f"Failed to start transaction: {e}")
+    
+    def commit_transaction(self, transaction_id: str) -> bool:
+        """Commit a transaction."""
+        try:
+            with self.transaction_mutex:
+                if transaction_id not in self.transactions:
+                    logger.error(f"Transaction {transaction_id} not found")
+                    return False
+                
+                transaction = self.transactions[transaction_id]
+                
+                if transaction.status != TransactionStatus.ACTIVE:
+                    logger.error(f"Transaction {transaction_id} is not active")
+                    return False
+                
+                # Commit MVCC transaction
+                if self.mvcc_manager:
+                    self.mvcc_manager.commit_transaction(transaction_id)
+                
+                # Release all locks
+                self.lock_manager.release_all_locks(transaction_id)
+                
+                # Update transaction status
+                transaction.status = TransactionStatus.COMMITTED
+                transaction.committed_at = time.time()
+                
+                logger.debug(f"Committed transaction {transaction_id}")
+                return True
+                
+        except Exception as e:
+            logger.error(f"Error committing transaction: {e}")
+            return False
+    
+    def abort_transaction(self, transaction_id: str) -> bool:
+        """Abort a transaction."""
+        try:
+            with self.transaction_mutex:
+                if transaction_id not in self.transactions:
+                    logger.error(f"Transaction {transaction_id} not found")
+                    return False
+                
+                transaction = self.transactions[transaction_id]
+                
+                # Abort MVCC transaction
+                if self.mvcc_manager:
+                    self.mvcc_manager.abort_transaction(transaction_id)
+                
+                # Release all locks
+                self.lock_manager.release_all_locks(transaction_id)
+                
+                # Update transaction status
+                transaction.status = TransactionStatus.ABORTED
+                transaction.aborted_at = time.time()
+                
+                logger.debug(f"Aborted transaction {transaction_id}")
+                return True
+                
+        except Exception as e:
+            logger.error(f"Error aborting transaction: {e}")
+            return False
+    
+    def read_data(self, transaction_id: str, resource_id: str) -> Optional[Any]:
+        """Read data within a transaction."""
+        try:
+            with self.transaction_mutex:
+                if transaction_id not in self.transactions:
+                    logger.error(f"Transaction {transaction_id} not found")
+                    return None
+                
+                transaction = self.transactions[transaction_id]
+                
+                if transaction.status != TransactionStatus.ACTIVE:
+                    logger.error(f"Transaction {transaction_id} is not active")
+                    return None
+                
+                # Add to read set
+                transaction.read_set.add(resource_id)
+                
+                # Use MVCC if available
+                if self.mvcc_manager and transaction.isolation_level in [IsolationLevel.SNAPSHOT, IsolationLevel.SERIALIZABLE]:
+                    return self.mvcc_manager.read_data(transaction_id, resource_id)
+                
+                # Otherwise, use locking
+                if transaction.isolation_level in [IsolationLevel.READ_COMMITTED, IsolationLevel.REPEATABLE_READ]:
+                    # Acquire shared lock
+                    self.lock_manager.acquire_lock(transaction_id, resource_id, LockType.SHARED)
+                
+                # Simulate data read
+                return {"data": f"data_for_{resource_id}", "version": transaction.snapshot_version}
+                
+        except Exception as e:
+            logger.error(f"Error reading data: {e}")
+            return None
+    
+    def write_data(self, transaction_id: str, resource_id: str, data: Any) -> bool:
+        """Write data within a transaction."""
+        try:
+            with self.transaction_mutex:
+                if transaction_id not in self.transactions:
+                    logger.error(f"Transaction {transaction_id} not found")
+                    return False
+                
+                transaction = self.transactions[transaction_id]
+                
+                if transaction.status != TransactionStatus.ACTIVE:
+                    logger.error(f"Transaction {transaction_id} is not active")
+                    return False
+                
+                # Add to write set
+                transaction.write_set.add(resource_id)
+                
+                # Use MVCC if available
+                if self.mvcc_manager:
+                    self.mvcc_manager.write_data(transaction_id, resource_id, data)
+                else:
+                    # Acquire exclusive lock
+                    self.lock_manager.acquire_lock(transaction_id, resource_id, LockType.EXCLUSIVE)
+                
+                logger.debug(f"Wrote data for resource {resource_id} in transaction {transaction_id}")
+                return True
+                
+        except Exception as e:
+            logger.error(f"Error writing data: {e}")
+            return False
+    
+    def get_transaction_info(self, transaction_id: str) -> Optional[Transaction]:
+        """Get transaction information."""
+        return self.transactions.get(transaction_id)
+    
+    def cleanup_old_transactions(self) -> None:
+        """Clean up old transactions."""
+        try:
+            with self.transaction_mutex:
+                current_time = time.time()
+                cutoff_time = current_time - self.config.max_transaction_age
+                
+                transactions_to_remove = []
+                for transaction_id, transaction in self.transactions.items():
+                    if transaction.started_at < cutoff_time:
+                        transactions_to_remove.append(transaction_id)
+                
+                for transaction_id in transactions_to_remove:
+                    # Abort old transaction
+                    self.abort_transaction(transaction_id)
+                    del self.transactions[transaction_id]
+                
+                if transactions_to_remove:
+                    logger.info(f"Cleaned up {len(transactions_to_remove)} old transactions")
+                
+        except Exception as e:
+            logger.error(f"Error cleaning up old transactions: {e}")
+    
+    def shutdown(self) -> None:
+        """Shutdown transaction manager."""
+        self.deadlock_detector.stop()
+        logger.info("Transaction manager shutdown")
 
 class TransactionIsolation:
     """Transaction isolation manager."""
-
-    def __init__(self, backend: DatabaseBackend):
-        self.backend = backend
+    
+    def __init__(self, level: IsolationLevel = IsolationLevel.READ_COMMITTED):
+        """Initialize transaction isolation."""
+        self.level = level
         self.lock_manager = LockManager()
-        self._transactions: Dict[str, Transaction] = {}
-        self._lock = threading.RLock()
-        self._logger = logging.getLogger(__name__)
-        self._deadlock_detection_interval = 5.0  # seconds
-        self._deadlock_detection_thread: Optional[threading.Thread] = None
-        self._running = False
+        self.mvcc_manager = MVCCManager()
+        logger.info(f"Initialized transaction isolation with level: {level}")
+    
+    def set_isolation_level(self, level: IsolationLevel) -> None:
+        """Set the isolation level."""
+        self.level = level
+        logger.info(f"Changed isolation level to: {level}")
+    
+    def get_isolation_level(self) -> IsolationLevel:
+        """Get the current isolation level."""
+        return self.level
 
-    def begin_transaction(
-        self,
-        isolation_level: IsolationLevel = IsolationLevel.READ_COMMITTED,
-        timeout: float = 30.0,
-    ) -> str:
-        """Begin a new transaction."""
-        with self._lock:
-            transaction_id = str(uuid.uuid4())
-
-            transaction = Transaction(
-                transaction_id=transaction_id,
-                state=TransactionState.ACTIVE,
-                isolation_level=isolation_level,
-                started_at=time.time(),
-                timeout=timeout,
-            )
-
-            self._transactions[transaction_id] = transaction
-
-            self._logger.debug(f"Started transaction: {transaction_id}")
-
-            return transaction_id
-
-    def commit_transaction(self, transaction_id: str) -> None:
-        """Commit a transaction."""
-        with self._lock:
-            if transaction_id not in self._transactions:
-                raise IsolationError(f"Transaction {transaction_id} not found")
-
-            transaction = self._transactions[transaction_id]
-
-            if transaction.state != TransactionState.ACTIVE:
-                raise IsolationError(f"Transaction {transaction_id} is not active")
-
-            try:
-                # Release all locks
-                self.lock_manager.release_all_locks(transaction_id)
-
-                # Update transaction state
-                transaction.state = TransactionState.COMMITTED
-
-                # Remove from active transactions
-                del self._transactions[transaction_id]
-
-                self._logger.debug(f"Committed transaction: {transaction_id}")
-
-            except Exception as e:
-                transaction.state = TransactionState.ABORTED
-                raise IsolationError(f"Transaction commit failed: {e}")
-
-    def abort_transaction(self, transaction_id: str) -> None:
-        """Abort a transaction."""
-        with self._lock:
-            if transaction_id not in self._transactions:
-                raise IsolationError(f"Transaction {transaction_id} not found")
-
-            transaction = self._transactions[transaction_id]
-
-            try:
-                # Release all locks
-                self.lock_manager.release_all_locks(transaction_id)
-
-                # Update transaction state
-                transaction.state = TransactionState.ABORTED
-
-                # Remove from active transactions
-                del self._transactions[transaction_id]
-
-                self._logger.debug(f"Aborted transaction: {transaction_id}")
-
-            except Exception as e:
-                self._logger.error(f"Transaction abort failed: {e}")
-
-    def read_with_isolation(
-        self,
-        transaction_id: str,
-        resource: str,
-        query: str,
-        params: Optional[Dict[str, Any]] = None,
-    ) -> Any:
-        """Read data with proper isolation."""
-        with self._lock:
-            if transaction_id not in self._transactions:
-                raise IsolationError(f"Transaction {transaction_id} not found")
-
-            transaction = self._transactions[transaction_id]
-
-            if transaction.state != TransactionState.ACTIVE:
-                raise IsolationError(f"Transaction {transaction_id} is not active")
-
-            # Check timeout
-            if time.time() - transaction.started_at > transaction.timeout:
-                self.abort_transaction(transaction_id)
-                raise TransactionTimeoutError(f"Transaction {transaction_id} timed out")
-
-            # Acquire appropriate lock based on isolation level
-            if transaction.isolation_level in [
-                IsolationLevel.READ_COMMITTED,
-                IsolationLevel.REPEATABLE_READ,
-            ]:
-                lock_type = LockType.SHARED
-            else:
-                lock_type = LockType.SHARED
-
-            # Try to acquire lock
-            if not self.lock_manager.acquire_lock(
-                transaction_id, resource, lock_type, LockMode.READ, transaction.timeout
-            ):
-                # Handle lock timeout
-                transaction.state = TransactionState.BLOCKED
-                raise TransactionTimeoutError(f"Lock timeout for resource {resource}")
-
-            # Add to read set
-            transaction.read_set.add(resource)
-
-            # Execute query
-            try:
-                result = self.backend.execute_query(query, params)
-                return result
-            except Exception as e:
-                self.abort_transaction(transaction_id)
-                raise IsolationError(f"Read operation failed: {e}")
-
-    def write_with_isolation(
-        self,
-        transaction_id: str,
-        resource: str,
-        query: str,
-        params: Optional[Dict[str, Any]] = None,
-    ) -> Any:
-        """Write data with proper isolation."""
-        with self._lock:
-            if transaction_id not in self._transactions:
-                raise IsolationError(f"Transaction {transaction_id} not found")
-
-            transaction = self._transactions[transaction_id]
-
-            if transaction.state != TransactionState.ACTIVE:
-                raise IsolationError(f"Transaction {transaction_id} is not active")
-
-            # Check timeout
-            if time.time() - transaction.started_at > transaction.timeout:
-                self.abort_transaction(transaction_id)
-                raise TransactionTimeoutError(f"Transaction {transaction_id} timed out")
-
-            # Acquire exclusive lock
-            if not self.lock_manager.acquire_lock(
-                transaction_id,
-                resource,
-                LockType.EXCLUSIVE,
-                LockMode.WRITE,
-                transaction.timeout,
-            ):
-                # Handle lock timeout
-                transaction.state = TransactionState.BLOCKED
-                raise TransactionTimeoutError(f"Lock timeout for resource {resource}")
-
-            # Add to write set
-            transaction.write_set.add(resource)
-
-            # Execute query
-            try:
-                result = self.backend.execute_query(query, params)
-                return result
-            except Exception as e:
-                self.abort_transaction(transaction_id)
-                raise IsolationError(f"Write operation failed: {e}")
-
-    def start_deadlock_detection(self) -> None:
-        """Start deadlock detection thread."""
-        with self._lock:
-            if self._running:
-                return
-
-            self._running = True
-            self._deadlock_detection_thread = threading.Thread(
-                target=self._deadlock_detection_worker, daemon=True
-            )
-            self._deadlock_detection_thread.start()
-
-            self._logger.info("Started deadlock detection")
-
-    def stop_deadlock_detection(self) -> None:
-        """Stop deadlock detection thread."""
-        with self._lock:
-            self._running = False
-            if self._deadlock_detection_thread:
-                self._deadlock_detection_thread.join(timeout=5.0)
-
-            self._logger.info("Stopped deadlock detection")
-
-    def _deadlock_detection_worker(self) -> None:
-        """Background deadlock detection worker."""
-        while self._running:
-            try:
-                time.sleep(self._deadlock_detection_interval)
-
-                if not self._running:
-                    break
-
-                # Detect deadlocks
-                deadlock_info = self.lock_manager.detect_deadlock(self._transactions)
-
-                if deadlock_info:
-                    self._resolve_deadlock(deadlock_info)
-
-            except Exception as e:
-                self._logger.error(f"Deadlock detection error: {e}")
-
-    def _resolve_deadlock(self, deadlock_info: DeadlockInfo) -> None:
-        """Resolve a detected deadlock."""
-        with self._lock:
-            self._logger.warning(f"Deadlock detected: {deadlock_info.cycle}")
-
-            # Abort the youngest transaction in the cycle
-            youngest_transaction = None
-            youngest_time = 0
-
-            for transaction in deadlock_info.transactions:
-                if transaction.started_at > youngest_time:
-                    youngest_time = transaction.started_at
-                    youngest_transaction = transaction
-
-            if youngest_transaction:
-                self.abort_transaction(youngest_transaction.transaction_id)
-                self._logger.info(
-                    f"Aborted transaction {youngest_transaction.transaction_id} to resolve deadlock"
-                )
-
-    def get_transaction_info(self, transaction_id: str) -> Optional[Transaction]:
-        """Get transaction information."""
-        with self._lock:
-            return self._transactions.get(transaction_id)
-
-    def get_active_transactions(self) -> List[Transaction]:
-        """Get all active transactions."""
-        with self._lock:
-            return [
-                t
-                for t in self._transactions.values()
-                if t.state == TransactionState.ACTIVE
-            ]
-
-    def get_lock_info(self) -> Dict[str, List[Lock]]:
-        """Get current lock information."""
-        return self.lock_manager._locks.copy()
-
-    def __enter__(self):
-        """Context manager entry."""
-        self.start_deadlock_detection()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Context manager exit."""
-        self.stop_deadlock_detection()
-
-        # Abort any remaining transactions
-        for transaction_id in list(self._transactions.keys()):
-            self.abort_transaction(transaction_id)
+__all__ = [
+    "TransactionManager",
+    "LockManager",
+    "MVCCManager",
+    "DeadlockDetector",
+    "Transaction",
+    "Lock",
+    "IsolationConfig",
+    "IsolationLevel",
+    "LockType",
+    "LockMode",
+    "TransactionStatus",
+    "TransactionIsolation",
+]

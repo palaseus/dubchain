@@ -556,7 +556,9 @@ class TransactionPool:
                 self._fee_estimates[target_blocks] = FeeEstimate(
                     target_blocks=target_blocks,
                     fee_rate=estimated_fee,
-                    confidence=0.8,  # Placeholder confidence
+                    confidence=self._calculate_fee_confidence(
+                        estimated_fee, target_blocks
+                    ),  # TODO: Implement actual confidence calculation
                 )
 
     def _evict_low_priority(self) -> bool:
@@ -667,6 +669,25 @@ class TransactionPool:
     def __len__(self) -> int:
         """Get the number of transactions in the pool."""
         return len(self._transactions)
+
+    def _calculate_fee_confidence(self, fee_rate: float, target_blocks: int) -> float:
+        """
+        Calculate confidence level for fee estimate.
+
+        TODO: Implement actual confidence calculation
+        This would involve:
+        1. Analyzing historical fee data
+        2. Considering network congestion
+        3. Factoring in target block time
+        4. Using statistical models for prediction
+        """
+        # For now, return a basic confidence based on target blocks
+        if target_blocks <= 1:
+            return 0.9
+        elif target_blocks <= 6:
+            return 0.8
+        else:
+            return 0.7
 
     def __contains__(self, tx_hash: str) -> bool:
         """Check if transaction is in the pool."""

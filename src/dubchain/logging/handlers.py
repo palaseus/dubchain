@@ -368,15 +368,16 @@ class DatabaseHandler(LogHandler):
     def _connect(self) -> None:
         """Connect to database."""
         # Connection is already provided in constructor
-        pass
+        if self.connection is None:
+            raise ValueError("Database connection is required")
 
     def _disconnect(self) -> None:
         """Disconnect from database."""
         if self.connection is not None:
             try:
                 self.connection.close()
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"Error closing database connection: {e}")
             finally:
                 self.connection = None
 
@@ -462,7 +463,10 @@ class ConsoleHandler(LogHandler):
 
     def close(self) -> None:
         """Close handler."""
-        pass
+        with self._lock:
+            if self.stream is not None:
+                self.stream.close()
+                self.stream = None
 
 
 class MemoryHandler(LogHandler):
@@ -505,7 +509,8 @@ class MemoryHandler(LogHandler):
 
     def close(self) -> None:
         """Close handler."""
-        pass
+        with self._lock:
+            self.buffer.clear()
 
 
 class AsyncHandler(LogHandler):

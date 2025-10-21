@@ -925,7 +925,16 @@ class MessageRouter:
         stats = self.get_route_stats()
         # Add expected keys for compatibility
         stats["total_peers"] = stats.get("peers_count", 0)
-        stats["average_latency"] = 0.0  # Placeholder
+        # TODO: Implement actual average latency calculation
+        # This would involve:
+        # 1. Collecting latency data from all active routes
+        # 2. Calculating weighted average based on route usage
+        # 3. Handling cases where no latency data is available
+        stats["average_latency"] = (
+            self.latency_tracker.get_average_latency()
+            if hasattr(self.latency_tracker, "get_average_latency")
+            else 0.0
+        )
         stats["load_distribution"] = self.load_balancer.get_load_distribution()
         return stats
 

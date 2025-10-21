@@ -115,9 +115,10 @@ class MultisigSignature:
 
         r = int.from_bytes(signature_bytes[:32], "big")
         s = int.from_bytes(signature_bytes[32:], "big")
-        message = b"dummy_message"  # Placeholder message
-
-        signature = Signature(r, s, message)
+        
+        # Create signature with actual message hash
+        message_hash = SHA256Hasher.hash(message).value
+        signature = Signature(r, s, message_hash)
 
         return cls(
             participant_id=data["participant_id"],

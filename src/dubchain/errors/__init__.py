@@ -14,12 +14,15 @@ from .degradation import (
 )
 from .exceptions import (
     BlockError,
+    BridgeError,
     ChainError,
+    ClientError,
     ConfigurationError,
     ConsensusError,
     CryptographicError,
     DubChainError,
     FatalError,
+    MonitoringError,
     NetworkError,
     NodeError,
     ResourceError,
@@ -62,6 +65,9 @@ __all__ = [
     "TimeoutError",
     "RetryableError",
     "FatalError",
+    "BridgeError",
+    "MonitoringError",
+    "ClientError",
     # Recovery
     "ErrorRecoveryManager",
     "RecoveryStrategy",
