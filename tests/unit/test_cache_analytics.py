@@ -2,6 +2,9 @@
 Unit tests for cache analytics module.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import json
 import threading
 import time

@@ -8,6 +8,9 @@ This module provides unified hardware acceleration management including:
 - Resource management
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import time
 import threading
 from dataclasses import dataclass, field

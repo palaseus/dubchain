@@ -5,6 +5,9 @@ These tests verify that the ZKP system maintains certain properties
 across a wide range of inputs and scenarios.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 
 # Temporarily disable property tests due to hanging issues

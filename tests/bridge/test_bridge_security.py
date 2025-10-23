@@ -14,6 +14,9 @@ This module provides comprehensive security tests for bridge operations includin
 - Resource exhaustion attacks
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import hashlib
 import json
@@ -600,6 +603,6 @@ if __name__ == "__main__":
         config = SecurityTestConfig()
         tester = BridgeSecurityTester(config)
         report = await tester.run_comprehensive_security_tests()
-        print(json.dumps(report, indent=2))
+        logger.info(json.dumps(report, indent=2))
     
     asyncio.run(main())

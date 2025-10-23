@@ -2,6 +2,9 @@
 Unit tests for VM opcodes.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 
 from dubchain.vm.opcodes import OPCODES, Opcode, OpcodeType

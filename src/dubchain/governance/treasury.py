@@ -5,6 +5,9 @@ This module handles treasury operations including spending proposals,
 multisig controls, and treasury security measures.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import time
 from dataclasses import dataclass, field
 from enum import Enum

@@ -5,6 +5,9 @@ This module provides GPU acceleration for consensus mechanisms,
 including parallel signature verification and batch operations.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import threading
 import time
 from dataclasses import dataclass
@@ -53,8 +56,7 @@ class CUDAConsensusAccelerator:
         # Thread safety
         self._metrics_lock = threading.Lock()
 
-        print(
-            f"🚀 CUDA Consensus Accelerator initialized - GPU Available: {self.cuda_manager.available}"
+        logger.info(f"🚀 CUDA Consensus Accelerator initialized - GPU Available: {self.cuda_manager.available}"
         )
 
     def verify_signatures_batch(

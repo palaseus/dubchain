@@ -5,6 +5,9 @@ blockchain platform, including structured logging, JSON formatting,
 log rotation, distributed aggregation, and analysis capabilities.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 from .aggregation import (
     DistributedAggregator,
     LogAggregator,

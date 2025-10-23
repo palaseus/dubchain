@@ -9,6 +9,9 @@ This module provides comprehensive bridge core enhancements including:
 - Comprehensive security and monitoring
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import hashlib
 import json

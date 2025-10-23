@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+logger = logging.getLogger(__name__)
 """
 Cross-Chain Bridge Demo for DubChain
 
@@ -13,6 +14,7 @@ Run this demo to see how DubChain enables seamless interoperability
 between different blockchain networks.
 """
 
+import logging
 import asyncio
 import time
 import json
@@ -48,7 +50,7 @@ class CrossChainBridgeDemo:
     
     def setup_bridge_system(self) -> None:
         """Setup the cross-chain bridge system."""
-        print("🌉 Setting up cross-chain bridge system...")
+        logger.info("🌉 Setting up cross-chain bridge system...")
         
         # Create bridge configuration
         config = BridgeConfig(
@@ -70,11 +72,11 @@ class CrossChainBridgeDemo:
         # Create atomic swap system
         self.atomic_swap = AtomicSwap()
         
-        print("  ✅ Cross-chain bridge system initialized")
+        logger.info("  ✅ Cross-chain bridge system initialized")
     
     def setup_demo_chains(self) -> None:
         """Setup demo blockchain networks."""
-        print("\n⛓️  Setting up demo blockchain networks...")
+        logger.info("\n⛓️  Setting up demo blockchain networks...")
         
         # Define demo chains
         chains = [
@@ -112,14 +114,14 @@ class CrossChainBridgeDemo:
         for chain_info in chains:
             success = self.bridge_manager.add_chain(chain_info["chain_id"], chain_info)
             if success:
-                print(f"  ✅ Added {chain_info['name']} ({chain_info['chain_id']})")
+                logger.info(f"  ✅ Added {chain_info['name']} ({chain_info['chain_id']})")
                 self.demo_chains[chain_info["chain_id"]] = chain_info
             else:
-                print(f"  ❌ Failed to add {chain_info['name']}")
+                logger.info(f"  ❌ Failed to add {chain_info['name']}")
     
     def setup_demo_assets(self) -> None:
         """Setup demo assets."""
-        print("\n💰 Setting up demo assets...")
+        logger.info("\n💰 Setting up demo assets...")
         
         # Define demo assets
         assets = [
@@ -166,14 +168,14 @@ class CrossChainBridgeDemo:
             asset = BridgeAsset(**asset_info)
             success = self.bridge_manager.register_asset(asset)
             if success:
-                print(f"  ✅ Registered {asset.symbol} on {asset.chain_id}")
+                logger.info(f"  ✅ Registered {asset.symbol} on {asset.chain_id}")
                 self.demo_assets[asset.asset_id] = asset
             else:
-                print(f"  ❌ Failed to register {asset.symbol}")
+                logger.info(f"  ❌ Failed to register {asset.symbol}")
     
     def setup_demo_validators(self) -> None:
         """Setup demo bridge validators."""
-        print("\n🛡️  Setting up demo bridge validators...")
+        logger.info("\n🛡️  Setting up demo bridge validators...")
         
         # Create validators for each chain
         for chain_id in self.demo_chains.keys():
@@ -189,18 +191,18 @@ class CrossChainBridgeDemo:
                 
                 success = self.bridge_manager.add_validator(validator)
                 if success:
-                    print(f"  ✅ Added validator {validator.validator_id}")
+                    logger.info(f"  ✅ Added validator {validator.validator_id}")
                     self.demo_validators.append(validator)
                 else:
-                    print(f"  ❌ Failed to add validator {validator.validator_id}")
+                    logger.info(f"  ❌ Failed to add validator {validator.validator_id}")
     
     def demonstrate_cross_chain_transfers(self) -> None:
         """Demonstrate cross-chain asset transfers."""
-        print("\n🔄 CROSS-CHAIN TRANSFERS DEMONSTRATION")
-        print("=" * 50)
+        logger.info("\n🔄 CROSS-CHAIN TRANSFERS DEMONSTRATION")
+        logger.info("=" * 50)
         
         # Create cross-chain transactions
-        print("📝 Creating cross-chain transactions...")
+        logger.info("📝 Creating cross-chain transactions...")
         
         transactions = [
             {
@@ -235,7 +237,7 @@ class CrossChainBridgeDemo:
         created_transactions = []
         
         for i, tx_data in enumerate(transactions):
-            print(f"  Creating transaction {i + 1}...")
+            logger.info(f"  Creating transaction {i + 1}...")
             
             transaction = self.bridge_manager.create_cross_chain_transaction(
                 source_chain=tx_data["source_chain"],
@@ -248,31 +250,31 @@ class CrossChainBridgeDemo:
             )
             
             if transaction:
-                print(f"    ✅ Transaction {transaction.transaction_id} created")
+                logger.info(f"    ✅ Transaction {transaction.transaction_id} created")
                 created_transactions.append(transaction)
             else:
-                print(f"    ❌ Failed to create transaction {i + 1}")
+                logger.info(f"    ❌ Failed to create transaction {i + 1}")
         
         # Process transactions
-        print("\n⚙️  Processing cross-chain transactions...")
+        logger.info("\n⚙️  Processing cross-chain transactions...")
         for i, transaction in enumerate(created_transactions):
-            print(f"  Processing transaction {i + 1}...")
+            logger.info(f"  Processing transaction {i + 1}...")
             
             success = self.bridge_manager.process_transaction(transaction.transaction_id)
             if success:
-                print(f"    ✅ Transaction {transaction.transaction_id} completed")
-                print(f"    📊 {transaction.amount} {transaction.source_asset} → {transaction.target_asset}")
-                print(f"    🔗 {transaction.source_chain} → {transaction.target_chain}")
+                logger.info(f"    ✅ Transaction {transaction.transaction_id} completed")
+                logger.info(f"    📊 {transaction.amount} {transaction.source_asset} → {transaction.target_asset}")
+                logger.info(f"    🔗 {transaction.source_chain} → {transaction.target_chain}")
             else:
-                print(f"    ❌ Transaction {transaction.transaction_id} failed")
+                logger.info(f"    ❌ Transaction {transaction.transaction_id} failed")
     
     def demonstrate_atomic_swaps(self) -> None:
         """Demonstrate atomic swaps."""
-        print("\n⚛️  ATOMIC SWAPS DEMONSTRATION")
-        print("=" * 50)
+        logger.info("\n⚛️  ATOMIC SWAPS DEMONSTRATION")
+        logger.info("=" * 50)
         
         # Create atomic swap proposal
-        print("📝 Creating atomic swap proposal...")
+        logger.info("📝 Creating atomic swap proposal...")
         
         proposal = self.atomic_swap.create_proposal(
             initiator="alice",
@@ -287,133 +289,133 @@ class CrossChainBridgeDemo:
         )
         
         if proposal:
-            print(f"  ✅ Atomic swap proposal created: {proposal.proposal_id}")
-            print(f"    Initiator: {proposal.initiator}")
-            print(f"    Counterparty: {proposal.counterparty}")
-            print(f"    Amount: {proposal.source_amount} {proposal.source_asset} ↔ {proposal.target_amount} {proposal.target_asset}")
-            print(f"    Chains: {proposal.source_chain} ↔ {proposal.target_chain}")
+            logger.info(f"  ✅ Atomic swap proposal created: {proposal.proposal_id}")
+            logger.info(f"    Initiator: {proposal.initiator}")
+            logger.info(f"    Counterparty: {proposal.counterparty}")
+            logger.info(f"    Amount: {proposal.source_amount} {proposal.source_asset} ↔ {proposal.target_amount} {proposal.target_asset}")
+            logger.info(f"    Chains: {proposal.source_chain} ↔ {proposal.target_chain}")
             
             # Accept proposal
-            print("\n🤝 Accepting atomic swap proposal...")
+            logger.info("\n🤝 Accepting atomic swap proposal...")
             accept_success = self.atomic_swap.accept_proposal(proposal.proposal_id, "bob")
             if accept_success:
-                print(f"  ✅ Proposal accepted by {proposal.counterparty}")
+                logger.info(f"  ✅ Proposal accepted by {proposal.counterparty}")
                 
                 # Simulate locking funds
-                print("\n🔒 Simulating fund locking...")
+                logger.info("\n🔒 Simulating fund locking...")
                 lock1_success = self.atomic_swap.lock_funds(proposal.proposal_id, "alice", "tx_hash_1")
                 lock2_success = self.atomic_swap.lock_funds(proposal.proposal_id, "bob", "tx_hash_2")
                 
                 if lock1_success and lock2_success:
-                    print("  ✅ Both parties locked funds")
+                    logger.info("  ✅ Both parties locked funds")
                     
                     # Reveal secret
-                    print("\n🔓 Revealing secret...")
+                    logger.info("\n🔓 Revealing secret...")
                     reveal_success = self.atomic_swap.reveal_secret(proposal.proposal_id, proposal.secret)
                     if reveal_success:
-                        print("  ✅ Secret revealed")
+                        logger.info("  ✅ Secret revealed")
                         
                         # Complete swap
-                        print("\n✅ Completing atomic swap...")
+                        logger.info("\n✅ Completing atomic swap...")
                         complete_success = self.atomic_swap.complete_swap(proposal.proposal_id)
                         if complete_success:
-                            print("  ✅ Atomic swap completed successfully!")
+                            logger.info("  ✅ Atomic swap completed successfully!")
                         else:
-                            print("  ❌ Failed to complete atomic swap")
+                            logger.info("  ❌ Failed to complete atomic swap")
                     else:
-                        print("  ❌ Failed to reveal secret")
+                        logger.info("  ❌ Failed to reveal secret")
                 else:
-                    print("  ❌ Failed to lock funds")
+                    logger.info("  ❌ Failed to lock funds")
             else:
-                print("  ❌ Failed to accept proposal")
+                logger.info("  ❌ Failed to accept proposal")
         else:
-            print("  ❌ Failed to create atomic swap proposal")
+            logger.info("  ❌ Failed to create atomic swap proposal")
     
     def demonstrate_bridge_management(self) -> None:
         """Demonstrate bridge management features."""
-        print("\n🎛️  BRIDGE MANAGEMENT DEMONSTRATION")
-        print("=" * 50)
+        logger.info("\n🎛️  BRIDGE MANAGEMENT DEMONSTRATION")
+        logger.info("=" * 50)
         
         # Show bridge status
-        print("📊 Bridge Status:")
+        logger.info("📊 Bridge Status:")
         status = self.bridge_manager.get_bridge_status()
-        print(f"  Status: {status['status']}")
-        print(f"  Bridge Type: {status['bridge_type']}")
-        print(f"  Supported Chains: {len(status['supported_chains'])}")
-        print(f"  Supported Assets: {len(status['supported_assets'])}")
-        print(f"  Active Validators: {status['active_validators']}")
-        print(f"  Total Transactions: {status['total_transactions']}")
-        print(f"  Completed Transactions: {status['completed_transactions']}")
+        logger.info(f"  Status: {status['status']}")
+        logger.info(f"  Bridge Type: {status['bridge_type']}")
+        logger.info(f"  Supported Chains: {len(status['supported_chains'])}")
+        logger.info(f"  Supported Assets: {len(status['supported_assets'])}")
+        logger.info(f"  Active Validators: {status['active_validators']}")
+        logger.info(f"  Total Transactions: {status['total_transactions']}")
+        logger.info(f"  Completed Transactions: {status['completed_transactions']}")
         
         # Show chain information
-        print("\n⛓️  Chain Information:")
+        logger.info("\n⛓️  Chain Information:")
         for chain_id in status['supported_chains']:
             chain_info = self.bridge_manager.chain_manager.get_chain_info(chain_id)
             if chain_info:
-                print(f"  {chain_info['name']} ({chain_id}):")
-                print(f"    Type: {chain_info['type']}")
-                print(f"    Block Time: {chain_info['block_time']}s")
-                print(f"    Consensus: {chain_info['consensus']}")
+                logger.info(f"  {chain_info['name']} ({chain_id}):")
+                logger.info(f"    Type: {chain_info['type']}")
+                logger.info(f"    Block Time: {chain_info['block_time']}s")
+                logger.info(f"    Consensus: {chain_info['consensus']}")
         
         # Show asset information
-        print("\n💰 Asset Information:")
+        logger.info("\n💰 Asset Information:")
         for asset_id in status['supported_assets']:
             asset = self.bridge_manager.asset_manager.get_asset_info(asset_id)
             if asset:
-                print(f"  {asset.symbol} ({asset_id}):")
-                print(f"    Name: {asset.name}")
-                print(f"    Chain: {asset.chain_id}")
-                print(f"    Type: {asset.asset_type.value}")
-                print(f"    Decimals: {asset.decimals}")
+                logger.info(f"  {asset.symbol} ({asset_id}):")
+                logger.info(f"    Name: {asset.name}")
+                logger.info(f"    Chain: {asset.chain_id}")
+                logger.info(f"    Type: {asset.asset_type.value}")
+                logger.info(f"    Decimals: {asset.decimals}")
         
         # Show validator information
-        print("\n🛡️  Validator Information:")
+        logger.info("\n🛡️  Validator Information:")
         for validator in self.demo_validators[:5]:  # Show first 5 validators
-            print(f"  {validator.validator_id}:")
-            print(f"    Chain: {validator.chain_id}")
-            print(f"    Stake: {validator.stake_amount}")
-            print(f"    Active: {validator.is_active}")
-            print(f"    Validations: {validator.validation_count}")
+            logger.info(f"  {validator.validator_id}:")
+            logger.info(f"    Chain: {validator.chain_id}")
+            logger.info(f"    Stake: {validator.stake_amount}")
+            logger.info(f"    Active: {validator.is_active}")
+            logger.info(f"    Validations: {validator.validation_count}")
     
     def show_bridge_metrics(self) -> None:
         """Show comprehensive bridge metrics."""
-        print("\n📊 BRIDGE METRICS")
-        print("=" * 50)
+        logger.info("\n📊 BRIDGE METRICS")
+        logger.info("=" * 50)
         
         # Bridge metrics
         bridge_metrics = self.bridge_manager.get_bridge_metrics()
-        print("🌉 Bridge Metrics:")
-        print(f"  Total Transactions: {bridge_metrics.total_transactions}")
-        print(f"  Successful Transactions: {bridge_metrics.successful_transactions}")
-        print(f"  Failed Transactions: {bridge_metrics.failed_transactions}")
-        print(f"  Success Rate: {bridge_metrics.success_rate:.2%}")
-        print(f"  Total Volume: {bridge_metrics.total_volume}")
-        print(f"  Average Transaction Time: {bridge_metrics.average_transaction_time:.2f}s")
-        print(f"  Active Validators: {bridge_metrics.active_validators}")
-        print(f"  Supported Chains: {bridge_metrics.supported_chains}")
-        print(f"  Supported Assets: {bridge_metrics.supported_assets}")
+        logger.info("🌉 Bridge Metrics:")
+        logger.info(f"  Total Transactions: {bridge_metrics.total_transactions}")
+        logger.info(f"  Successful Transactions: {bridge_metrics.successful_transactions}")
+        logger.info(f"  Failed Transactions: {bridge_metrics.failed_transactions}")
+        logger.info(f"  Success Rate: {bridge_metrics.success_rate:.2%}")
+        logger.info(f"  Total Volume: {bridge_metrics.total_volume}")
+        logger.info(f"  Average Transaction Time: {bridge_metrics.average_transaction_time:.2f}s")
+        logger.info(f"  Active Validators: {bridge_metrics.active_validators}")
+        logger.info(f"  Supported Chains: {bridge_metrics.supported_chains}")
+        logger.info(f"  Supported Assets: {bridge_metrics.supported_assets}")
         
         # Atomic swap metrics
         if self.atomic_swap:
             swap_metrics = self.atomic_swap.get_swap_metrics()
-            print("\n⚛️  Atomic Swap Metrics:")
-            print(f"  Total Proposals: {swap_metrics['total_proposals']}")
-            print(f"  Active Proposals: {swap_metrics['active_proposals']}")
-            print(f"  Completed Swaps: {swap_metrics['completed_swaps']}")
-            print(f"  Failed Swaps: {swap_metrics['failed_swaps']}")
-            print(f"  Proposals Created: {swap_metrics['metrics']['proposals_created']}")
-            print(f"  Proposals Accepted: {swap_metrics['metrics']['proposals_accepted']}")
-            print(f"  Swaps Completed: {swap_metrics['metrics']['swaps_completed']}")
-            print(f"  Swaps Failed: {swap_metrics['metrics']['swaps_failed']}")
+            logger.info("\n⚛️  Atomic Swap Metrics:")
+            logger.info(f"  Total Proposals: {swap_metrics['total_proposals']}")
+            logger.info(f"  Active Proposals: {swap_metrics['active_proposals']}")
+            logger.info(f"  Completed Swaps: {swap_metrics['completed_swaps']}")
+            logger.info(f"  Failed Swaps: {swap_metrics['failed_swaps']}")
+            logger.info(f"  Proposals Created: {swap_metrics['metrics']['proposals_created']}")
+            logger.info(f"  Proposals Accepted: {swap_metrics['metrics']['proposals_accepted']}")
+            logger.info(f"  Swaps Completed: {swap_metrics['metrics']['swaps_completed']}")
+            logger.info(f"  Swaps Failed: {swap_metrics['metrics']['swaps_failed']}")
     
     def run_demo(self) -> None:
         """Run the complete cross-chain bridge demo."""
-        print("🌉 DUBCHAIN CROSS-CHAIN BRIDGE DEMO")
-        print("=" * 60)
-        print("This demo showcases seamless interoperability between")
-        print("different blockchain networks through advanced bridge")
-        print("technology and atomic swap mechanisms.")
-        print("=" * 60)
+        logger.info("🌉 DUBCHAIN CROSS-CHAIN BRIDGE DEMO")
+        logger.info("=" * 60)
+        logger.info("This demo showcases seamless interoperability between")
+        logger.info("different blockchain networks through advanced bridge")
+        logger.info("technology and atomic swap mechanisms.")
+        logger.info("=" * 60)
         
         # Setup
         self.setup_bridge_system()
@@ -427,16 +429,16 @@ class CrossChainBridgeDemo:
         self.demonstrate_bridge_management()
         self.show_bridge_metrics()
         
-        print("\n🎉 DEMO COMPLETED!")
-        print("=" * 60)
-        print("DubChain's cross-chain bridge system provides:")
-        print("✅ Multi-chain asset transfers")
-        print("✅ Atomic swaps between chains")
-        print("✅ Cross-chain message passing")
-        print("✅ Universal asset management")
-        print("✅ Bridge security and validation")
-        print("✅ Enterprise-grade interoperability")
-        print("=" * 60)
+        logger.info("\n🎉 DEMO COMPLETED!")
+        logger.info("=" * 60)
+        logger.info("DubChain's cross-chain bridge system provides:")
+        logger.info("✅ Multi-chain asset transfers")
+        logger.info("✅ Atomic swaps between chains")
+        logger.info("✅ Cross-chain message passing")
+        logger.info("✅ Universal asset management")
+        logger.info("✅ Bridge security and validation")
+        logger.info("✅ Enterprise-grade interoperability")
+        logger.info("=" * 60)
 
 
 async def main():

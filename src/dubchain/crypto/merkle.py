@@ -5,6 +5,9 @@ This module provides Merkle tree functionality for blockchain transaction verifi
 and other cryptographic proofs.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 from dataclasses import dataclass
 from typing import List, Optional, Tuple, Union
 

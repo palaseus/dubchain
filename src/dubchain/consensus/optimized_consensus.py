@@ -5,6 +5,9 @@ This module provides performance-optimized implementations of consensus mechanis
 with batching, lock reduction, and O(1) data structures.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import threading
 import time

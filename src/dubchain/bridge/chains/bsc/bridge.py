@@ -9,6 +9,9 @@ This module provides comprehensive BSC bridging capabilities including:
 - Bridge security and validation
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import hashlib
 import json

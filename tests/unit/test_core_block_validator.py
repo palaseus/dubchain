@@ -2,6 +2,9 @@
 Comprehensive unit tests for the enhanced block validation system.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import time
 from unittest.mock import Mock, patch
 

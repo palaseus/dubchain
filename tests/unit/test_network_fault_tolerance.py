@@ -1,5 +1,8 @@
 """Test cases for network/fault_tolerance.py module."""
 
+import logging
+
+logger = logging.getLogger(__name__)
 import time
 from unittest.mock import Mock, patch
 

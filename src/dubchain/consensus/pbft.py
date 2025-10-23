@@ -8,6 +8,9 @@ This module implements PBFT consensus with:
 - Message authentication and ordering
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import hashlib
 import json
 import time
@@ -453,3 +456,6 @@ class PracticalByzantineFaultTolerance:
         pbft.last_checkpoint = data["last_checkpoint"]
 
         return pbft
+
+# Alias for easier importing
+PBFT = PracticalByzantineFaultTolerance

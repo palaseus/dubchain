@@ -1,5 +1,8 @@
 """Basic tests for VM opcodes module."""
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 from unittest.mock import Mock
 

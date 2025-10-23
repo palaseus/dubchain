@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+logger = logging.getLogger(__name__)
 """
 Optimized GPU Acceleration Demo for DubChain
 
@@ -6,6 +7,7 @@ This demo showcases optimized GPU-accelerated operations that truly
 benefit from GPU parallelization for blockchain workloads.
 """
 
+import logging
 import sys
 import os
 import time
@@ -20,16 +22,16 @@ from src.dubchain.crypto.optimized_gpu_crypto import OptimizedGPUCrypto, Optimiz
 
 def print_header(title: str):
     """Print a formatted header."""
-    print(f"\n{'='*60}")
-    print(f"🚀 {title}")
-    print(f"{'='*60}")
+    logger.info(f"\n{'='*60}")
+    logger.info(f"🚀 {title}")
+    logger.info(f"{'='*60}")
 
 
 def print_section(title: str):
     """Print a formatted section header."""
-    print(f"\n{'-'*40}")
-    print(f"📊 {title}")
-    print(f"{'-'*40}")
+    logger.info(f"\n{'-'*40}")
+    logger.info(f"📊 {title}")
+    logger.info(f"{'-'*40}")
 
 
 def test_optimized_gpu_availability():
@@ -45,11 +47,11 @@ def test_optimized_gpu_availability():
     
     metrics = gpu_crypto.get_performance_metrics()
     
-    print(f"GPU Available: {metrics['gpu_available']}")
-    print(f"Device: {metrics['device']}")
-    print(f"Configuration:")
+    logger.info(f"GPU Available: {metrics['gpu_available']}")
+    logger.info(f"Device: {metrics['device']}")
+    logger.info(f"Configuration:")
     for key, value in metrics['config'].items():
-        print(f"  {key}: {value}")
+        logger.info(f"  {key}: {value}")
     
     return gpu_crypto
 
@@ -62,31 +64,31 @@ def test_smart_batch_processing(gpu_crypto: OptimizedGPUCrypto):
     small_batch_size = 50
     data_size = 1024
     
-    print(f"\nTesting small batch ({small_batch_size} items) - should use CPU:")
+    logger.info(f"\nTesting small batch ({small_batch_size} items) - should use CPU:")
     test_data = [secrets.token_bytes(data_size) for _ in range(small_batch_size)]
     
     start_time = time.time()
     results = gpu_crypto.hash_data_batch_optimized(test_data, "sha256")
     processing_time = time.time() - start_time
     
-    print(f"  Processing time: {processing_time:.4f}s")
-    print(f"  Throughput: {small_batch_size/processing_time:.2f} ops/sec")
-    print(f"  Results count: {len(results)}")
+    logger.info(f"  Processing time: {processing_time:.4f}s")
+    logger.info(f"  Throughput: {small_batch_size/processing_time:.2f} ops/sec")
+    logger.info(f"  Results count: {len(results)}")
     
     # Test large batch (should use GPU)
     large_batch_size = 2000
     data_size = 1024
     
-    print(f"\nTesting large batch ({large_batch_size} items) - should use GPU:")
+    logger.info(f"\nTesting large batch ({large_batch_size} items) - should use GPU:")
     test_data = [secrets.token_bytes(data_size) for _ in range(large_batch_size)]
     
     start_time = time.time()
     results = gpu_crypto.hash_data_batch_optimized(test_data, "sha256")
     processing_time = time.time() - start_time
     
-    print(f"  Processing time: {processing_time:.4f}s")
-    print(f"  Throughput: {large_batch_size/processing_time:.2f} ops/sec")
-    print(f"  Results count: {len(results)}")
+    logger.info(f"  Processing time: {processing_time:.4f}s")
+    logger.info(f"  Throughput: {large_batch_size/processing_time:.2f} ops/sec")
+    logger.info(f"  Results count: {len(results)}")
 
 
 def test_signature_verification_optimized(gpu_crypto: OptimizedGPUCrypto):
@@ -104,15 +106,15 @@ def test_signature_verification_optimized(gpu_crypto: OptimizedGPUCrypto):
         algorithm = "secp256k1"
         verifications.append((message, signature, public_key, algorithm))
     
-    print(f"\nTesting small signature batch ({small_batch_size} verifications) - should use CPU:")
+    logger.info(f"\nTesting small signature batch ({small_batch_size} verifications) - should use CPU:")
     
     start_time = time.time()
     results = gpu_crypto.verify_signatures_batch_optimized(verifications)
     processing_time = time.time() - start_time
     
-    print(f"  Processing time: {processing_time:.4f}s")
-    print(f"  Throughput: {small_batch_size/processing_time:.2f} ops/sec")
-    print(f"  Results count: {len(results)}")
+    logger.info(f"  Processing time: {processing_time:.4f}s")
+    logger.info(f"  Throughput: {small_batch_size/processing_time:.2f} ops/sec")
+    logger.info(f"  Results count: {len(results)}")
     
     # Test large batch (should use GPU)
     large_batch_size = 1500
@@ -125,15 +127,15 @@ def test_signature_verification_optimized(gpu_crypto: OptimizedGPUCrypto):
         algorithm = "secp256k1"
         verifications.append((message, signature, public_key, algorithm))
     
-    print(f"\nTesting large signature batch ({large_batch_size} verifications) - should use GPU:")
+    logger.info(f"\nTesting large signature batch ({large_batch_size} verifications) - should use GPU:")
     
     start_time = time.time()
     results = gpu_crypto.verify_signatures_batch_optimized(verifications)
     processing_time = time.time() - start_time
     
-    print(f"  Processing time: {processing_time:.4f}s")
-    print(f"  Throughput: {large_batch_size/processing_time:.2f} ops/sec")
-    print(f"  Results count: {len(results)}")
+    logger.info(f"  Processing time: {processing_time:.4f}s")
+    logger.info(f"  Throughput: {large_batch_size/processing_time:.2f} ops/sec")
+    logger.info(f"  Results count: {len(results)}")
 
 
 def run_optimized_benchmark(gpu_crypto: OptimizedGPUCrypto):
@@ -144,9 +146,9 @@ def run_optimized_benchmark(gpu_crypto: OptimizedGPUCrypto):
     batch_sizes = [50, 100, 500, 1000, 2000, 5000]
     data_size = 1024
     
-    print(f"Benchmarking different batch sizes with {data_size} byte data:")
-    print(f"{'Batch Size':<12} {'CPU Time':<10} {'GPU Time':<10} {'Speedup':<8} {'Used GPU':<8}")
-    print(f"{'-'*60}")
+    logger.info(f"Benchmarking different batch sizes with {data_size} byte data:")
+    logger.info(f"{'Batch Size':<12} {'CPU Time':<10} {'GPU Time':<10} {'Speedup':<8} {'Used GPU':<8}")
+    logger.info(f"{'-'*60}")
     
     for batch_size in batch_sizes:
         # Generate test data
@@ -165,7 +167,7 @@ def run_optimized_benchmark(gpu_crypto: OptimizedGPUCrypto):
         speedup = cpu_time / gpu_time if gpu_time > 0 else 0
         used_gpu = batch_size >= gpu_crypto.config.min_batch_size and gpu_crypto.gpu_available
         
-        print(f"{batch_size:<12} {cpu_time:<10.4f} {gpu_time:<10.4f} {speedup:<8.2f} {str(used_gpu):<8}")
+        logger.info(f"{batch_size:<12} {cpu_time:<10.4f} {gpu_time:<10.4f} {speedup:<8.2f} {str(used_gpu):<8}")
 
 
 def test_memory_efficiency_optimized(gpu_crypto: OptimizedGPUCrypto):
@@ -176,7 +178,7 @@ def test_memory_efficiency_optimized(gpu_crypto: OptimizedGPUCrypto):
     large_batch_size = 20000
     data_size = 512
     
-    print(f"Testing memory efficiency with {large_batch_size} items ({data_size} bytes each):")
+    logger.info(f"Testing memory efficiency with {large_batch_size} items ({data_size} bytes each):")
     
     # Generate test data
     test_data = [secrets.token_bytes(data_size) for _ in range(large_batch_size)]
@@ -186,10 +188,10 @@ def test_memory_efficiency_optimized(gpu_crypto: OptimizedGPUCrypto):
     gpu_results = gpu_crypto.hash_data_batch_optimized(test_data, "sha256")
     processing_time = time.time() - start_time
     
-    print(f"  Processing time: {processing_time:.4f}s")
-    print(f"  Throughput: {large_batch_size/processing_time:.2f} ops/sec")
-    print(f"  Memory efficient: {len(gpu_results) == large_batch_size}")
-    print(f"  Used GPU: {large_batch_size >= gpu_crypto.config.min_batch_size and gpu_crypto.gpu_available}")
+    logger.info(f"  Processing time: {processing_time:.4f}s")
+    logger.info(f"  Throughput: {large_batch_size/processing_time:.2f} ops/sec")
+    logger.info(f"  Memory efficient: {len(gpu_results) == large_batch_size}")
+    logger.info(f"  Used GPU: {large_batch_size >= gpu_crypto.config.min_batch_size and gpu_crypto.gpu_available}")
 
 
 def test_blockchain_workload_simulation(gpu_crypto: OptimizedGPUCrypto):
@@ -200,7 +202,7 @@ def test_blockchain_workload_simulation(gpu_crypto: OptimizedGPUCrypto):
     num_blocks = 10
     transactions_per_block = 100
     
-    print(f"Simulating {num_blocks} blocks with {transactions_per_block} transactions each:")
+    logger.info(f"Simulating {num_blocks} blocks with {transactions_per_block} transactions each:")
     
     total_transactions = 0
     total_time = 0
@@ -229,13 +231,13 @@ def test_blockchain_workload_simulation(gpu_crypto: OptimizedGPUCrypto):
         total_transactions += len(transactions)
         total_time += block_time
         
-        print(f"  Block {block_num + 1}: {block_time:.4f}s, {len(transactions)/block_time:.2f} tx/sec")
+        logger.info(f"  Block {block_num + 1}: {block_time:.4f}s, {len(transactions)/block_time:.2f} tx/sec")
     
-    print(f"\nTotal simulation results:")
-    print(f"  Total transactions: {total_transactions}")
-    print(f"  Total time: {total_time:.4f}s")
-    print(f"  Average throughput: {total_transactions/total_time:.2f} tx/sec")
-    print(f"  Used GPU: {transactions_per_block >= gpu_crypto.config.min_batch_size and gpu_crypto.gpu_available}")
+    logger.info(f"\nTotal simulation results:")
+    logger.info(f"  Total transactions: {total_transactions}")
+    logger.info(f"  Total time: {total_time:.4f}s")
+    logger.info(f"  Average throughput: {total_transactions/total_time:.2f} tx/sec")
+    logger.info(f"  Used GPU: {transactions_per_block >= gpu_crypto.config.min_batch_size and gpu_crypto.gpu_available}")
 
 
 def display_final_metrics_optimized(gpu_crypto: OptimizedGPUCrypto):
@@ -244,39 +246,39 @@ def display_final_metrics_optimized(gpu_crypto: OptimizedGPUCrypto):
     
     metrics = gpu_crypto.get_performance_metrics()
     
-    print(f"Total Operations: {metrics['total_operations']}")
-    print(f"GPU Operations: {metrics['gpu_operations']}")
-    print(f"CPU Fallbacks: {metrics['cpu_fallbacks']}")
-    print(f"Batch Operations: {metrics['batch_operations']}")
-    print(f"GPU Utilization: {metrics['gpu_utilization']:.2%}")
-    print(f"Average GPU Time: {metrics['avg_gpu_time']:.6f}s")
-    print(f"Average CPU Time: {metrics['avg_cpu_time']:.6f}s")
+    logger.info(f"Total Operations: {metrics['total_operations']}")
+    logger.info(f"GPU Operations: {metrics['gpu_operations']}")
+    logger.info(f"CPU Fallbacks: {metrics['cpu_fallbacks']}")
+    logger.info(f"Batch Operations: {metrics['batch_operations']}")
+    logger.info(f"GPU Utilization: {metrics['gpu_utilization']:.2%}")
+    logger.info(f"Average GPU Time: {metrics['avg_gpu_time']:.6f}s")
+    logger.info(f"Average CPU Time: {metrics['avg_cpu_time']:.6f}s")
     
     # Calculate efficiency
     if metrics['gpu_operations'] > 0 and metrics['cpu_fallbacks'] > 0:
         gpu_efficiency = metrics['gpu_operations'] / (metrics['gpu_operations'] + metrics['cpu_fallbacks'])
-        print(f"GPU Efficiency: {gpu_efficiency:.2%}")
+        logger.info(f"GPU Efficiency: {gpu_efficiency:.2%}")
     
     if metrics['gpu_utilization'] > 0.7:
-        print("🎉 Excellent GPU utilization!")
+        logger.info("🎉 Excellent GPU utilization!")
     elif metrics['gpu_utilization'] > 0.3:
-        print("✅ Good GPU utilization")
+        logger.info("✅ Good GPU utilization")
     else:
-        print("⚠️  Low GPU utilization - consider optimizing batch sizes")
+        logger.info("⚠️  Low GPU utilization - consider optimizing batch sizes")
 
 
 def main():
     """Main demo function."""
     print_header("DUBCHAIN OPTIMIZED GPU ACCELERATION DEMO")
-    print("This demo showcases optimized GPU-accelerated operations")
-    print("that intelligently use GPU only when beneficial.")
+    logger.info("This demo showcases optimized GPU-accelerated operations")
+    logger.info("that intelligently use GPU only when beneficial.")
     
     try:
         # Test optimized GPU availability
         gpu_crypto = test_optimized_gpu_availability()
         
         if not gpu_crypto.gpu_available:
-            print("⚠️  GPU not available - running CPU-only tests")
+            logger.info("⚠️  GPU not available - running CPU-only tests")
         
         # Run optimized tests
         test_smart_batch_processing(gpu_crypto)
@@ -287,12 +289,12 @@ def main():
         display_final_metrics_optimized(gpu_crypto)
         
         print_header("OPTIMIZED DEMO COMPLETED SUCCESSFULLY")
-        print("🎉 Optimized GPU acceleration demo completed!")
-        print("Your DubChain project now has intelligent GPU acceleration")
-        print("that automatically chooses the best processing method.")
+        logger.info("🎉 Optimized GPU acceleration demo completed!")
+        logger.info("Your DubChain project now has intelligent GPU acceleration")
+        logger.info("that automatically chooses the best processing method.")
         
     except Exception as e:
-        print(f"❌ Demo failed: {e}")
+        logger.info(f"❌ Demo failed: {e}")
         import traceback
         traceback.print_exc()
         return 1

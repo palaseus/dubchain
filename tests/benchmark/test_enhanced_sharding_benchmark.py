@@ -1117,32 +1117,32 @@ class TestStressTestSuite:
 
 def run_comprehensive_benchmark():
     """Run comprehensive benchmark suite."""
-    print("Running Enhanced Sharding Benchmark Suite...")
+    logger.info("Running Enhanced Sharding Benchmark Suite...")
     
     # Run benchmarks
     benchmark_suite = BenchmarkSuite()
     benchmark_results = benchmark_suite.run_all_benchmarks()
     
-    print("\n=== BENCHMARK RESULTS ===")
+    logger.info("\n=== BENCHMARK RESULTS ===")
     for result in benchmark_results:
-        print(f"{result.test_name}:")
-        print(f"  Throughput: {result.throughput:.2f} ops/sec")
-        print(f"  Success Rate: {result.success_rate:.2%}")
-        print(f"  Memory Usage: {result.memory_usage_mb:.2f} MB")
-        print(f"  CPU Usage: {result.cpu_usage_percent:.2f}%")
+        logger.info(f"{result.test_name}:")
+        logger.info(f"  Throughput: {result.throughput:.2f} ops/sec")
+        logger.info(f"  Success Rate: {result.success_rate:.2%}")
+        logger.info(f"  Memory Usage: {result.memory_usage_mb:.2f} MB")
+        logger.info(f"  CPU Usage: {result.cpu_usage_percent:.2f}%")
         print()
     
     # Run stress tests
     stress_suite = StressTestSuite()
     stress_results = stress_suite.run_all_stress_tests()
     
-    print("\n=== STRESS TEST RESULTS ===")
+    logger.info("\n=== STRESS TEST RESULTS ===")
     for result in stress_results:
-        print(f"{result.test_name}:")
-        print(f"  Operations: {result.operations}")
-        print(f"  Failures: {result.failures}")
-        print(f"  System Stable: {result.system_stability}")
-        print(f"  Recovery Time: {result.recovery_time:.2f}s")
+        logger.info(f"{result.test_name}:")
+        logger.info(f"  Operations: {result.operations}")
+        logger.info(f"  Failures: {result.failures}")
+        logger.info(f"  System Stable: {result.system_stability}")
+        logger.info(f"  Recovery Time: {result.recovery_time:.2f}s")
         print()
     
     return benchmark_results, stress_results
@@ -1164,4 +1164,4 @@ if __name__ == "__main__":
     with open('enhanced_sharding_benchmark_results.json', 'w') as f:
         json.dump(results, f, indent=2)
     
-    print("Benchmark results saved to enhanced_sharding_benchmark_results.json")
+    logger.info("Benchmark results saved to enhanced_sharding_benchmark_results.json")

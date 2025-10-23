@@ -4,6 +4,9 @@ GraphQL Resolvers for DubChain API.
 This module implements all GraphQL resolvers for queries, mutations, and subscriptions.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import json
 from datetime import datetime
@@ -90,7 +93,7 @@ class QueryResolvers:
                 gas_limit=core_block.gas_limit
             )
         except Exception as e:
-            print(f"Error getting block: {e}")
+            logger.info(f"Error getting block: {e}")
             return None
     
     @staticmethod
@@ -107,7 +110,7 @@ class QueryResolvers:
             
             return blocks
         except Exception as e:
-            print(f"Error getting blocks: {e}")
+            logger.info(f"Error getting blocks: {e}")
             return []
     
     @staticmethod
@@ -134,7 +137,7 @@ class QueryResolvers:
                 timestamp=datetime.fromtimestamp(core_tx.timestamp)
             )
         except Exception as e:
-            print(f"Error getting transaction: {e}")
+            logger.info(f"Error getting transaction: {e}")
             return None
     
     @staticmethod
@@ -155,7 +158,7 @@ class QueryResolvers:
                 is_contract=account_data.get('is_contract', False)
             )
         except Exception as e:
-            print(f"Error getting account: {e}")
+            logger.info(f"Error getting account: {e}")
             return None
     
     @staticmethod
@@ -178,7 +181,7 @@ class QueryResolvers:
                 storage_size=contract_data.get('storage_size', 0)
             )
         except Exception as e:
-            print(f"Error getting contract: {e}")
+            logger.info(f"Error getting contract: {e}")
             return None
     
     @staticmethod
@@ -212,7 +215,7 @@ class QueryResolvers:
                 is_encrypted=wallet_data.get('is_encrypted', False)
             )
         except Exception as e:
-            print(f"Error getting wallet: {e}")
+            logger.info(f"Error getting wallet: {e}")
             return None
     
     @staticmethod
@@ -238,7 +241,7 @@ class QueryResolvers:
                 transaction_hash=transfer_data.get('transaction_hash')
             )
         except Exception as e:
-            print(f"Error getting bridge transfer: {e}")
+            logger.info(f"Error getting bridge transfer: {e}")
             return None
     
     @staticmethod
@@ -259,7 +262,7 @@ class QueryResolvers:
                 cross_shard_transactions=shard_data.get('cross_shard_transactions', 0)
             )
         except Exception as e:
-            print(f"Error getting shard: {e}")
+            logger.info(f"Error getting shard: {e}")
             return None
     
     @staticmethod
@@ -283,7 +286,7 @@ class QueryResolvers:
                 last_active=datetime.fromtimestamp(validator_data.get('last_active', 0))
             )
         except Exception as e:
-            print(f"Error getting validator: {e}")
+            logger.info(f"Error getting validator: {e}")
             return None
     
     @staticmethod
@@ -312,7 +315,7 @@ class QueryResolvers:
                 threshold=proposal_data.get('threshold', 0.0)
             )
         except Exception as e:
-            print(f"Error getting proposal: {e}")
+            logger.info(f"Error getting proposal: {e}")
             return None
     
     @staticmethod
@@ -331,7 +334,7 @@ class QueryResolvers:
                 average_latency=stats.get('average_latency', 0.0)
             )
         except Exception as e:
-            print(f"Error getting network stats: {e}")
+            logger.info(f"Error getting network stats: {e}")
             return NetworkStats(
                 total_peers=0, active_peers=0, total_connections=0,
                 bytes_sent=0, bytes_received=0, messages_sent=0,
@@ -354,7 +357,7 @@ class QueryResolvers:
                 timestamp=datetime.now()
             )
         except Exception as e:
-            print(f"Error getting performance metrics: {e}")
+            logger.info(f"Error getting performance metrics: {e}")
             return PerformanceMetrics(
                 tps=0.0, latency=0.0, gas_efficiency=0.0,
                 memory_usage=0, cpu_usage=0.0, disk_usage=0,
@@ -371,7 +374,7 @@ class MutationResolvers:
             wallet_id = wallet_manager.create_wallet(name, password)
             return wallet_id
         except Exception as e:
-            print(f"Error creating wallet: {e}")
+            logger.info(f"Error creating wallet: {e}")
             raise Exception(f"Failed to create wallet: {str(e)}")
     
     @staticmethod
@@ -391,7 +394,7 @@ class MutationResolvers:
             tx_hash = blockchain.add_transaction(tx)
             return tx_hash
         except Exception as e:
-            print(f"Error creating transaction: {e}")
+            logger.info(f"Error creating transaction: {e}")
             raise Exception(f"Failed to create transaction: {str(e)}")
     
     @staticmethod
@@ -405,7 +408,7 @@ class MutationResolvers:
             contract_address = blockchain.deploy_contract(contract, constructor_args or [])
             return contract_address
         except Exception as e:
-            print(f"Error deploying contract: {e}")
+            logger.info(f"Error deploying contract: {e}")
             raise Exception(f"Failed to deploy contract: {str(e)}")
     
     @staticmethod
@@ -415,7 +418,7 @@ class MutationResolvers:
             result = blockchain.call_contract(contract_address, function_name, args or [])
             return result
         except Exception as e:
-            print(f"Error calling contract: {e}")
+            logger.info(f"Error calling contract: {e}")
             raise Exception(f"Failed to call contract: {str(e)}")
     
     @staticmethod
@@ -433,7 +436,7 @@ class MutationResolvers:
             )
             return transfer_id
         except Exception as e:
-            print(f"Error creating bridge transfer: {e}")
+            logger.info(f"Error creating bridge transfer: {e}")
             raise Exception(f"Failed to create bridge transfer: {str(e)}")
     
     @staticmethod
@@ -447,7 +450,7 @@ class MutationResolvers:
             )
             return proposal_id
         except Exception as e:
-            print(f"Error creating proposal: {e}")
+            logger.info(f"Error creating proposal: {e}")
             raise Exception(f"Failed to create proposal: {str(e)}")
     
     @staticmethod
@@ -457,7 +460,7 @@ class MutationResolvers:
             success = governance_engine.vote(proposal_id, vote_option, reason)
             return success
         except Exception as e:
-            print(f"Error voting: {e}")
+            logger.info(f"Error voting: {e}")
             raise Exception(f"Failed to vote: {str(e)}")
 
 class SubscriptionResolvers:
@@ -475,7 +478,7 @@ class SubscriptionResolvers:
                     yield block
                 await asyncio.sleep(1)  # Check every second
             except Exception as e:
-                print(f"Error in new_blocks subscription: {e}")
+                logger.info(f"Error in new_blocks subscription: {e}")
                 await asyncio.sleep(1)
     
     @staticmethod
@@ -489,7 +492,7 @@ class SubscriptionResolvers:
                     yield QueryResolvers.transaction(tx.hash)
                 await asyncio.sleep(0.5)  # Check every 500ms
             except Exception as e:
-                print(f"Error in new_transactions subscription: {e}")
+                logger.info(f"Error in new_transactions subscription: {e}")
                 await asyncio.sleep(0.5)
     
     @staticmethod
@@ -511,7 +514,7 @@ class SubscriptionResolvers:
                     )
                 await asyncio.sleep(1)
             except Exception as e:
-                print(f"Error in contract_events subscription: {e}")
+                logger.info(f"Error in contract_events subscription: {e}")
                 await asyncio.sleep(1)
     
     @staticmethod
@@ -524,7 +527,7 @@ class SubscriptionResolvers:
                     yield transfer
                 await asyncio.sleep(2)  # Check every 2 seconds
             except Exception as e:
-                print(f"Error in bridge_transfer_updates subscription: {e}")
+                logger.info(f"Error in bridge_transfer_updates subscription: {e}")
                 await asyncio.sleep(2)
     
     @staticmethod
@@ -537,7 +540,7 @@ class SubscriptionResolvers:
                     yield shard
                 await asyncio.sleep(5)  # Check every 5 seconds
             except Exception as e:
-                print(f"Error in shard_updates subscription: {e}")
+                logger.info(f"Error in shard_updates subscription: {e}")
                 await asyncio.sleep(5)
     
     @staticmethod
@@ -553,7 +556,7 @@ class SubscriptionResolvers:
                         yield proposal
                 await asyncio.sleep(10)  # Check every 10 seconds
             except Exception as e:
-                print(f"Error in governance_updates subscription: {e}")
+                logger.info(f"Error in governance_updates subscription: {e}")
                 await asyncio.sleep(10)
     
     @staticmethod
@@ -564,7 +567,7 @@ class SubscriptionResolvers:
                 yield QueryResolvers.network_stats()
                 await asyncio.sleep(5)  # Check every 5 seconds
             except Exception as e:
-                print(f"Error in network_stats_updates subscription: {e}")
+                logger.info(f"Error in network_stats_updates subscription: {e}")
                 await asyncio.sleep(5)
     
     @staticmethod
@@ -575,5 +578,5 @@ class SubscriptionResolvers:
                 yield QueryResolvers.performance_metrics()
                 await asyncio.sleep(1)  # Check every second
             except Exception as e:
-                print(f"Error in performance_metrics_updates subscription: {e}")
+                logger.info(f"Error in performance_metrics_updates subscription: {e}")
                 await asyncio.sleep(1)

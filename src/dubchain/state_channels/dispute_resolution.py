@@ -8,6 +8,9 @@ This module implements the on-chain dispute resolution mechanism including:
 - Fraud proof mechanisms
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import hashlib
 import json
 import time

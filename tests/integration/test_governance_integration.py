@@ -5,6 +5,9 @@ This module tests the integration between different governance components
 including proposal lifecycle, voting, delegation, execution, and security.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 import time
 from unittest.mock import Mock, patch

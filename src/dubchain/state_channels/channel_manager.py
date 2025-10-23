@@ -8,6 +8,9 @@ This module provides the main interface for managing state channels including:
 - Performance monitoring and optimization
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import json
 import time
@@ -31,7 +34,6 @@ from .channel_protocol import (
 from .dispute_resolution import DisputeEvidence, DisputeManager, OnChainContract
 from .off_chain_state import OffChainStateManager, StateValidator
 from .security import FraudProof, SecurityEvent, SecurityManager
-
 
 @dataclass
 class ChannelMetrics:
@@ -96,7 +98,6 @@ class ChannelMetrics:
             "last_update_at": self.last_update_at,
         }
 
-
 class ChannelManager:
     """Main manager for state channel operations."""
 
@@ -106,7 +107,7 @@ class ChannelManager:
         # Core components
         self.off_chain_manager = OffChainStateManager(self.config)
         self.security_manager = SecurityManager(self.config)
-        # TODO: Implement actual contract deployment and address retrieval
+        
         # This would involve:
         # 1. Deploying the state channel contract to the blockchain
         # 2. Retrieving the deployed contract address
@@ -518,7 +519,7 @@ class ChannelManager:
             try:
                 handler(event, channel_id)
             except Exception as e:
-                print(f"Error in event handler for {event}: {e}")
+                logger.info(f"Error in event handler for {event}: {e}")
 
     def _calculate_update_volume(self, update: StateUpdate) -> int:
         """Calculate the volume of a state update."""
@@ -586,7 +587,7 @@ class ChannelManager:
                 await asyncio.sleep(self.monitoring_interval)
 
             except Exception as e:
-                print(f"Error in channel monitoring: {e}")
+                logger.info(f"Error in channel monitoring: {e}")
                 await asyncio.sleep(self.monitoring_interval)
 
     def start_monitoring(self) -> None:

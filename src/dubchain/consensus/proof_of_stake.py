@@ -8,6 +8,9 @@ This module implements a sophisticated Proof of Stake consensus mechanism with:
 - Staking pools and delegation
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import hashlib
 import json
 import random
@@ -133,17 +136,45 @@ class ProofOfStake:
 
     def register_validator(self, validator: Validator, initial_stake: int = 0) -> bool:
         """Register a new validator."""
-        if initial_stake < self.config.min_stake:
+        try:
+            if initial_stake < self.config.min_stake:
+                return False
+
+            success = self.validator_manager.register_validator(validator, initial_stake)
+            if success:
+                # Create staking pool
+                self.staking_pools[validator.validator_id] = StakingPool(
+                    validator_id=validator.validator_id, total_stake=initial_stake
+                )
+
+            return success
+        except Exception as e:
+            logger.error(f"Error registering validator: {e}")
             return False
 
-        success = self.validator_manager.register_validator(validator, initial_stake)
-        if success:
-            # Create staking pool
-            self.staking_pools[validator.validator_id] = StakingPool(
-                validator_id=validator.validator_id, total_stake=initial_stake
+    def add_validator(self, address: str, stake_amount: int) -> bool:
+        """Add a validator to the system."""
+        try:
+            if address in self.validator_set.validators:
+                return False
+            if stake_amount < self.config.min_stake:
+                return False
+            
+            # Create a validator
+            validator = Validator(
+                validator_id=address,
+                address=address,
+                public_key=None,  # Will be set later
+                voting_power=stake_amount,
+                is_active=True
             )
-
-        return success
+            
+            # Register the validator
+            success = self.register_validator(validator, stake_amount)
+            return success
+        except Exception as e:
+            logger.error(f"Error adding validator: {e}")
+            return False
 
     def stake_to_validator(
         self, validator_id: str, delegator_id: str, amount: int
@@ -173,32 +204,36 @@ class ProofOfStake:
 
     def select_proposer(self, block_number: int) -> Optional[str]:
         """Select proposer for next block based on stake."""
-        active_validators = list(self.validator_set.active_validators)
-        if not active_validators:
+        try:
+            active_validators = list(self.validator_set.active_validators)
+            if not active_validators:
+                return None
+
+            # Calculate total voting power
+            total_power = sum(
+                self.validator_set.validators[vid].voting_power for vid in active_validators
+            )
+
+            if total_power == 0:
+                return None
+
+            # Weighted random selection based on stake
+            weights = [
+                self.validator_set.validators[vid].voting_power / total_power
+                for vid in active_validators
+            ]
+
+            # Use block number as seed for deterministic selection
+            random.seed(block_number)
+            selected_index = random.choices(range(len(active_validators)), weights=weights)[
+                0
+            ]
+            random.seed()  # Reset seed
+
+            return active_validators[selected_index]
+        except Exception as e:
+            logger.error(f"Error selecting proposer: {e}")
             return None
-
-        # Calculate total voting power
-        total_power = sum(
-            self.validator_set.validators[vid].voting_power for vid in active_validators
-        )
-
-        if total_power == 0:
-            return None
-
-        # Weighted random selection based on stake
-        weights = [
-            self.validator_set.validators[vid].voting_power / total_power
-            for vid in active_validators
-        ]
-
-        # Use block number as seed for deterministic selection
-        random.seed(block_number)
-        selected_index = random.choices(range(len(active_validators)), weights=weights)[
-            0
-        ]
-        random.seed()  # Reset seed
-
-        return active_validators[selected_index]
 
     def validate_block_proposal(
         self, proposer_id: str, block_data: Dict[str, Any]

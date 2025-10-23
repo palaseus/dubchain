@@ -2,6 +2,9 @@
 Tests for logging filters module.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import re
 import threading
 import time

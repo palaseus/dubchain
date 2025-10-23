@@ -9,6 +9,9 @@ This module provides comprehensive Bitcoin bridging capabilities including:
 - Bridge security and validation
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 from .client import (
     BitcoinClient,
     BitcoinRPCClient,

@@ -1,5 +1,8 @@
 """Tests for network message router module."""
 
+import logging
+
+logger = logging.getLogger(__name__)
 import time
 from unittest.mock import MagicMock, Mock, patch
 

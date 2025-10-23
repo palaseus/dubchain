@@ -9,6 +9,9 @@ This module provides comprehensive Cardano integration including:
 - Stake pool operations
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import json
 import time

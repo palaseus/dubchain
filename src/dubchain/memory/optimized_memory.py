@@ -9,6 +9,9 @@ This module provides performance optimizations for memory management including:
 - Memory-mapped files
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import gc
 import mmap
 import os
@@ -322,7 +325,7 @@ class OptimizedMemory:
                     self.mmap_files[file_path] = mmap_file
                     return mmap_file
         except Exception as e:
-            print(f"Failed to create memory-mapped file: {e}")
+            logger.info(f"Failed to create memory-mapped file: {e}")
             return None
     
     def close_memory_mapped_file(self, file_path: str):

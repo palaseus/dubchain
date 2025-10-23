@@ -1,5 +1,8 @@
 """Tests for sharding types module."""
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 
 from dubchain.sharding.shard_types import (

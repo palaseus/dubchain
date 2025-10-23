@@ -11,6 +11,9 @@ malicious behavior including:
 - Network partition attacks
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 import time
 import random

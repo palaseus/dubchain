@@ -8,6 +8,9 @@ This module provides sophisticated gas management including:
 - Transaction gas estimation
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import math
 from dataclasses import dataclass, field
 from enum import Enum

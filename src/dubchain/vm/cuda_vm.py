@@ -8,6 +8,9 @@ This module provides GPU acceleration for virtual machine operations including:
 - Memory-efficient GPU operations
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import threading
 import time
 from dataclasses import dataclass
@@ -70,8 +73,7 @@ class CUDAVMAccelerator:
         # Thread safety
         self._metrics_lock = threading.Lock()
 
-        print(
-            f"🚀 CUDA VM Accelerator initialized - GPU Available: {self.cuda_manager.available}"
+        logger.info(f"🚀 CUDA VM Accelerator initialized - GPU Available: {self.cuda_manager.available}"
         )
 
     def execute_contracts_batch(

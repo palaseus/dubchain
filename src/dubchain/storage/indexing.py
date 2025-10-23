@@ -9,6 +9,9 @@ This module provides comprehensive indexing capabilities including:
 - Index optimization and maintenance
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import json
 import time
 from dataclasses import dataclass, field

@@ -9,6 +9,9 @@ This module provides:
 - Fallback mechanisms for failed optimizations
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import gc
 import json
@@ -157,7 +160,7 @@ class FeatureGate:
             try:
                 callback(enabled)
             except Exception as e:
-                print(f"Warning: Feature gate callback failed: {e}")
+                logger.info(f"Warning: Feature gate callback failed: {e}")
 
 
 def OptimizationFallback(func):
@@ -173,7 +176,7 @@ def OptimizationFallback(func):
             return func(*args, **kwargs)
         except Exception as e:
             # Log the error and fall back to baseline behavior
-            print(f"Optimization failed in {func.__name__}: {e}")
+            logger.info(f"Optimization failed in {func.__name__}: {e}")
             # Return a default result or re-raise based on the function
             if func.__name__.startswith('execute_') or func.__name__.startswith('batch_'):
                 return {"success": False, "error": str(e)}
@@ -414,13 +417,13 @@ class OptimizationManager:
             # Check dependencies
             for dep in config.dependencies:
                 if not self.is_optimization_enabled(dep):
-                    print(f"Warning: Cannot enable {name}, dependency {dep} not enabled")
+                    logger.info(f"Warning: Cannot enable {name}, dependency {dep} not enabled")
                     return False
                     
             # Check conflicts
             for conflict in config.conflicts:
                 if self.is_optimization_enabled(conflict):
-                    print(f"Warning: Cannot enable {name}, conflicts with {conflict}")
+                    logger.info(f"Warning: Cannot enable {name}, conflicts with {conflict}")
                     return False
                     
             config.enabled = True
@@ -543,7 +546,7 @@ class ConsensusOptimizations:
             # Batch validation logic
             return self._validate_batch_blocks(blocks)
         except Exception as e:
-            print(f"Batch validation failed, falling back: {e}")
+            logger.info(f"Batch validation failed, falling back: {e}")
             return [self._validate_single_block(block) for block in blocks]
             
     def _validate_single_block(self, block: Any) -> Any:
@@ -580,7 +583,7 @@ class NetworkOptimizations:
             # Batch sending logic
             return await self._send_batch_messages(messages)
         except Exception as e:
-            print(f"Batch sending failed, falling back: {e}")
+            logger.info(f"Batch sending failed, falling back: {e}")
             # Fallback to individual sending
             results = []
             for message in messages:
@@ -669,7 +672,7 @@ class StorageOptimizations:
                 # Fallback to JSON
                 return json.dumps(data).encode('utf-8')
         except Exception as e:
-            print(f"Binary serialization failed, falling back to JSON: {e}")
+            logger.info(f"Binary serialization failed, falling back to JSON: {e}")
             return json.dumps(data).encode('utf-8')
             
     def deserialize_data(self, data: bytes) -> Any:
@@ -687,7 +690,7 @@ class StorageOptimizations:
                 # Fallback to JSON
                 return json.loads(data.decode('utf-8'))
         except Exception as e:
-            print(f"Binary deserialization failed, falling back to JSON: {e}")
+            logger.info(f"Binary deserialization failed, falling back to JSON: {e}")
             return json.loads(data.decode('utf-8'))
             
     def batch_write_operations(self, operations: List[Any]) -> List[Any]:
@@ -700,7 +703,7 @@ class StorageOptimizations:
             # Batch write logic
             return self._write_batch_operations(operations)
         except Exception as e:
-            print(f"Batch write failed, falling back: {e}")
+            logger.info(f"Batch write failed, falling back: {e}")
             return [self._write_single_operation(op) for op in operations]
             
     def _write_single_operation(self, operation: Any) -> Any:
@@ -736,7 +739,7 @@ class CryptoOptimizations:
                 futures = [executor.submit(self._verify_single_signature, sig) for sig in signatures]
                 return [future.result() for future in futures]
         except Exception as e:
-            print(f"Parallel verification failed, falling back: {e}")
+            logger.info(f"Parallel verification failed, falling back: {e}")
             return [self._verify_single_signature(sig) for sig in signatures]
             
     def _verify_single_signature(self, signature: Any) -> bool:
@@ -850,7 +853,7 @@ class BatchingOptimizations:
             # Shard-aware batching logic
             return self._batch_shard_writes(shard_id, writes)
         except Exception as e:
-            print(f"Batch state writes failed, falling back: {e}")
+            logger.info(f"Batch state writes failed, falling back: {e}")
             return [self._write_single_state(write) for write in writes]
             
     def _write_single_state(self, write: Any) -> Any:
@@ -873,7 +876,7 @@ class BatchingOptimizations:
             # Signature aggregation logic
             return self._aggregate_signature_batch(signatures)
         except Exception as e:
-            print(f"Signature aggregation failed, falling back: {e}")
+            logger.info(f"Signature aggregation failed, falling back: {e}")
             return signatures
             
     def _aggregate_signature_batch(self, signatures: List[Any]) -> Any:

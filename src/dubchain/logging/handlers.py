@@ -7,6 +7,8 @@ database, console, and memory handlers for the DubChain logging system.
 import gzip
 import json
 import logging
+
+logger = logging.getLogger(__name__)
 import os
 import queue
 import shutil
@@ -302,7 +304,7 @@ class NetworkHandler(LogHandler):
 
         except Exception as e:
             # Log error but don't raise
-            print(f"Failed to connect to {self.host}:{self.port}: {e}")
+            logger.info(f"Failed to connect to {self.host}:{self.port}: {e}")
 
     def _disconnect(self) -> None:
         """Disconnect from network endpoint."""
@@ -377,7 +379,7 @@ class DatabaseHandler(LogHandler):
             try:
                 self.connection.close()
             except Exception as e:
-                print(f"Error closing database connection: {e}")
+                logger.info(f"Error closing database connection: {e}")
             finally:
                 self.connection = None
 
@@ -406,7 +408,7 @@ class DatabaseHandler(LogHandler):
             self._last_flush = time.time()
 
         except Exception as e:
-            print(f"Failed to flush logs to database: {e}")
+            logger.info(f"Failed to flush logs to database: {e}")
 
     def emit(self, entry: LogEntry) -> None:
         """Emit log entry to database."""
@@ -547,7 +549,7 @@ class AsyncHandler(LogHandler):
             except queue.Empty:
                 continue
             except Exception as e:
-                print(f"Error in async handler worker: {e}")
+                logger.info(f"Error in async handler worker: {e}")
 
     def emit(self, entry: LogEntry) -> None:
         """Emit log entry asynchronously."""
@@ -636,7 +638,7 @@ class CompressionHandler(LogHandler):
             self.buffer.clear()
 
         except Exception as e:
-            print(f"Error compressing logs: {e}")
+            logger.info(f"Error compressing logs: {e}")
             # Clear buffer on error
             self.buffer.clear()
 

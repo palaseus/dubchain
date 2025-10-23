@@ -7,6 +7,9 @@ This module provides network management for shards including:
 - Shard routing
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import random
 import time
 from dataclasses import dataclass, field

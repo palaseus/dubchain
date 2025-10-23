@@ -1,5 +1,8 @@
 """Tests for testing fixtures module."""
 
+import logging
+
+logger = logging.getLogger(__name__)
 import os
 import tempfile
 from unittest.mock import MagicMock, Mock, patch

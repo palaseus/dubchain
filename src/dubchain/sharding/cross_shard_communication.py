@@ -8,6 +8,9 @@ This module provides sophisticated cross-shard communication including:
 - Cross-shard transaction coordination
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import hashlib
 import json

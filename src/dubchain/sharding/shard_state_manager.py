@@ -7,6 +7,9 @@ This module provides state management for shards including:
 - State snapshots
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import hashlib
 import json
 import time

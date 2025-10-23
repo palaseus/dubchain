@@ -8,6 +8,9 @@ This module provides CPU SIMD optimizations including:
 - Performance optimization
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import time
 import threading
 from concurrent.futures import ThreadPoolExecutor

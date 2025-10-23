@@ -20,6 +20,9 @@ Security Considerations:
 - Adversarial inputs are handled safely
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 from .backends import BulletproofBackend, MockZKPBackend, ZKSNARKBackend, ZKSTARKBackend
 from .circuits import (
     CircuitBuilder,

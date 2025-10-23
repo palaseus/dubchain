@@ -8,6 +8,9 @@ This module implements DPoS consensus with:
 - Delegate rotation and rewards
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import hashlib
 import json
 import random

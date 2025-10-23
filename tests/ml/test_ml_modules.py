@@ -12,6 +12,9 @@ This module provides comprehensive testing for all ML components including:
 - Integration tests
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 import unittest
 import asyncio

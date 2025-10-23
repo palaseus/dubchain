@@ -6,6 +6,8 @@ for the DubChain testing framework.
 
 import asyncio
 import logging
+
+logger = logging.getLogger(__name__)
 import os
 import sys
 import threading

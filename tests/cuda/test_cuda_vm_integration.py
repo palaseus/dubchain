@@ -4,6 +4,9 @@ CUDA VM Integration Tests for DubChain.
 This module provides comprehensive tests for CUDA integration in virtual machine operations.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 import time
 import secrets
@@ -80,20 +83,20 @@ class TestCUDAVMIntegration:
         """Test CUDA availability detection."""
         available = cuda_available()
         assert isinstance(available, bool)
-        print(f"CUDA Available: {available}")
+        logger.info(f"CUDA Available: {available}")
     
     def test_cuda_vm_accelerator_initialization(self, cuda_vm_config):
         """Test CUDA VM accelerator initialization."""
         accelerator = CUDAVMAccelerator(cuda_vm_config)
         assert accelerator.config == cuda_vm_config
         assert isinstance(accelerator.cuda_manager, CUDAManager)
-        print(f"CUDA VM Accelerator - Available: {accelerator.cuda_manager.available}")
+        logger.info(f"CUDA VM Accelerator - Available: {accelerator.cuda_manager.available}")
     
     def test_execution_engine_cuda_integration(self, execution_engine):
         """Test execution engine CUDA integration."""
         assert hasattr(execution_engine, 'cuda_accelerator')
         assert isinstance(execution_engine.cuda_accelerator, CUDAVMAccelerator)
-        print(f"Execution Engine CUDA Integration - Available: {execution_engine.cuda_accelerator.cuda_manager.available}")
+        logger.info(f"Execution Engine CUDA Integration - Available: {execution_engine.cuda_accelerator.cuda_manager.available}")
     
     def test_contract_execution_batch(self, cuda_vm_accelerator, test_contracts):
         """Test batch contract execution with CUDA acceleration."""
@@ -123,7 +126,7 @@ class TestCUDAVMIntegration:
             assert hasattr(result, 'logs')
             assert hasattr(result, 'state_changes')
         
-        print(f"Batch contract execution completed: {len(results)} executions")
+        logger.info(f"Batch contract execution completed: {len(results)} executions")
     
     def test_bytecode_processing_batch(self, cuda_vm_accelerator):
         """Test batch bytecode processing with CUDA acceleration."""
@@ -140,7 +143,7 @@ class TestCUDAVMIntegration:
         for result in results:
             assert isinstance(result, bytes)
         
-        print(f"Batch bytecode processing completed: {len(results)} operations")
+        logger.info(f"Batch bytecode processing completed: {len(results)} operations")
     
     def test_vm_operations_batch(self, cuda_vm_accelerator):
         """Test batch VM operations with CUDA acceleration."""
@@ -171,7 +174,7 @@ class TestCUDAVMIntegration:
             assert 'gas_used' in result
             assert 'execution_time' in result
         
-        print(f"Batch VM operations completed: {len(results)} operations")
+        logger.info(f"Batch VM operations completed: {len(results)} operations")
     
     def test_bytecode_optimization_batch(self, cuda_vm_accelerator):
         """Test batch bytecode optimization with CUDA acceleration."""
@@ -189,7 +192,7 @@ class TestCUDAVMIntegration:
         for result in results:
             assert isinstance(result, bytes)
         
-        print(f"Batch bytecode optimization completed: {len(results)} optimizations")
+        logger.info(f"Batch bytecode optimization completed: {len(results)} optimizations")
     
     def test_execution_engine_contract_execution(self, execution_engine, test_contracts):
         """Test execution engine contract execution with CUDA."""
@@ -217,7 +220,7 @@ class TestCUDAVMIntegration:
             assert hasattr(result, 'gas_used')
             assert hasattr(result, 'return_data')
         
-        print(f"Execution engine contract execution completed: {len(results)} executions")
+        logger.info(f"Execution engine contract execution completed: {len(results)} executions")
     
     def test_execution_engine_bytecode_processing(self, execution_engine):
         """Test execution engine bytecode processing with CUDA."""
@@ -234,7 +237,7 @@ class TestCUDAVMIntegration:
         for result in results:
             assert isinstance(result, bytes)
         
-        print(f"Execution engine bytecode processing completed: {len(results)} operations")
+        logger.info(f"Execution engine bytecode processing completed: {len(results)} operations")
     
     def test_execution_engine_operations(self, execution_engine):
         """Test execution engine operations with CUDA."""
@@ -263,7 +266,7 @@ class TestCUDAVMIntegration:
             assert 'success' in result
             assert 'result' in result
         
-        print(f"Execution engine operations completed: {len(results)} operations")
+        logger.info(f"Execution engine operations completed: {len(results)} operations")
     
     def test_performance_metrics(self, cuda_vm_accelerator):
         """Test performance metrics collection."""
@@ -281,7 +284,7 @@ class TestCUDAVMIntegration:
         assert 'cuda_available' in metrics
         assert 'config' in metrics
         
-        print(f"Performance metrics: {metrics}")
+        logger.info(f"Performance metrics: {metrics}")
     
     def test_execution_engine_performance_metrics(self, execution_engine):
         """Test execution engine performance metrics."""
@@ -298,7 +301,7 @@ class TestCUDAVMIntegration:
         assert 'cpu_fallbacks' in metrics
         assert 'cuda_available' in metrics
         
-        print(f"Execution engine CUDA metrics: {metrics}")
+        logger.info(f"Execution engine CUDA metrics: {metrics}")
     
     def test_benchmark_vm_operations(self, cuda_vm_accelerator):
         """Test VM operations benchmarking."""
@@ -327,7 +330,7 @@ class TestCUDAVMIntegration:
         assert 'speedup' in benchmark_results
         assert 'gpu_success' in benchmark_results
         
-        print(f"VM benchmark results: {benchmark_results}")
+        logger.info(f"VM benchmark results: {benchmark_results}")
     
     def test_execution_engine_benchmark(self, execution_engine):
         """Test execution engine benchmarking."""
@@ -355,7 +358,7 @@ class TestCUDAVMIntegration:
         assert 'gpu_avg_time' in benchmark_results
         assert 'speedup' in benchmark_results
         
-        print(f"Execution engine benchmark results: {benchmark_results}")
+        logger.info(f"Execution engine benchmark results: {benchmark_results}")
     
     def test_fallback_behavior(self, cuda_vm_accelerator):
         """Test CPU fallback behavior when GPU is not available."""
@@ -368,7 +371,7 @@ class TestCUDAVMIntegration:
         assert isinstance(results, list)
         assert len(results) == len(bytecode_list)
         
-        print(f"Fallback test successful: {len(results)} operations")
+        logger.info(f"Fallback test successful: {len(results)} operations")
     
     def test_memory_management(self, cuda_vm_accelerator):
         """Test GPU memory management."""
@@ -380,7 +383,7 @@ class TestCUDAVMIntegration:
         
         assert len(results) == len(large_bytecode)
         
-        print(f"Memory management test completed: {len(results)} operations")
+        logger.info(f"Memory management test completed: {len(results)} operations")
     
     def test_concurrent_vm_operations(self, cuda_vm_accelerator):
         """Test concurrent VM operations."""
@@ -415,7 +418,7 @@ class TestCUDAVMIntegration:
         for worker_id, count in results:
             assert count == 5
         
-        print(f"Concurrent VM operations completed: {results}")
+        logger.info(f"Concurrent VM operations completed: {results}")
     
     def test_error_handling(self, cuda_vm_accelerator):
         """Test error handling in VM operations."""
@@ -424,7 +427,7 @@ class TestCUDAVMIntegration:
             results = cuda_vm_accelerator.process_bytecode_batch([], optimization_level=1)
             assert results == []
         except Exception as e:
-            print(f"Empty data handling: {e}")
+            logger.info(f"Empty data handling: {e}")
         
         # Test with invalid optimization level
         try:
@@ -432,9 +435,9 @@ class TestCUDAVMIntegration:
             results = cuda_vm_accelerator.process_bytecode_batch(bytecode_list, optimization_level=-1)
             assert isinstance(results, list)
         except Exception as e:
-            print(f"Invalid optimization level handling: {e}")
+            logger.info(f"Invalid optimization level handling: {e}")
         
-        print("Error handling test completed")
+        logger.info("Error handling test completed")
 
 
 if __name__ == "__main__":

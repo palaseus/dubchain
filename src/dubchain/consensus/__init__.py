@@ -8,6 +8,9 @@ This module provides sophisticated consensus algorithms including:
 - Hybrid consensus mechanisms
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 from .consensus_engine import ConsensusConfig, ConsensusEngine, ConsensusState
 from .consensus_types import (
     ConsensusMetrics,

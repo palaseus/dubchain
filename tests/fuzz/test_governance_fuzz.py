@@ -5,6 +5,9 @@ This module tests the governance system with random, malformed, and edge case
 inputs to ensure robustness and security.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 import random
 import string

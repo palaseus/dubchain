@@ -5,6 +5,9 @@ This module provides sophisticated peer discovery mechanisms including
 DNS-based discovery, bootstrap nodes, and peer exchange protocols.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import random
 import socket

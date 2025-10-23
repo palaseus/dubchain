@@ -1,5 +1,8 @@
 """Tests for distributed cache implementations."""
 
+import logging
+
+logger = logging.getLogger(__name__)
 import json
 import pickle
 from unittest.mock import MagicMock, Mock, patch

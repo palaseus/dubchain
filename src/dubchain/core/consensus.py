@@ -5,6 +5,9 @@ Implements Proof of Work and other consensus algorithms with
 sophisticated difficulty adjustment and validation.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import math
 import time
 from dataclasses import dataclass
@@ -64,7 +67,7 @@ class ProofOfWork:
             # Check if it meets difficulty
             if current_header.meets_difficulty():
                 mining_time = time.time() - start_time
-                print(f"Mined block in {mining_time:.2f} seconds with nonce {nonce}")
+                logger.info(f"Mined block in {mining_time:.2f} seconds with nonce {nonce}")
                 return current_header
 
             # Check for timeout (optional)

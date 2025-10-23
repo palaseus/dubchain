@@ -9,6 +9,9 @@ This module provides comprehensive feature engineering capabilities including:
 - Graph-based feature extraction
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import numpy as np
 import pandas as pd

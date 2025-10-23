@@ -9,6 +9,9 @@ This module provides comprehensive Bitcoin integration including:
 - Multi-signature transactions
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import json
 import time

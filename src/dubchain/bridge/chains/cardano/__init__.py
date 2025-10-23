@@ -9,6 +9,9 @@ This module provides comprehensive Cardano bridging capabilities including:
 - Bridge security and validation
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 from .client import (
     CardanoClient,
     CardanoConfig,

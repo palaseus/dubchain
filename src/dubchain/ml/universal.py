@@ -4,6 +4,9 @@ Universal Data Types for ML
 This module provides universal data types for blockchain ML operations.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Any, Union
 from enum import Enum

@@ -13,6 +13,9 @@ Key features:
 - Low energy consumption
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import hashlib
 import random
 import time

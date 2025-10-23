@@ -5,6 +5,9 @@ This module tests the integration between different ZKP components,
 end-to-end workflows, and real-world usage scenarios.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 import time
 import threading

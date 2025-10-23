@@ -1,5 +1,8 @@
 """Test cases for testing/coverage.py module."""
 
+import logging
+
+logger = logging.getLogger(__name__)
 import json
 import os
 import tempfile

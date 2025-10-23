@@ -10,6 +10,9 @@ This module provides a unified interface for all blockchain integrations includi
 - Fee optimization across routes
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import hashlib
 import json

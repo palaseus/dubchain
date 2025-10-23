@@ -2,6 +2,9 @@
 Unit tests for network discovery module.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import json
 import socket

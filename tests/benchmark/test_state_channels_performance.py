@@ -10,6 +10,9 @@ This module provides comprehensive performance testing including:
 - Performance regression testing
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 
 # Temporarily disable all benchmark tests due to hanging issues
@@ -217,12 +220,12 @@ class TestStateChannelPerformance:
         
         # Analyze results
         stats = self.metrics.get_statistics("single_update")
-        print(f"Single Update Performance:")
-        print(f"  Count: {stats['count']}")
-        print(f"  Mean: {stats['mean']:.4f}s")
-        print(f"  Median: {stats['median']:.4f}s")
-        print(f"  P95: {stats['p95']:.4f}s")
-        print(f"  P99: {stats['p99']:.4f}s")
+        logger.info(f"Single Update Performance:")
+        logger.info(f"  Count: {stats['count']}")
+        logger.info(f"  Mean: {stats['mean']:.4f}s")
+        logger.info(f"  Median: {stats['median']:.4f}s")
+        logger.info(f"  P95: {stats['p95']:.4f}s")
+        logger.info(f"  P99: {stats['p99']:.4f}s")
         
         # Performance assertions
         assert stats['mean'] < 0.1, f"Mean update time too high: {stats['mean']:.4f}s"
@@ -281,7 +284,7 @@ class TestStateChannelPerformance:
                 "avg_time_per_update": total_time / num_updates
             }
             
-            print(f"Participants: {num_participants}, Throughput: {throughput:.2f} updates/sec")
+            logger.info(f"Participants: {num_participants}, Throughput: {throughput:.2f} updates/sec")
         
         # Export results
         with open("throughput_results.json", "w") as f:
@@ -308,7 +311,7 @@ class TestStateChannelPerformance:
         results = {}
         
         for concurrency in concurrency_levels:
-            print(f"Testing concurrency level: {concurrency}")
+            logger.info(f"Testing concurrency level: {concurrency}")
             
             def perform_updates(worker_id: int, num_updates: int):
                 """Worker function for concurrent updates."""
@@ -395,9 +398,9 @@ class TestStateChannelPerformance:
                 "avg_duration": avg_duration
             }
             
-            print(f"  Success rate: {results[concurrency]['success_rate']:.2%}")
-            print(f"  Throughput: {throughput:.2f} updates/sec")
-            print(f"  Avg duration: {avg_duration:.4f}s")
+            logger.info(f"  Success rate: {results[concurrency]['success_rate']:.2%}")
+            logger.info(f"  Throughput: {throughput:.2f} updates/sec")
+            logger.info(f"  Avg duration: {avg_duration:.4f}s")
         
         # Export results
         with open("concurrency_results.json", "w") as f:
@@ -452,13 +455,13 @@ class TestStateChannelPerformance:
         
         # Analyze memory usage
         memory_stats = self.memory_profiler.get_memory_statistics()
-        print(f"Memory Usage Statistics:")
-        print(f"  RSS - Min: {memory_stats['rss']['min'] / 1024 / 1024:.2f} MB")
-        print(f"  RSS - Max: {memory_stats['rss']['max'] / 1024 / 1024:.2f} MB")
-        print(f"  RSS - Current: {memory_stats['rss']['current'] / 1024 / 1024:.2f} MB")
-        print(f"  VMS - Min: {memory_stats['vms']['min'] / 1024 / 1024:.2f} MB")
-        print(f"  VMS - Max: {memory_stats['vms']['max'] / 1024 / 1024:.2f} MB")
-        print(f"  VMS - Current: {memory_stats['vms']['current'] / 1024 / 1024:.2f} MB")
+        logger.info(f"Memory Usage Statistics:")
+        logger.info(f"  RSS - Min: {memory_stats['rss']['min'] / 1024 / 1024:.2f} MB")
+        logger.info(f"  RSS - Max: {memory_stats['rss']['max'] / 1024 / 1024:.2f} MB")
+        logger.info(f"  RSS - Current: {memory_stats['rss']['current'] / 1024 / 1024:.2f} MB")
+        logger.info(f"  VMS - Min: {memory_stats['vms']['min'] / 1024 / 1024:.2f} MB")
+        logger.info(f"  VMS - Max: {memory_stats['vms']['max'] / 1024 / 1024:.2f} MB")
+        logger.info(f"  VMS - Current: {memory_stats['vms']['current'] / 1024 / 1024:.2f} MB")
         
         # Memory usage should be reasonable
         assert memory_stats['rss']['current'] < 500 * 1024 * 1024, "Memory usage too high (>500MB)"
@@ -484,7 +487,7 @@ class TestStateChannelPerformance:
         results = {}
         
         for size in data_sizes:
-            print(f"Testing with {size} bytes of state data")
+            logger.info(f"Testing with {size} bytes of state data")
             
             # Create large state data
             large_data = {
@@ -522,8 +525,8 @@ class TestStateChannelPerformance:
                 "data_size": size
             }
             
-            print(f"  Duration: {duration:.4f}s")
-            print(f"  Success: {success}")
+            logger.info(f"  Duration: {duration:.4f}s")
+            logger.info(f"  Success: {success}")
         
         # Export results
         with open("large_data_results.json", "w") as f:
@@ -580,7 +583,7 @@ class TestStateChannelPerformance:
             dispute_times.append(duration)
             
             if success:
-                print(f"Dispute {i}: {duration:.4f}s")
+                logger.info(f"Dispute {i}: {duration:.4f}s")
         
         # Analyze dispute resolution performance
         if dispute_times:
@@ -588,17 +591,17 @@ class TestStateChannelPerformance:
             median_dispute_time = statistics.median(dispute_times)
             max_dispute_time = max(dispute_times)
             
-            print(f"Dispute Resolution Performance:")
-            print(f"  Average: {avg_dispute_time:.4f}s")
-            print(f"  Median: {median_dispute_time:.4f}s")
-            print(f"  Max: {max_dispute_time:.4f}s")
+            logger.info(f"Dispute Resolution Performance:")
+            logger.info(f"  Average: {avg_dispute_time:.4f}s")
+            logger.info(f"  Median: {median_dispute_time:.4f}s")
+            logger.info(f"  Max: {max_dispute_time:.4f}s")
             
             # Dispute resolution should be reasonably fast
             assert avg_dispute_time < 1.0, f"Average dispute time too high: {avg_dispute_time:.4f}s"
     
     def test_stress_testing(self):
         """Comprehensive stress test."""
-        print("Starting comprehensive stress test...")
+        logger.info("Starting comprehensive stress test...")
         
         # Create many participants
         participants = [f"participant_{i}" for i in range(20)]
@@ -616,7 +619,7 @@ class TestStateChannelPerformance:
                 channel_ids.append(channel_id)
                 self.manager.open_channel(channel_id)
         
-        print(f"Created {len(channel_ids)} channels")
+        logger.info(f"Created {len(channel_ids)} channels")
         
         # Stress test with concurrent operations
         def stress_worker(worker_id: int, num_operations: int):
@@ -688,13 +691,13 @@ class TestStateChannelPerformance:
         successful_operations = [r for r in all_results if r.get("success", False)]
         failed_operations = [r for r in all_results if not r.get("success", False)]
         
-        print(f"Stress Test Results:")
-        print(f"  Total operations: {len(all_results)}")
-        print(f"  Successful: {len(successful_operations)}")
-        print(f"  Failed: {len(failed_operations)}")
-        print(f"  Success rate: {len(successful_operations) / len(all_results):.2%}")
-        print(f"  Total time: {total_time:.2f}s")
-        print(f"  Throughput: {len(all_results) / total_time:.2f} operations/sec")
+        logger.info(f"Stress Test Results:")
+        logger.info(f"  Total operations: {len(all_results)}")
+        logger.info(f"  Successful: {len(successful_operations)}")
+        logger.info(f"  Failed: {len(failed_operations)}")
+        logger.info(f"  Success rate: {len(successful_operations) / len(all_results):.2%}")
+        logger.info(f"  Total time: {total_time:.2f}s")
+        logger.info(f"  Throughput: {len(all_results) / total_time:.2f} operations/sec")
         
         # System should handle stress test reasonably well
         success_rate = len(successful_operations) / len(all_results)

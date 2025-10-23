@@ -5,6 +5,9 @@ This module defines a comprehensive set of opcodes for smart contract execution,
 including arithmetic, memory, storage, control flow, and cryptographic operations.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 from dataclasses import dataclass
 from enum import Enum, IntEnum
 from typing import Any, Callable, Dict, List, Optional, Union

@@ -6,6 +6,8 @@ robustness with random and malformed inputs.
 
 import hashlib
 import logging
+
+logger = logging.getLogger(__name__)
 import random
 import string
 import struct

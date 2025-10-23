@@ -4,6 +4,9 @@ CUDA Crypto Integration Tests for DubChain.
 This module provides comprehensive tests for CUDA integration in cryptographic operations.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 import time
 import secrets
@@ -54,7 +57,7 @@ class TestCUDACryptoIntegration:
         """Test CUDA availability detection."""
         available = cuda_available()
         assert isinstance(available, bool)
-        print(f"CUDA Available: {available}")
+        logger.info(f"CUDA Available: {available}")
     
     def test_cuda_manager_initialization(self, cuda_config):
         """Test CUDA manager initialization."""
@@ -62,7 +65,7 @@ class TestCUDACryptoIntegration:
         assert manager.config == cuda_config
         assert isinstance(manager.available, bool)
         assert isinstance(manager.device, (str, type(None)))
-        print(f"CUDA Manager - Available: {manager.available}, Device: {manager.device}")
+        logger.info(f"CUDA Manager - Available: {manager.available}, Device: {manager.device}")
     
     def test_gpu_crypto_initialization(self, gpu_config):
         """Test GPU crypto initialization."""
@@ -70,7 +73,7 @@ class TestCUDACryptoIntegration:
         assert crypto.config == gpu_config
         assert isinstance(crypto.gpu_available, bool)
         assert isinstance(crypto.device, str)
-        print(f"GPU Crypto - Available: {crypto.gpu_available}, Device: {crypto.device}")
+        logger.info(f"GPU Crypto - Available: {crypto.gpu_available}, Device: {crypto.device}")
     
     def test_single_hash_operation(self, gpu_crypto):
         """Test single hash operation with GPU acceleration."""
@@ -86,7 +89,7 @@ class TestCUDACryptoIntegration:
         result2 = gpu_crypto.hash_data_gpu(test_data, "sha256")
         assert result == result2
         
-        print(f"Hash result: {result.hex()}")
+        logger.info(f"Hash result: {result.hex()}")
     
     def test_batch_hash_operations(self, gpu_crypto):
         """Test batch hash operations with GPU acceleration."""
@@ -108,7 +111,7 @@ class TestCUDACryptoIntegration:
         results2 = gpu_crypto.hash_data_batch_gpu(test_data, "sha256")
         assert results == results2
         
-        print(f"Batch hash completed: {len(results)} hashes")
+        logger.info(f"Batch hash completed: {len(results)} hashes")
     
     def test_signature_verification(self, gpu_crypto):
         """Test signature verification with GPU acceleration."""
@@ -131,7 +134,7 @@ class TestCUDACryptoIntegration:
         for result in results:
             assert isinstance(result, bool)
         
-        print(f"Signature verification completed: {len(results)} verifications")
+        logger.info(f"Signature verification completed: {len(results)} verifications")
     
     def test_performance_metrics(self, gpu_crypto):
         """Test performance metrics collection."""
@@ -150,7 +153,7 @@ class TestCUDACryptoIntegration:
         assert "gpu_available" in metrics
         assert "global_cuda_metrics" in metrics
         
-        print(f"Performance metrics: {metrics}")
+        logger.info(f"Performance metrics: {metrics}")
     
     def test_benchmark_performance(self, gpu_crypto):
         """Test performance benchmarking."""
@@ -168,7 +171,7 @@ class TestCUDACryptoIntegration:
         assert "speedup" in benchmark_results
         assert "gpu_success" in benchmark_results
         
-        print(f"Benchmark results: {benchmark_results}")
+        logger.info(f"Benchmark results: {benchmark_results}")
     
     def test_cuda_manager_integration(self, cuda_manager, gpu_crypto):
         """Test integration between CUDA manager and GPU crypto."""
@@ -182,7 +185,7 @@ class TestCUDACryptoIntegration:
         assert "global_cuda_metrics" in gpu_metrics
         assert isinstance(gpu_metrics["global_cuda_metrics"], dict)
         
-        print(f"CUDA Manager metrics: {global_metrics}")
+        logger.info(f"CUDA Manager metrics: {global_metrics}")
     
     def test_fallback_behavior(self, gpu_crypto):
         """Test CPU fallback behavior when GPU is not available."""
@@ -195,7 +198,7 @@ class TestCUDACryptoIntegration:
         assert isinstance(result, bytes)
         assert len(result) == 32
         
-        print(f"Fallback test successful: {result.hex()}")
+        logger.info(f"Fallback test successful: {result.hex()}")
     
     def test_memory_management(self, gpu_crypto):
         """Test GPU memory management."""
@@ -211,7 +214,7 @@ class TestCUDACryptoIntegration:
         metrics = gpu_crypto.get_performance_metrics()
         assert "global_cuda_metrics" in metrics
         
-        print(f"Memory management test completed: {len(results)} operations")
+        logger.info(f"Memory management test completed: {len(results)} operations")
     
     def test_concurrent_operations(self, gpu_crypto):
         """Test concurrent GPU operations."""
@@ -246,7 +249,7 @@ class TestCUDACryptoIntegration:
         for worker_id, count in results:
             assert count == 10
         
-        print(f"Concurrent operations completed: {results}")
+        logger.info(f"Concurrent operations completed: {results}")
     
     def test_error_handling(self, gpu_crypto):
         """Test error handling in GPU operations."""
@@ -256,7 +259,7 @@ class TestCUDACryptoIntegration:
             assert isinstance(result, bytes)
         except Exception as e:
             # Should either work or fail gracefully
-            print(f"Empty data handling: {e}")
+            logger.info(f"Empty data handling: {e}")
         
         # Test with invalid algorithm
         try:
@@ -264,9 +267,9 @@ class TestCUDACryptoIntegration:
             assert isinstance(result, bytes)
         except Exception as e:
             # Should either work or fail gracefully
-            print(f"Invalid algorithm handling: {e}")
+            logger.info(f"Invalid algorithm handling: {e}")
         
-        print("Error handling test completed")
+        logger.info("Error handling test completed")
 
 
 if __name__ == "__main__":

@@ -1,5 +1,8 @@
 """Tests for core blockchain module."""
 
+import logging
+
+logger = logging.getLogger(__name__)
 import time
 from unittest.mock import MagicMock, Mock, patch
 

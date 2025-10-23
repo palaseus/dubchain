@@ -2,6 +2,9 @@
 Unit tests for VM execution engine.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import time
 
 import pytest

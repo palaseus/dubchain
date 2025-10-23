@@ -9,6 +9,9 @@ This module provides comprehensive fuzz testing for state channels including:
 - Stress testing with random inputs
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 import random
 import string
@@ -226,7 +229,7 @@ class TestStateChannelFuzzing:
             except Exception as e:
                 # System should not crash on fuzzed inputs
                 # Log the exception but continue testing
-                print(f"Fuzzed update {i} caused exception: {e}")
+                logger.info(f"Fuzzed update {i} caused exception: {e}")
                 continue
     
     def test_corrupted_signatures(self):
@@ -280,7 +283,7 @@ class TestStateChannelFuzzing:
                 
             except Exception as e:
                 # System should not crash
-                print(f"Corrupted signature test {i} caused exception: {e}")
+                logger.info(f"Corrupted signature test {i} caused exception: {e}")
                 continue
     
     def test_malformed_json_data(self):
@@ -321,7 +324,7 @@ class TestStateChannelFuzzing:
                 
             except Exception as e:
                 # System should not crash
-                print(f"Malformed JSON test {i} caused exception: {e}")
+                logger.info(f"Malformed JSON test {i} caused exception: {e}")
                 continue
     
     def test_extreme_values(self):
@@ -368,7 +371,7 @@ class TestStateChannelFuzzing:
                 
             except Exception as e:
                 # System should not crash
-                print(f"Extreme value test {i} caused exception: {e}")
+                logger.info(f"Extreme value test {i} caused exception: {e}")
                 continue
     
     def test_random_channel_operations(self):
@@ -429,7 +432,7 @@ class TestStateChannelFuzzing:
                 
             except Exception as e:
                 # System should not crash
-                print(f"Random operation {i} caused exception: {e}")
+                logger.info(f"Random operation {i} caused exception: {e}")
                 continue
     
     def test_memory_exhaustion_resistance(self):
@@ -476,7 +479,7 @@ class TestStateChannelFuzzing:
                 
             except Exception as e:
                 # System should not crash
-                print(f"Large data test {i} caused exception: {e}")
+                logger.info(f"Large data test {i} caused exception: {e}")
                 continue
     
     def test_concurrent_fuzzing(self):
@@ -535,7 +538,7 @@ class TestStateChannelFuzzing:
         
         # System should have handled concurrent fuzzing without crashing
         assert total_operations > 0
-        print(f"Concurrent fuzzing completed: {successful_operations}/{total_operations} operations successful")
+        logger.info(f"Concurrent fuzzing completed: {successful_operations}/{total_operations} operations successful")
 
 
 class TestFuzzStress:
@@ -584,7 +587,7 @@ class TestFuzzStress:
             except Exception as e:
                 # Log but continue
                 if i % 100 == 0:  # Log every 100th exception
-                    print(f"Rapid fuzzing exception at {i}: {e}")
+                    logger.info(f"Rapid fuzzing exception at {i}: {e}")
                 continue
     
     def test_fuzz_with_disputes(self):
@@ -634,7 +637,7 @@ class TestFuzzStress:
                 
             except Exception as e:
                 # Should not crash
-                print(f"Fuzz with disputes exception at {i}: {e}")
+                logger.info(f"Fuzz with disputes exception at {i}: {e}")
                 continue
 
 

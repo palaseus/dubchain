@@ -9,6 +9,9 @@ This module provides comprehensive Solana integration including:
 - Program-derived address (PDA) management
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import json
 import time

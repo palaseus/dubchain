@@ -1,5 +1,8 @@
 """Tests for property-based testing infrastructure."""
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 import random
 from unittest.mock import Mock, patch

@@ -14,6 +14,9 @@ __version__ = "0.2.0"
 __author__ = "DubChain Team"
 __email__ = "dev@dubchain.io"
 
+import logging
+
+logger = logging.getLogger(__name__)
 from .consensus import ConsensusConfig
 from .consensus import (
     ConsensusEngine as AdvancedConsensusEngine,  # Types; Validator Management; Proof of Stake; Delegated Proof of Stake; PBFT; Hybrid Consensus; Main Engine

@@ -5,6 +5,9 @@ This module provides a test runner that executes all governance tests
 and generates coverage reports.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 import sys
 import os
@@ -35,7 +38,7 @@ class GovernanceTestRunner:
         
     def run_all_tests(self) -> Dict[str, Any]:
         """Run all governance tests."""
-        print("🚀 Starting comprehensive governance system tests...")
+        logger.info("🚀 Starting comprehensive governance system tests...")
         
         # Test categories
         test_categories = [
@@ -51,7 +54,7 @@ class GovernanceTestRunner:
         total_failed = 0
         
         for category, description in test_categories:
-            print(f"\n📋 Running {description}...")
+            logger.info(f"\n📋 Running {description}...")
             
             try:
                 # Run tests for this category
@@ -62,10 +65,10 @@ class GovernanceTestRunner:
                 total_passed += result["passed"]
                 total_failed += result["failed"]
                 
-                print(f"✅ {description}: {result['passed']}/{result['total']} passed")
+                logger.info(f"✅ {description}: {result['passed']}/{result['total']} passed")
                 
             except Exception as e:
-                print(f"❌ {description} failed: {e}")
+                logger.info(f"❌ {description} failed: {e}")
                 self.test_results[category] = {
                     "total": 0,
                     "passed": 0,
@@ -83,11 +86,11 @@ class GovernanceTestRunner:
             "categories": self.test_results
         }
         
-        print(f"\n📊 Test Summary:")
-        print(f"   Total Tests: {total_tests}")
-        print(f"   Passed: {total_passed}")
-        print(f"   Failed: {total_failed}")
-        print(f"   Success Rate: {summary['success_rate']:.2%}")
+        logger.info(f"\n📊 Test Summary:")
+        logger.info(f"   Total Tests: {total_tests}")
+        logger.info(f"   Passed: {total_passed}")
+        logger.info(f"   Failed: {total_failed}")
+        logger.info(f"   Success Rate: {summary['success_rate']:.2%}")
         
         return summary
     
@@ -128,7 +131,7 @@ class GovernanceTestRunner:
     
     def run_coverage_analysis(self) -> Dict[str, Any]:
         """Run coverage analysis on governance code."""
-        print("\n📊 Running coverage analysis...")
+        logger.info("\n📊 Running coverage analysis...")
         
         try:
             import coverage
@@ -151,17 +154,17 @@ class GovernanceTestRunner:
                 "coverage_percentage": cov.covered_lines / max(cov.total_lines, 1) * 100
             }
             
-            print(f"✅ Coverage: {coverage_data['coverage_percentage']:.1f}%")
-            print(f"   Total Lines: {coverage_data['total_lines']}")
-            print(f"   Covered Lines: {coverage_data['covered_lines']}")
+            logger.info(f"✅ Coverage: {coverage_data['coverage_percentage']:.1f}%")
+            logger.info(f"   Total Lines: {coverage_data['total_lines']}")
+            logger.info(f"   Covered Lines: {coverage_data['covered_lines']}")
             
             return coverage_data
             
         except ImportError:
-            print("⚠️  Coverage module not available, skipping coverage analysis")
+            logger.info("⚠️  Coverage module not available, skipping coverage analysis")
             return {"error": "Coverage module not available"}
         except Exception as e:
-            print(f"❌ Coverage analysis failed: {e}")
+            logger.info(f"❌ Coverage analysis failed: {e}")
             return {"error": str(e)}
     
     def _run_coverage_tests(self):
@@ -174,7 +177,7 @@ class GovernanceTestRunner:
     
     def run_performance_benchmarks(self) -> Dict[str, Any]:
         """Run performance benchmarks."""
-        print("\n⚡ Running performance benchmarks...")
+        logger.info("\n⚡ Running performance benchmarks...")
         
         benchmarks = {}
         
@@ -248,15 +251,15 @@ class GovernanceTestRunner:
             "ops_per_second": 1000 / (time.time() - start_time)
         }
         
-        print("✅ Performance benchmarks completed:")
+        logger.info("✅ Performance benchmarks completed:")
         for benchmark_name, data in benchmarks.items():
-            print(f"   {benchmark_name}: {data['ops_per_second']:.0f} ops/sec")
+            logger.info(f"   {benchmark_name}: {data['ops_per_second']:.0f} ops/sec")
         
         return benchmarks
     
     def run_security_audit(self) -> Dict[str, Any]:
         """Run security audit tests."""
-        print("\n🔒 Running security audit...")
+        logger.info("\n🔒 Running security audit...")
         
         security_results = {
             "sybil_detection": False,
@@ -309,13 +312,13 @@ class GovernanceTestRunner:
             except ValueError:
                 security_results["circular_delegation_prevention"] = True
             
-            print("✅ Security audit completed:")
+            logger.info("✅ Security audit completed:")
             for test_name, passed in security_results.items():
                 status = "✅" if passed else "❌"
-                print(f"   {status} {test_name}")
+                logger.info(f"   {status} {test_name}")
             
         except Exception as e:
-            print(f"❌ Security audit failed: {e}")
+            logger.info(f"❌ Security audit failed: {e}")
             security_results["error"] = str(e)
         
         return security_results
@@ -364,8 +367,8 @@ class GovernanceTestRunner:
     
     def run_comprehensive_test_suite(self) -> Dict[str, Any]:
         """Run the complete test suite."""
-        print("🎯 Starting comprehensive governance test suite...")
-        print("=" * 60)
+        logger.info("🎯 Starting comprehensive governance test suite...")
+        logger.info("=" * 60)
         
         start_time = time.time()
         
@@ -391,10 +394,10 @@ class GovernanceTestRunner:
         
         total_time = time.time() - start_time
         
-        print("\n" + "=" * 60)
-        print("🎉 Comprehensive test suite completed!")
-        print(f"⏱️  Total time: {total_time:.2f} seconds")
-        print(f"📄 Report saved to: {report_path}")
+        logger.info("\n" + "=" * 60)
+        logger.info("🎉 Comprehensive test suite completed!")
+        logger.info(f"⏱️  Total time: {total_time:.2f} seconds")
+        logger.info(f"📄 Report saved to: {report_path}")
         
         return {
             "test_results": test_results,

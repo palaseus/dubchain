@@ -9,6 +9,9 @@ This module provides comprehensive profiling capabilities including:
 - Profiling artifact generation (flamegraphs, callgrind)
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import cProfile
 import io
@@ -566,7 +569,7 @@ class PerformanceProfiler:
                 f.write("<!-- Flamegraph placeholder - requires py-spy integration -->")
             result.flamegraph_path = flamegraph_path
         except Exception as e:
-            print(f"Failed to generate flamegraph: {e}")
+            logger.info(f"Failed to generate flamegraph: {e}")
             
     def _generate_callgrind(self, result: ProfilingResult) -> None:
         """Generate callgrind format file."""
@@ -598,10 +601,10 @@ class ProfilingHarness:
         
     def run_baseline_profiling(self, workloads: Dict[str, Callable]) -> Dict[str, ProfilingResult]:
         """Run baseline profiling on standard workloads."""
-        print("Running baseline profiling...")
+        logger.info("Running baseline profiling...")
         
         for name, workload in workloads.items():
-            print(f"Profiling workload: {name}")
+            logger.info(f"Profiling workload: {name}")
             
             try:
                 result = self.profiler.profile_function(workload)
@@ -610,13 +613,13 @@ class ProfilingHarness:
                 # Generate artifacts
                 self.profiler.generate_artifacts(result)
                 
-                print(f"  Duration: {result.duration:.3f}s")
-                print(f"  CPU hotspots: {len(result.cpu_hotspots)}")
-                print(f"  Memory hotspots: {len(result.memory_hotspots)}")
-                print(f"  Budget violations: {len(result.budget_violations)}")
+                logger.info(f"  Duration: {result.duration:.3f}s")
+                logger.info(f"  CPU hotspots: {len(result.cpu_hotspots)}")
+                logger.info(f"  Memory hotspots: {len(result.memory_hotspots)}")
+                logger.info(f"  Budget violations: {len(result.budget_violations)}")
                 
             except Exception as e:
-                print(f"  Error profiling {name}: {e}")
+                logger.info(f"  Error profiling {name}: {e}")
                 
         return self.baseline_results
         

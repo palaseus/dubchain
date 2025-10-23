@@ -5,6 +5,9 @@ This module implements vote delegation with support for delegation chains,
 delegation strategies, and security measures against delegation attacks.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field

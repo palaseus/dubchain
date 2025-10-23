@@ -2,6 +2,9 @@
 Unit tests for consensus validator module.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import json
 import time
 from unittest.mock import Mock, patch

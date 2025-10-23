@@ -9,6 +9,9 @@ This module provides performance optimizations for batching and aggregation incl
 - Shard-aware batching
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import hashlib
 import time
@@ -526,7 +529,7 @@ class OptimizedBatching:
                                 await self._process_batch_async(batch, self.batch_messages)
                 
             except Exception as e:
-                print(f"Batch processor error for {batch_type}: {e}")
+                logger.info(f"Batch processor error for {batch_type}: {e}")
     
     async def _signature_aggregation_task(self):
         """Background task for signature aggregation."""
@@ -538,7 +541,7 @@ class OptimizedBatching:
                 # This would be implemented based on specific requirements
                 
             except Exception as e:
-                print(f"Signature aggregation error: {e}")
+                logger.info(f"Signature aggregation error: {e}")
     
     async def _process_batch_async(self, batch: List[Any], processor_func: Callable):
         """Process a batch asynchronously."""

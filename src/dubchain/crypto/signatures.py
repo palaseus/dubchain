@@ -4,6 +4,9 @@ Digital signature implementation using ECDSA with secp256k1 curve.
 This module provides cryptographic signatures compatible with Bitcoin and Ethereum.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import secrets
 from dataclasses import dataclass
 from typing import Optional, Tuple, Union

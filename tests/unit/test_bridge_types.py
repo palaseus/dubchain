@@ -2,6 +2,9 @@
 Unit tests for bridge types module.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 
 from dubchain.bridge.bridge_types import AssetType, BridgeStatus, BridgeType, ChainType

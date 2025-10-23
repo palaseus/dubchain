@@ -5,6 +5,9 @@ This module tests governance invariants and properties using property-based
 testing to ensure correctness under various conditions.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 from hypothesis import given, strategies as st, settings, example
 from hypothesis.stateful import RuleBasedStateMachine, rule, invariant, Bundle

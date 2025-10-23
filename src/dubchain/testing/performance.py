@@ -5,6 +5,8 @@ profiling, load testing, and stress testing.
 """
 
 import logging
+
+logger = logging.getLogger(__name__)
 import os
 import threading
 import time

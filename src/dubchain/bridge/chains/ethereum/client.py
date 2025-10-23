@@ -9,6 +9,9 @@ This module provides comprehensive Ethereum integration including:
 - Gas optimization
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import json
 import time
@@ -123,7 +126,7 @@ class GasPriceOracle:
             
             return self.cached_prices
         except Exception as e:
-            print(f"Error getting gas prices: {e}")
+            logger.info(f"Error getting gas prices: {e}")
             # Return fallback prices
             return GasPriceInfo(
                 slow=20,
@@ -154,9 +157,9 @@ class EthereumClient:
                 
                 # Test connection
                 if not self.w3.is_connected():
-                    print("Warning: Web3 connection failed")
+                    logger.info("Warning: Web3 connection failed")
             except Exception as e:
-                print(f"Error initializing Web3: {e}")
+                logger.info(f"Error initializing Web3: {e}")
                 self.w3 = None
     
     def test_connection(self) -> bool:
@@ -170,7 +173,7 @@ class EthereumClient:
                 # Fallback: assume connection is working
                 return True
         except Exception as e:
-            print(f"Connection test failed: {e}")
+            logger.info(f"Connection test failed: {e}")
             return False
     
     async def get_latest_block(self) -> Optional[EthereumBlock]:
@@ -194,7 +197,7 @@ class EthereumClient:
                     total_difficulty=1000000000
                 )
         except Exception as e:
-            print(f"Error getting latest block: {e}")
+            logger.info(f"Error getting latest block: {e}")
             return None
     
     async def get_block_by_number(self, block_number: int) -> Optional[EthereumBlock]:
@@ -248,7 +251,7 @@ class EthereumClient:
                     total_difficulty=1000000000
                 )
         except Exception as e:
-            print(f"Error getting block {block_number}: {e}")
+            logger.info(f"Error getting block {block_number}: {e}")
             return None
     
     async def get_transaction(self, tx_hash: str) -> Optional[EthereumTransaction]:
@@ -291,7 +294,7 @@ class EthereumClient:
                     status="confirmed"
                 )
         except Exception as e:
-            print(f"Error getting transaction {tx_hash}: {e}")
+            logger.info(f"Error getting transaction {tx_hash}: {e}")
             return None
     
     async def get_balance(self, address: str) -> int:
@@ -304,7 +307,7 @@ class EthereumClient:
                 # Return mock balance
                 return 1000000000000000000  # 1 ETH
         except Exception as e:
-            print(f"Error getting balance for {address}: {e}")
+            logger.info(f"Error getting balance for {address}: {e}")
             return 0
     
     async def get_nonce(self, address: str) -> int:
@@ -317,7 +320,7 @@ class EthereumClient:
                 # Return mock nonce
                 return 0
         except Exception as e:
-            print(f"Error getting nonce for {address}: {e}")
+            logger.info(f"Error getting nonce for {address}: {e}")
             return 0
     
     async def send_transaction(self, transaction: CoreTransaction) -> str:
@@ -344,7 +347,7 @@ class EthereumClient:
                 # Return mock transaction hash
                 return "0x" + "mock" + "0" * 60
         except Exception as e:
-            print(f"Error sending transaction: {e}")
+            logger.info(f"Error sending transaction: {e}")
             raise
     
     async def wait_for_transaction(self, tx_hash: str, timeout: int = 300) -> bool:
@@ -358,7 +361,7 @@ class EthereumClient:
                 await asyncio.sleep(1)
                 return True
         except Exception as e:
-            print(f"Error waiting for transaction {tx_hash}: {e}")
+            logger.info(f"Error waiting for transaction {tx_hash}: {e}")
             return False
     
     async def call_contract(self, contract_address: str, function_name: str, args: List[Any]) -> Any:
@@ -373,7 +376,7 @@ class EthereumClient:
                 # Return mock result
                 return "mock_result"
         except Exception as e:
-            print(f"Error calling contract {contract_address}: {e}")
+            logger.info(f"Error calling contract {contract_address}: {e}")
             return None
     
     async def estimate_gas(self, transaction: CoreTransaction) -> int:
@@ -392,7 +395,7 @@ class EthereumClient:
                 # Return mock gas estimate
                 return 21000
         except Exception as e:
-            print(f"Error estimating gas: {e}")
+            logger.info(f"Error estimating gas: {e}")
             return 21000
     
     def get_chain_id(self) -> int:

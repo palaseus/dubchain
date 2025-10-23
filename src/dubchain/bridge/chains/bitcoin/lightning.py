@@ -9,6 +9,9 @@ This module provides comprehensive Lightning Network integration including:
 - Lightning Network bridge functionality
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import hashlib
 import json

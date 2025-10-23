@@ -4,6 +4,9 @@ Bridge Test Configuration
 This module provides configuration and utilities for bridge integration tests.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 import unittest
 import os

@@ -1,5 +1,8 @@
 """Tests for storage backup module."""
 
+import logging
+
+logger = logging.getLogger(__name__)
 import json
 import os
 import tempfile

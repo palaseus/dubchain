@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+logger = logging.getLogger(__name__)
 """
 Enhanced Sharding System Demo.
 
@@ -23,6 +24,7 @@ Scenarios:
     - all: Run all scenarios
 """
 
+import logging
 import argparse
 import asyncio
 import time
@@ -79,49 +81,49 @@ class EnhancedShardingDemo:
     
     def basic_scenario(self, num_operations: int = 1000):
         """Demonstrate basic sharding operations."""
-        print("\n=== BASIC SHARDING SCENARIO ===")
+        logger.info("\n=== BASIC SHARDING SCENARIO ===")
         
         manager = self.setup_manager()
         
         try:
             # Create shards
-            print("Creating shards...")
+            logger.info("Creating shards...")
             shards = []
             for i in range(3):
                 shard = manager.create_shard(ShardType.EXECUTION, [f"validator_{i}_1", f"validator_{i}_2"])
                 shards.append(shard)
-                print(f"  Created shard {shard.shard_id} with type {shard.shard_type.value}")
+                logger.info(f"  Created shard {shard.shard_id} with type {shard.shard_type.value}")
             
             # Add data
-            print(f"\nAdding {num_operations} data items...")
+            logger.info(f"\nAdding {num_operations} data items...")
             start_time = time.time()
             
             for i in range(num_operations):
                 key = f"basic_key_{i}"
                 success = manager.add_data_to_shard(key, f"data_{i}")
                 if not success:
-                    print(f"  Failed to add data for key {key}")
+                    logger.info(f"  Failed to add data for key {key}")
             
             end_time = time.time()
             duration = end_time - start_time
             
             # Show results
-            print(f"\nBasic operations completed in {duration:.2f} seconds")
-            print(f"Throughput: {num_operations / duration:.2f} ops/sec")
+            logger.info(f"\nBasic operations completed in {duration:.2f} seconds")
+            logger.info(f"Throughput: {num_operations / duration:.2f} ops/sec")
             
             # Show metrics
             metrics = manager.get_performance_metrics()
-            print(f"\nPerformance Metrics:")
-            print(f"  Total operations: {metrics['total_operations']}")
-            print(f"  Successful operations: {metrics['successful_operations']}")
-            print(f"  Failed operations: {metrics['failed_operations']}")
-            print(f"  Average operation time: {metrics['average_operation_time']:.4f}s")
+            logger.info(f"\nPerformance Metrics:")
+            logger.info(f"  Total operations: {metrics['total_operations']}")
+            logger.info(f"  Successful operations: {metrics['successful_operations']}")
+            logger.info(f"  Failed operations: {metrics['failed_operations']}")
+            logger.info(f"  Average operation time: {metrics['average_operation_time']:.4f}s")
             
             # Show load distribution
             distribution = manager.get_shard_load_distribution()
-            print(f"\nLoad Distribution:")
+            logger.info(f"\nLoad Distribution:")
             for shard_id, load in distribution.items():
-                print(f"  Shard {shard_id}: {load:.3f}")
+                logger.info(f"  Shard {shard_id}: {load:.3f}")
             
             self.results['basic'] = {
                 'duration': duration,
@@ -135,7 +137,7 @@ class EnhancedShardingDemo:
     
     def load_balancing_scenario(self, num_operations: int = 1000):
         """Demonstrate load balancing strategies."""
-        print("\n=== LOAD BALANCING SCENARIO ===")
+        logger.info("\n=== LOAD BALANCING SCENARIO ===")
         
         strategies = [
             ("Consistent Hash", ConsistentHashBalancer(virtual_nodes=100)),
@@ -144,7 +146,7 @@ class EnhancedShardingDemo:
         ]
         
         for strategy_name, balancer in strategies:
-            print(f"\n--- Testing {strategy_name} Strategy ---")
+            logger.info(f"\n--- Testing {strategy_name} Strategy ---")
             
             manager = self.setup_manager(balancer)
             
@@ -154,7 +156,7 @@ class EnhancedShardingDemo:
                     manager.create_shard(ShardType.EXECUTION)
                 
                 # Create load imbalance with hot keys
-                print("Creating load imbalance with hot keys...")
+                logger.info("Creating load imbalance with hot keys...")
                 for i in range(num_operations):
                     # Create hot keys (only 10 different keys)
                     hot_key = f"hot_key_{i % 10}"
@@ -162,9 +164,9 @@ class EnhancedShardingDemo:
                 
                 # Show load distribution
                 distribution = manager.get_shard_load_distribution()
-                print(f"Load distribution with {strategy_name}:")
+                logger.info(f"Load distribution with {strategy_name}:")
                 for shard_id, load in distribution.items():
-                    print(f"  Shard {shard_id}: {load:.3f}")
+                    logger.info(f"  Shard {shard_id}: {load:.3f}")
                 
                 # Calculate load balance metrics
                 load_values = list(distribution.values())
@@ -172,17 +174,17 @@ class EnhancedShardingDemo:
                     max_load = max(load_values)
                     min_load = min(load_values)
                     imbalance = (max_load - min_load) / max_load if max_load > 0 else 0
-                    print(f"  Load imbalance: {imbalance:.3f}")
+                    logger.info(f"  Load imbalance: {imbalance:.3f}")
                 
                 # Test key consistency
-                print("Testing key consistency...")
+                logger.info("Testing key consistency...")
                 test_keys = ["consistent_key_1", "consistent_key_2", "consistent_key_3"]
                 selected_shards = []
                 
                 for key in test_keys:
                     shard_id = manager.select_shard_for_key(key)
                     selected_shards.append(shard_id)
-                    print(f"  Key '{key}' -> Shard {shard_id}")
+                    logger.info(f"  Key '{key}' -> Shard {shard_id}")
                 
                 # Verify consistency
                 for _ in range(5):
@@ -190,34 +192,34 @@ class EnhancedShardingDemo:
                         shard_id = manager.select_shard_for_key(key)
                         assert shard_id == selected_shards[i], f"Key {key} inconsistent"
                 
-                print("  ✓ Key consistency verified")
+                logger.info("  ✓ Key consistency verified")
                 
             finally:
                 self.teardown_manager()
     
     def resharding_scenario(self, num_operations: int = 500):
         """Demonstrate dynamic resharding operations."""
-        print("\n=== RESHARDING SCENARIO ===")
+        logger.info("\n=== RESHARDING SCENARIO ===")
         
         manager = self.setup_manager()
         
         try:
             # Create initial shards
-            print("Creating initial shards...")
+            logger.info("Creating initial shards...")
             shard1 = manager.create_shard(ShardType.EXECUTION, ["validator_1", "validator_2"])
             shard2 = manager.create_shard(ShardType.CONSENSUS, ["validator_3", "validator_4"])
             
             # Add data
-            print(f"Adding {num_operations} data items...")
+            logger.info(f"Adding {num_operations} data items...")
             for i in range(num_operations):
                 key = f"reshard_key_{i}"
                 manager.add_data_to_shard(key, f"data_{i}")
             
             # Show initial state
             initial_distribution = manager.get_shard_load_distribution()
-            print(f"\nInitial load distribution:")
+            logger.info(f"\nInitial load distribution:")
             for shard_id, load in initial_distribution.items():
-                print(f"  Shard {shard_id}: {load:.3f}")
+                logger.info(f"  Shard {shard_id}: {load:.3f}")
             
             # Test different resharding strategies
             strategies = [
@@ -228,7 +230,7 @@ class EnhancedShardingDemo:
             ]
             
             for strategy_name, strategy in strategies:
-                print(f"\n--- Testing {strategy_name} ---")
+                logger.info(f"\n--- Testing {strategy_name} ---")
                 
                 # Create new shard for resharding
                 new_shard = manager.create_shard(ShardType.STORAGE, ["validator_5", "validator_6"])
@@ -241,19 +243,19 @@ class EnhancedShardingDemo:
                     for i in range(100)  # Migrate 100 keys
                 }
                 
-                print(f"Creating resharding plan...")
+                logger.info(f"Creating resharding plan...")
                 plan = manager.resharding_manager.create_resharding_plan(
                     strategy, source_shards, target_shards, data_migration_map
                 )
                 
-                print(f"  Plan ID: {plan.plan_id}")
-                print(f"  Strategy: {plan.strategy.value}")
-                print(f"  Estimated duration: {plan.estimated_duration:.2f}s")
-                print(f"  Estimated impact: {plan.estimated_impact:.3f}")
-                print(f"  Safety checks: {len(plan.safety_checks)}")
+                logger.info(f"  Plan ID: {plan.plan_id}")
+                logger.info(f"  Strategy: {plan.strategy.value}")
+                logger.info(f"  Estimated duration: {plan.estimated_duration:.2f}s")
+                logger.info(f"  Estimated impact: {plan.estimated_impact:.3f}")
+                logger.info(f"  Safety checks: {len(plan.safety_checks)}")
                 
                 # Execute resharding
-                print("Executing resharding...")
+                logger.info("Executing resharding...")
                 start_time = time.time()
                 
                 plan_id = manager.trigger_resharding(strategy, source_shards, target_shards, data_migration_map)
@@ -264,51 +266,51 @@ class EnhancedShardingDemo:
                 end_time = time.time()
                 duration = end_time - start_time
                 
-                print(f"  Resharding completed in {duration:.2f}s")
+                logger.info(f"  Resharding completed in {duration:.2f}s")
                 
                 # Verify system is still functional
                 success = manager.add_data_to_shard("post_reshard_key", "post_reshard_data")
-                print(f"  System functional after resharding: {success}")
+                logger.info(f"  System functional after resharding: {success}")
                 
                 # Show new load distribution
                 new_distribution = manager.get_shard_load_distribution()
-                print(f"  New load distribution:")
+                logger.info(f"  New load distribution:")
                 for shard_id, load in new_distribution.items():
-                    print(f"    Shard {shard_id}: {load:.3f}")
+                    logger.info(f"    Shard {shard_id}: {load:.3f}")
             
         finally:
             self.teardown_manager()
     
     def fault_tolerance_scenario(self, num_operations: int = 500):
         """Demonstrate fault tolerance and recovery."""
-        print("\n=== FAULT TOLERANCE SCENARIO ===")
+        logger.info("\n=== FAULT TOLERANCE SCENARIO ===")
         
         manager = self.setup_manager()
         
         try:
             # Create shards
-            print("Creating shards...")
+            logger.info("Creating shards...")
             shards = []
             for i in range(5):
                 shard = manager.create_shard(ShardType.EXECUTION, [f"validator_{i}_1", f"validator_{i}_2"])
                 shards.append(shard)
             
             # Add initial data
-            print(f"Adding {num_operations} initial data items...")
+            logger.info(f"Adding {num_operations} initial data items...")
             for i in range(num_operations):
                 key = f"fault_key_{i}"
                 manager.add_data_to_shard(key, f"data_{i}")
             
             # Show initial state
             initial_healthy = manager.health_monitor.get_healthy_shards()
-            print(f"Initial healthy shards: {len(initial_healthy)}")
+            logger.info(f"Initial healthy shards: {len(initial_healthy)}")
             
             # Simulate shard failures
-            print("\nSimulating shard failures...")
+            logger.info("\nSimulating shard failures...")
             failed_shards = shards[:2]  # Fail first 2 shards
             
             for shard in failed_shards:
-                print(f"  Failing shard {shard.shard_id}...")
+                logger.info(f"  Failing shard {shard.shard_id}...")
                 
                 # Mark shard as failed
                 load_metrics = ShardLoadMetrics(
@@ -323,15 +325,15 @@ class EnhancedShardingDemo:
                 manager.shards[shard.shard_id].status = ShardStatus.ERROR
             
             # Check system response
-            print("\nChecking system response to failures...")
+            logger.info("\nChecking system response to failures...")
             healthy_shards = manager.health_monitor.get_healthy_shards()
             failed_shard_list = manager.health_monitor.detect_failed_shards()
             
-            print(f"  Healthy shards: {len(healthy_shards)}")
-            print(f"  Failed shards: {len(failed_shard_list)}")
+            logger.info(f"  Healthy shards: {len(healthy_shards)}")
+            logger.info(f"  Failed shards: {len(failed_shard_list)}")
             
             # Test system functionality with failures
-            print("\nTesting system functionality with failures...")
+            logger.info("\nTesting system functionality with failures...")
             recovery_operations = 200
             successful_ops = 0
             failed_ops = 0
@@ -348,18 +350,18 @@ class EnhancedShardingDemo:
                         failed_ops += 1
                 except Exception as e:
                     failed_ops += 1
-                    print(f"    Error with key {key}: {e}")
+                    logger.info(f"    Error with key {key}: {e}")
             
             end_time = time.time()
             duration = end_time - start_time
             
-            print(f"  Recovery operations completed in {duration:.2f}s")
-            print(f"  Successful operations: {successful_ops}")
-            print(f"  Failed operations: {failed_ops}")
-            print(f"  Success rate: {successful_ops / recovery_operations:.2%}")
+            logger.info(f"  Recovery operations completed in {duration:.2f}s")
+            logger.info(f"  Successful operations: {successful_ops}")
+            logger.info(f"  Failed operations: {failed_ops}")
+            logger.info(f"  Success rate: {successful_ops / recovery_operations:.2%}")
             
             # Test automatic recovery
-            print("\nTesting automatic recovery...")
+            logger.info("\nTesting automatic recovery...")
             for shard in failed_shards:
                 # Simulate recovery
                 load_metrics = ShardLoadMetrics(
@@ -373,29 +375,29 @@ class EnhancedShardingDemo:
             
             # Check recovery
             recovered_healthy = manager.health_monitor.get_healthy_shards()
-            print(f"  Shards after recovery: {len(recovered_healthy)}")
+            logger.info(f"  Shards after recovery: {len(recovered_healthy)}")
             
             # Test system functionality after recovery
             success = manager.add_data_to_shard("post_recovery_key", "post_recovery_data")
-            print(f"  System functional after recovery: {success}")
+            logger.info(f"  System functional after recovery: {success}")
             
         finally:
             self.teardown_manager()
     
     def performance_scenario(self, num_operations: int = 2000):
         """Demonstrate performance characteristics."""
-        print("\n=== PERFORMANCE SCENARIO ===")
+        logger.info("\n=== PERFORMANCE SCENARIO ===")
         
         manager = self.setup_manager()
         
         try:
             # Create shards
-            print("Creating shards...")
+            logger.info("Creating shards...")
             for i in range(5):
                 manager.create_shard(ShardType.EXECUTION)
             
             # Test throughput
-            print(f"\nTesting throughput with {num_operations} operations...")
+            logger.info(f"\nTesting throughput with {num_operations} operations...")
             start_time = time.time()
             
             for i in range(num_operations):
@@ -406,11 +408,11 @@ class EnhancedShardingDemo:
             duration = end_time - start_time
             throughput = num_operations / duration
             
-            print(f"  Duration: {duration:.2f}s")
-            print(f"  Throughput: {throughput:.2f} ops/sec")
+            logger.info(f"  Duration: {duration:.2f}s")
+            logger.info(f"  Throughput: {throughput:.2f} ops/sec")
             
             # Test latency
-            print("\nTesting operation latency...")
+            logger.info("\nTesting operation latency...")
             latencies = []
             
             for i in range(100):
@@ -425,12 +427,12 @@ class EnhancedShardingDemo:
             p95_latency = sorted(latencies)[int(0.95 * len(latencies))]
             p99_latency = sorted(latencies)[int(0.99 * len(latencies))]
             
-            print(f"  Average latency: {avg_latency:.2f}ms")
-            print(f"  95th percentile: {p95_latency:.2f}ms")
-            print(f"  99th percentile: {p99_latency:.2f}ms")
+            logger.info(f"  Average latency: {avg_latency:.2f}ms")
+            logger.info(f"  95th percentile: {p95_latency:.2f}ms")
+            logger.info(f"  99th percentile: {p99_latency:.2f}ms")
             
             # Test concurrent operations
-            print("\nTesting concurrent operations...")
+            logger.info("\nTesting concurrent operations...")
             num_threads = 10
             operations_per_thread = 100
             
@@ -458,43 +460,43 @@ class EnhancedShardingDemo:
             
             successful_ops = sum(sum(thread_results) for thread_results in results)
             
-            print(f"  Threads: {num_threads}")
-            print(f"  Operations per thread: {operations_per_thread}")
-            print(f"  Total operations: {total_operations}")
-            print(f"  Duration: {duration:.2f}s")
-            print(f"  Concurrent throughput: {concurrent_throughput:.2f} ops/sec")
-            print(f"  Successful operations: {successful_ops}")
-            print(f"  Success rate: {successful_ops / total_operations:.2%}")
+            logger.info(f"  Threads: {num_threads}")
+            logger.info(f"  Operations per thread: {operations_per_thread}")
+            logger.info(f"  Total operations: {total_operations}")
+            logger.info(f"  Duration: {duration:.2f}s")
+            logger.info(f"  Concurrent throughput: {concurrent_throughput:.2f} ops/sec")
+            logger.info(f"  Successful operations: {successful_ops}")
+            logger.info(f"  Success rate: {successful_ops / total_operations:.2%}")
             
             # Show final metrics
             metrics = manager.get_performance_metrics()
-            print(f"\nFinal Performance Metrics:")
-            print(f"  Total operations: {metrics['total_operations']}")
-            print(f"  Successful operations: {metrics['successful_operations']}")
-            print(f"  Failed operations: {metrics['failed_operations']}")
-            print(f"  Average operation time: {metrics['average_operation_time']:.4f}s")
-            print(f"  Active operations: {metrics['active_operations']}")
-            print(f"  Total shards: {metrics['total_shards']}")
-            print(f"  Healthy shards: {metrics['healthy_shards']}")
-            print(f"  Failed shards: {metrics['failed_shards']}")
+            logger.info(f"\nFinal Performance Metrics:")
+            logger.info(f"  Total operations: {metrics['total_operations']}")
+            logger.info(f"  Successful operations: {metrics['successful_operations']}")
+            logger.info(f"  Failed operations: {metrics['failed_operations']}")
+            logger.info(f"  Average operation time: {metrics['average_operation_time']:.4f}s")
+            logger.info(f"  Active operations: {metrics['active_operations']}")
+            logger.info(f"  Total shards: {metrics['total_shards']}")
+            logger.info(f"  Healthy shards: {metrics['healthy_shards']}")
+            logger.info(f"  Failed shards: {metrics['failed_shards']}")
             
         finally:
             self.teardown_manager()
     
     def stress_scenario(self, num_operations: int = 5000):
         """Demonstrate stress testing capabilities."""
-        print("\n=== STRESS TESTING SCENARIO ===")
+        logger.info("\n=== STRESS TESTING SCENARIO ===")
         
         manager = self.setup_manager()
         
         try:
             # Create shards
-            print("Creating shards...")
+            logger.info("Creating shards...")
             for i in range(8):
                 manager.create_shard(ShardType.EXECUTION)
             
             # High load stress test
-            print(f"\nHigh load stress test with {num_operations} operations...")
+            logger.info(f"\nHigh load stress test with {num_operations} operations...")
             start_time = time.time()
             
             successful_ops = 0
@@ -511,21 +513,21 @@ class EnhancedShardingDemo:
                 except Exception as e:
                     failed_ops += 1
                     if failed_ops % 100 == 0:
-                        print(f"    Error at operation {i}: {e}")
+                        logger.info(f"    Error at operation {i}: {e}")
             
             end_time = time.time()
             duration = end_time - start_time
             throughput = num_operations / duration
             success_rate = successful_ops / num_operations
             
-            print(f"  Duration: {duration:.2f}s")
-            print(f"  Throughput: {throughput:.2f} ops/sec")
-            print(f"  Successful operations: {successful_ops}")
-            print(f"  Failed operations: {failed_ops}")
-            print(f"  Success rate: {success_rate:.2%}")
+            logger.info(f"  Duration: {duration:.2f}s")
+            logger.info(f"  Throughput: {throughput:.2f} ops/sec")
+            logger.info(f"  Successful operations: {successful_ops}")
+            logger.info(f"  Failed operations: {failed_ops}")
+            logger.info(f"  Success rate: {success_rate:.2%}")
             
             # Memory pressure test
-            print("\nMemory pressure test...")
+            logger.info("\nMemory pressure test...")
             memory_start = manager.get_performance_metrics()['memory_usage_mb']
             
             # Perform many operations to create memory pressure
@@ -537,35 +539,35 @@ class EnhancedShardingDemo:
                 if i % 1000 == 0:
                     cleaned = manager.cleanup_old_operations(max_age_seconds=0)
                     if cleaned > 0:
-                        print(f"    Cleaned up {cleaned} old operations")
+                        logger.info(f"    Cleaned up {cleaned} old operations")
             
             memory_end = manager.get_performance_metrics()['memory_usage_mb']
             memory_delta = memory_end - memory_start
             
-            print(f"  Memory usage increase: {memory_delta:.2f} MB")
-            print(f"  Memory per operation: {memory_delta / 10000:.4f} MB")
+            logger.info(f"  Memory usage increase: {memory_delta:.2f} MB")
+            logger.info(f"  Memory per operation: {memory_delta / 10000:.4f} MB")
             
             # System stability check
-            print("\nSystem stability check...")
+            logger.info("\nSystem stability check...")
             final_metrics = manager.get_performance_metrics()
             
-            print(f"  Total operations: {final_metrics['total_operations']}")
-            print(f"  System still functional: {final_metrics['total_shards'] > 0}")
-            print(f"  Healthy shards: {final_metrics['healthy_shards']}")
-            print(f"  Failed shards: {final_metrics['failed_shards']}")
+            logger.info(f"  Total operations: {final_metrics['total_operations']}")
+            logger.info(f"  System still functional: {final_metrics['total_shards'] > 0}")
+            logger.info(f"  Healthy shards: {final_metrics['healthy_shards']}")
+            logger.info(f"  Failed shards: {final_metrics['failed_shards']}")
             
             # Test system recovery
-            print("\nTesting system recovery...")
+            logger.info("\nTesting system recovery...")
             recovery_success = manager.add_data_to_shard("recovery_test_key", "recovery_test_data")
-            print(f"  System recovery successful: {recovery_success}")
+            logger.info(f"  System recovery successful: {recovery_success}")
             
         finally:
             self.teardown_manager()
     
     def run_all_scenarios(self, num_operations: int = 1000):
         """Run all scenarios."""
-        print("=== ENHANCED SHARDING SYSTEM DEMO ===")
-        print(f"Running all scenarios with {num_operations} operations each...")
+        logger.info("=== ENHANCED SHARDING SYSTEM DEMO ===")
+        logger.info(f"Running all scenarios with {num_operations} operations each...")
         
         scenarios = [
             ("Basic Sharding", self.basic_scenario),
@@ -577,26 +579,26 @@ class EnhancedShardingDemo:
         ]
         
         for scenario_name, scenario_func in scenarios:
-            print(f"\n{'='*60}")
-            print(f"Running {scenario_name} Scenario")
-            print(f"{'='*60}")
+            logger.info(f"\n{'='*60}")
+            logger.info(f"Running {scenario_name} Scenario")
+            logger.info(f"{'='*60}")
             
             try:
                 scenario_func(num_operations)
-                print(f"✓ {scenario_name} completed successfully")
+                logger.info(f"✓ {scenario_name} completed successfully")
             except Exception as e:
-                print(f"✗ {scenario_name} failed: {e}")
+                logger.info(f"✗ {scenario_name} failed: {e}")
         
-        print(f"\n{'='*60}")
-        print("DEMO COMPLETED")
-        print(f"{'='*60}")
+        logger.info(f"\n{'='*60}")
+        logger.info("DEMO COMPLETED")
+        logger.info(f"{'='*60}")
         
         # Summary
         if self.results:
-            print("\nSummary of Results:")
+            logger.info("\nSummary of Results:")
             for scenario, result in self.results.items():
                 if 'throughput' in result:
-                    print(f"  {scenario}: {result['throughput']:.2f} ops/sec")
+                    logger.info(f"  {scenario}: {result['throughput']:.2f} ops/sec")
 
 
 def main():
@@ -636,9 +638,9 @@ def main():
             demo.run_all_scenarios(args.operations)
         
     except KeyboardInterrupt:
-        print("\nDemo interrupted by user")
+        logger.info("\nDemo interrupted by user")
     except Exception as e:
-        print(f"\nDemo failed with error: {e}")
+        logger.info(f"\nDemo failed with error: {e}")
     finally:
         demo.teardown_manager()
 

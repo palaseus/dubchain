@@ -1,5 +1,8 @@
 """Tests for logging handlers module."""
 
+import logging
+
+logger = logging.getLogger(__name__)
 import gzip
 import os
 import queue

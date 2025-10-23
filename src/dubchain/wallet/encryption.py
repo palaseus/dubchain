@@ -5,6 +5,9 @@ This module provides sophisticated encryption and security features for wallet
 data protection, including AES encryption, key derivation, and secure storage.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import hashlib
 import os
 import secrets

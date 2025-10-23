@@ -9,6 +9,9 @@ This module provides comprehensive Polkadot integration including:
 - Staking and governance
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import json
 import time

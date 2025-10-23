@@ -1,5 +1,8 @@
 """Tests for logging core module."""
 
+import logging
+
+logger = logging.getLogger(__name__)
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest

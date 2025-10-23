@@ -8,6 +8,9 @@ This module provides comprehensive shard management including:
 - Dynamic shard management
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import hashlib
 import json
 import random

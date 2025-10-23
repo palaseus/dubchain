@@ -4,6 +4,9 @@ Unit tests for ZKP core functionality.
 This module tests the core ZKP types, interfaces, and manager functionality.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 import time
 import secrets

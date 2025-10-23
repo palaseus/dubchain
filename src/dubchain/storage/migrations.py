@@ -6,6 +6,8 @@ schema changes, data transformations, and version control.
 
 import json
 import logging
+
+logger = logging.getLogger(__name__)
 import os
 import re
 import sqlite3

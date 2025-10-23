@@ -5,6 +5,9 @@ blockchain platform, including exception hierarchies, recovery mechanisms,
 graceful degradation, and telemetry.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 from .degradation import (
     DegradationLevel,
     DegradationStrategy,

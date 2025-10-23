@@ -4,6 +4,9 @@ Polkadot Bridge Implementation
 This module provides Polkadot bridging capabilities.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 from dataclasses import dataclass
 from typing import Dict, Any, List, Optional
 import time

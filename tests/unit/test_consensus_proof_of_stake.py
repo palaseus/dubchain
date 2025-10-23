@@ -2,6 +2,9 @@
 Unit tests for Proof of Stake consensus implementation.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import time
 from unittest.mock import Mock, patch
 

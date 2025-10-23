@@ -9,6 +9,9 @@ This module provides performance optimizations for storage including:
 - Zero-copy serialization
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import json
 import os
@@ -552,7 +555,7 @@ class OptimizedStorage:
                     if self.write_batch.operations:
                         self._flush_batch()
             except Exception as e:
-                print(f"Batch writer error: {e}")
+                logger.info(f"Batch writer error: {e}")
     
     async def _cache_cleanup_task(self):
         """Background task for cache cleanup."""
@@ -561,7 +564,7 @@ class OptimizedStorage:
                 await asyncio.sleep(300)  # 5 minutes
                 self._cleanup_cache()
             except Exception as e:
-                print(f"Cache cleanup error: {e}")
+                logger.info(f"Cache cleanup error: {e}")
     
     def get_performance_metrics(self) -> Dict[str, Any]:
         """Get comprehensive performance metrics."""

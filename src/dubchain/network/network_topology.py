@@ -9,6 +9,9 @@ This module provides network topology management including:
 - Topology-aware routing and propagation
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import json
 import time

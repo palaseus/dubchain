@@ -6,6 +6,9 @@ and subscriptions for blockchain operations, smart contracts, wallets, bridges,
 sharding, consensus, and governance.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import strawberry
 from typing import List, Optional, Union
 from datetime import datetime

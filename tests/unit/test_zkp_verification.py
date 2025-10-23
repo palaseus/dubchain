@@ -5,6 +5,9 @@ This module tests proof verification, caching, replay protection,
 and batch verification capabilities.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 import time
 import threading

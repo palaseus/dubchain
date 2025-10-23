@@ -9,6 +9,9 @@ This module implements an efficient gossip protocol for message propagation incl
 - Anti-spam and rate limiting mechanisms
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import hashlib
 import json

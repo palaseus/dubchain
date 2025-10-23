@@ -1,5 +1,8 @@
 """Unit tests for dubchain.testing.integration module."""
 
+import logging
+
+logger = logging.getLogger(__name__)
 import os
 import tempfile
 import time

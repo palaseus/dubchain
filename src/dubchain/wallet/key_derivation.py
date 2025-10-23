@@ -5,6 +5,9 @@ This module implements BIP32/44/49/84 compliant hierarchical deterministic
 key derivation with advanced security features and custom derivation paths.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import hashlib
 import hmac
 import secrets

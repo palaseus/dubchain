@@ -2,6 +2,9 @@
 Unit tests for Network Topology implementation.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import time
 from unittest.mock import Mock, patch
 

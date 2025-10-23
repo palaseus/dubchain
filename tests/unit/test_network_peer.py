@@ -2,6 +2,9 @@
 Unit tests for peer functionality.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 
 # Network peer tests - fixed async task management issues

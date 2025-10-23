@@ -10,6 +10,9 @@ This module provides a production-ready Bitcoin bridge implementation including:
 - Comprehensive security and monitoring
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import hashlib
 import json

@@ -8,6 +8,9 @@ This module tests the advanced connection management system including:
 - Connection strategies and statistics
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import time
 from dataclasses import dataclass

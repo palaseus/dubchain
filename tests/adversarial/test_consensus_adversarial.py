@@ -5,6 +5,9 @@ This module tests consensus mechanisms under adversarial conditions including
 Byzantine faults, network partitions, message delays, and malicious behavior.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 import time
 import threading

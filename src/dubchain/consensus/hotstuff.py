@@ -13,6 +13,9 @@ Key features:
 - Leader rotation
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import hashlib
 import time
 from concurrent.futures import ThreadPoolExecutor

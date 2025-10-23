@@ -4,6 +4,9 @@ ML Module
 This module provides machine learning capabilities for DubChain.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 from .infrastructure import MLConfig, ModelConfig, ModelManager, BlockchainFeaturePipeline, MLInfrastructure
 from .feature_engineering import FeatureConfig, FeatureExtractor, FeatureScaler, FeatureSelector, BlockchainFeaturePipeline
 from .topology_optimization import TopologyOptimizer, GraphAnalyzer, TopologyGenerator

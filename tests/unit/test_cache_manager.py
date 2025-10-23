@@ -2,6 +2,9 @@
 Comprehensive tests for cache manager module.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import threading
 import time
 from unittest.mock import MagicMock, Mock, patch

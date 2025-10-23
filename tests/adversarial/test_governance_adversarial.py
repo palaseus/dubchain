@@ -6,6 +6,9 @@ including Sybil attacks, vote buying, flash loan attacks, and governance
 front-running attacks.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 import time
 from unittest.mock import Mock, patch

@@ -9,6 +9,9 @@ This module provides comprehensive Ethereum blockchain integration including:
 - Gas price optimization
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import json
 import time
@@ -170,7 +173,7 @@ class GasPriceOracle:
             return prices
             
         except Exception as e:
-            print(f"Failed to get gas prices: {e}")
+            logger.info(f"Failed to get gas prices: {e}")
             # Return default prices
             return GasPriceInfo(
                 slow_gwei=20.0,
@@ -248,7 +251,7 @@ class EthereumClient:
             # Verify chain ID
             actual_chain_id = self.web3.eth.chain_id
             if actual_chain_id != self.config.chain_id:
-                print(f"Warning: Chain ID mismatch. Expected {self.config.chain_id}, got {actual_chain_id}")
+                logger.info(f"Warning: Chain ID mismatch. Expected {self.config.chain_id}, got {actual_chain_id}")
             
             self._initialized = True
             
@@ -263,7 +266,7 @@ class EthereumClient:
                 self.monitoring_service = EthereumMonitoringService(self.web3, monitoring_config)
             
         except Exception as e:
-            print(f"Failed to initialize Ethereum client: {e}")
+            logger.info(f"Failed to initialize Ethereum client: {e}")
             self._initialized = False
     
     def is_connected(self) -> bool:
@@ -283,7 +286,7 @@ class EthereumClient:
             block = self.web3.eth.get_block('latest')
             return self._parse_block(block)
         except Exception as e:
-            print(f"Failed to get latest block: {e}")
+            logger.info(f"Failed to get latest block: {e}")
             return None
     
     def get_block(self, block_number: int) -> Optional[EthereumBlock]:
@@ -297,7 +300,7 @@ class EthereumClient:
         except BlockNotFound:
             return None
         except Exception as e:
-            print(f"Failed to get block {block_number}: {e}")
+            logger.info(f"Failed to get block {block_number}: {e}")
             return None
     
     def get_transaction(self, tx_hash: str) -> Optional[EthereumTransaction]:
@@ -311,7 +314,7 @@ class EthereumClient:
         except TransactionNotFound:
             return None
         except Exception as e:
-            print(f"Failed to get transaction {tx_hash}: {e}")
+            logger.info(f"Failed to get transaction {tx_hash}: {e}")
             return None
     
     def get_transaction_receipt(self, tx_hash: str) -> Optional[Dict[str, Any]]:
@@ -325,7 +328,7 @@ class EthereumClient:
         except TransactionNotFound:
             return None
         except Exception as e:
-            print(f"Failed to get transaction receipt {tx_hash}: {e}")
+            logger.info(f"Failed to get transaction receipt {tx_hash}: {e}")
             return None
     
     def get_balance(self, address: str) -> int:
@@ -336,7 +339,7 @@ class EthereumClient:
         try:
             return self.web3.eth.get_balance(address)
         except Exception as e:
-            print(f"Failed to get balance for {address}: {e}")
+            logger.info(f"Failed to get balance for {address}: {e}")
             return 0
     
     def get_nonce(self, address: str) -> int:
@@ -347,7 +350,7 @@ class EthereumClient:
         try:
             return self.web3.eth.get_transaction_count(address)
         except Exception as e:
-            print(f"Failed to get nonce for {address}: {e}")
+            logger.info(f"Failed to get nonce for {address}: {e}")
             return 0
     
     def estimate_gas(self, transaction: Dict[str, Any]) -> int:
@@ -358,7 +361,7 @@ class EthereumClient:
         try:
             return self.web3.eth.estimate_gas(transaction)
         except Exception as e:
-            print(f"Failed to estimate gas: {e}")
+            logger.info(f"Failed to estimate gas: {e}")
             return self.config.gas_limit
     
     def get_gas_price(self) -> int:
@@ -369,7 +372,7 @@ class EthereumClient:
         try:
             return self.web3.eth.gas_price
         except Exception as e:
-            print(f"Failed to get gas price: {e}")
+            logger.info(f"Failed to get gas price: {e}")
             return 20 * 10**9
     
     def get_optimized_gas_price(self, strategy: str = "standard") -> int:
@@ -402,7 +405,7 @@ class EthereumClient:
             tx_hash = self.web3.eth.send_raw_transaction(transaction)
             return tx_hash.hex()
         except Exception as e:
-            print(f"Failed to send transaction: {e}")
+            logger.info(f"Failed to send transaction: {e}")
             raise
     
     def wait_for_transaction(self, tx_hash: str, timeout: int = 300) -> Optional[Dict[str, Any]]:
@@ -414,7 +417,7 @@ class EthereumClient:
             receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash, timeout=timeout)
             return dict(receipt)
         except Exception as e:
-            print(f"Failed to wait for transaction {tx_hash}: {e}")
+            logger.info(f"Failed to wait for transaction {tx_hash}: {e}")
             return None
     
     def call_contract(self, contract_address: str, abi: List[Dict], function_name: str, args: List[Any] = None) -> Any:
@@ -433,10 +436,10 @@ class EthereumClient:
             
             return result
         except ContractLogicError as e:
-            print(f"Contract logic error: {e}")
+            logger.info(f"Contract logic error: {e}")
             return None
         except Exception as e:
-            print(f"Failed to call contract function: {e}")
+            logger.info(f"Failed to call contract function: {e}")
             return None
     
     def get_contract_events(self, contract_address: str, abi: List[Dict], event_name: str, 
@@ -455,7 +458,7 @@ class EthereumClient:
             events = event_filter.get_all_entries()
             return [dict(event) for event in events]
         except Exception as e:
-            print(f"Failed to get contract events: {e}")
+            logger.info(f"Failed to get contract events: {e}")
             return []
     
     def _parse_block(self, block: Any) -> EthereumBlock:
@@ -516,7 +519,7 @@ class EthereumClient:
                 "connected": True,
             }
         except Exception as e:
-            print(f"Failed to get network info: {e}")
+            logger.info(f"Failed to get network info: {e}")
             return {"connected": False, "error": str(e)}
     
     async def start_monitoring(self) -> None:

@@ -11,6 +11,9 @@ This module provides all the cryptographic functions needed for:
 """
 
 # GPU-accelerated crypto imports
+import logging
+
+logger = logging.getLogger(__name__)
 from .gpu_crypto import GPUConfig, GPUCrypto
 from .hashing import Hash, SHA256Hasher
 from .merkle import MerkleTree

@@ -13,6 +13,9 @@ Key features:
 - Deterministic block ordering
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import hashlib
 import threading
 import time
@@ -153,7 +156,7 @@ class ProofOfHistory:
                 sleep_time = 1.0 / self.config.poh_clock_frequency
                 time.sleep(sleep_time)
             except Exception as e:
-                print(f"Error generating PoH entry: {e}")
+                logger.info(f"Error generating PoH entry: {e}")
                 time.sleep(1.0)
 
     def _create_poh_entry(self) -> None:

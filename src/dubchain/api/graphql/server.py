@@ -5,6 +5,9 @@ This module provides the GraphQL server implementation with authentication,
 rate limiting, caching, and WebSocket support.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import json
 import time
@@ -231,7 +234,7 @@ class SubscriptionManager:
                 try:
                     await handler.send_data(data)
                 except Exception as e:
-                    print(f"Error broadcasting to subscription {subscription_id}: {e}")
+                    logger.info(f"Error broadcasting to subscription {subscription_id}: {e}")
 
 # WebSocket connection manager
 class WebSocketManager:
@@ -258,7 +261,7 @@ class WebSocketManager:
             try:
                 await self.connections[connection_id].send_text(json.dumps(data))
             except Exception as e:
-                print(f"Error sending to connection {connection_id}: {e}")
+                logger.info(f"Error sending to connection {connection_id}: {e}")
     
     async def broadcast(self, data: Any):
         """Broadcast data to all connections."""
@@ -266,7 +269,7 @@ class WebSocketManager:
             try:
                 await websocket.send_text(json.dumps(data))
             except Exception as e:
-                print(f"Error broadcasting to connection {connection_id}: {e}")
+                logger.info(f"Error broadcasting to connection {connection_id}: {e}")
 
 # Main server instance
 def create_graphql_server(host: str = "0.0.0.0", port: int = 8000) -> GraphQLServer:

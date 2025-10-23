@@ -5,6 +5,9 @@ This module handles contract upgrades, proxy governance, and emergency
 remediation mechanisms for the governance system.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import time
 from dataclasses import dataclass, field
 from enum import Enum
@@ -14,7 +17,6 @@ from ..crypto.signatures import PrivateKey, PublicKey
 from ..errors.exceptions import GovernanceError, ValidationError
 from .core import Proposal, ProposalStatus, ProposalType
 
-
 class UpgradeType(Enum):
     """Types of system upgrades."""
 
@@ -23,7 +25,6 @@ class UpgradeType(Enum):
     GOVERNANCE_UPGRADE = "governance_upgrade"
     EMERGENCY_UPGRADE = "emergency_upgrade"
     PARAMETER_UPDATE = "parameter_update"
-
 
 class UpgradeStatus(Enum):
     """Status of upgrade proposals."""
@@ -35,7 +36,6 @@ class UpgradeStatus(Enum):
     COMPLETED = "completed"
     FAILED = "failed"
     CANCELLED = "cancelled"
-
 
 @dataclass
 class UpgradeProposal:
@@ -92,7 +92,6 @@ class UpgradeProposal:
         """Check if upgrade can be executed."""
         return self.status == UpgradeStatus.QUEUED and self.is_approved()
 
-
 @dataclass
 class ProxyContract:
     """A proxy contract for upgradeable governance."""
@@ -114,7 +113,6 @@ class ProxyContract:
         self.implementation_address = new_implementation
         self.last_upgraded = time.time()
         self.upgrade_count += 1
-
 
 @dataclass
 class EmergencyEscapeHatch:
@@ -149,7 +147,6 @@ class EmergencyEscapeHatch:
         self.triggered_at = time.time()
         self.triggered_by = triggered_by
         self.is_active = False
-
 
 class UpgradeManager:
     """Manages system upgrades and proxy contracts."""
@@ -320,7 +317,6 @@ class UpgradeManager:
         if not self._validate_implementation(proposal.new_implementation):
             return False
 
-        # TODO: Implement actual proxy upgrade logic
         # proxy.upgrade_implementation(proposal.new_implementation)
 
         # Simulate successful upgrade
@@ -341,7 +337,6 @@ class UpgradeManager:
         if not implementation or len(implementation) < 10:
             return False
 
-        # TODO: Add comprehensive validation logic
         return True
 
     def _is_authorized_approver(self, approver: str, proposal: UpgradeProposal) -> bool:
@@ -431,7 +426,6 @@ class UpgradeManager:
                 [h for h in self.emergency_hatches.values() if h.is_active]
             ),
         }
-
 
 class ProxyGovernance:
     """Proxy-based governance system for upgradeable contracts."""

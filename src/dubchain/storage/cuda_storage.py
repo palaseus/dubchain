@@ -8,6 +8,9 @@ This module provides GPU acceleration for storage operations including:
 - Memory-efficient GPU operations
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import time
 import threading
 from typing import Dict, Any, List, Optional, Tuple, Union
@@ -57,7 +60,7 @@ class CUDAStorageAccelerator:
         # Thread safety
         self._metrics_lock = threading.Lock()
         
-        print(f"🚀 CUDA Storage Accelerator initialized - GPU Available: {self.cuda_manager.available}")
+        logger.info(f"🚀 CUDA Storage Accelerator initialized - GPU Available: {self.cuda_manager.available}")
     
     def serialize_data_batch(self, 
                            data_list: List[Dict[str, Any]], 

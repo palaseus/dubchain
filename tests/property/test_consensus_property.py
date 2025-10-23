@@ -5,6 +5,9 @@ This module uses Hypothesis to test consensus mechanisms with randomly
 generated inputs, ensuring properties hold across a wide range of scenarios.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 
 # Temporarily disable property tests due to hanging issues

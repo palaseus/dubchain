@@ -2,6 +2,9 @@
 Comprehensive unit tests for the transaction pool management system.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import threading
 import time
 from unittest.mock import Mock, patch

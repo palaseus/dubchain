@@ -2,6 +2,9 @@
 Comprehensive unit tests for the chain reorganization system.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import time
 from unittest.mock import Mock, patch
 

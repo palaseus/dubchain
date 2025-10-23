@@ -4,6 +4,9 @@ Avalanche Bridge Implementation
 This module provides Avalanche bridging capabilities.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 from dataclasses import dataclass
 from typing import Dict, Any, List, Optional
 import time

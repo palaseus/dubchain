@@ -5,6 +5,9 @@ This module provides comprehensive tests for CUDA integration across all compone
 of the DubChain system.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 import time
 import secrets
@@ -64,7 +67,7 @@ class TestCUDAComprehensiveIntegration:
         """Test CUDA availability across all components."""
         available = cuda_available()
         assert isinstance(available, bool)
-        print(f"CUDA Available: {available}")
+        logger.info(f"CUDA Available: {available}")
         
         # Test that all components can detect CUDA availability
         gpu_crypto = GPUCrypto()
@@ -72,10 +75,10 @@ class TestCUDAComprehensiveIntegration:
         vm_accelerator = CUDAVMAccelerator()
         storage_accelerator = CUDAStorageAccelerator()
         
-        print(f"GPU Crypto - Available: {gpu_crypto.gpu_available}")
-        print(f"Consensus Accelerator - Available: {consensus_accelerator.cuda_manager.available}")
-        print(f"VM Accelerator - Available: {vm_accelerator.cuda_manager.available}")
-        print(f"Storage Accelerator - Available: {storage_accelerator.cuda_manager.available}")
+        logger.info(f"GPU Crypto - Available: {gpu_crypto.gpu_available}")
+        logger.info(f"Consensus Accelerator - Available: {consensus_accelerator.cuda_manager.available}")
+        logger.info(f"VM Accelerator - Available: {vm_accelerator.cuda_manager.available}")
+        logger.info(f"Storage Accelerator - Available: {storage_accelerator.cuda_manager.available}")
     
     def test_cross_component_cuda_integration(self, 
                                             gpu_crypto, 
@@ -95,7 +98,7 @@ class TestCUDAComprehensiveIntegration:
         for manager in cuda_managers[1:]:
             assert manager is cuda_managers[0]
         
-        print("All components use the same CUDA manager instance")
+        logger.info("All components use the same CUDA manager instance")
     
     def test_comprehensive_performance_benchmark(self, 
                                                gpu_crypto, 
@@ -103,7 +106,7 @@ class TestCUDAComprehensiveIntegration:
                                                cuda_vm_accelerator, 
                                                cuda_storage_accelerator):
         """Test comprehensive performance across all components."""
-        print("🔬 Running comprehensive CUDA performance benchmark...")
+        logger.info("🔬 Running comprehensive CUDA performance benchmark...")
         
         # Generate test data
         test_data_size = 50
@@ -174,14 +177,14 @@ class TestCUDAComprehensiveIntegration:
             'throughput': total_operations / total_time,
         }
         
-        print(f"   Results:")
-        print(f"     Crypto time: {crypto_time:.4f}s ({len(crypto_results)} operations)")
-        print(f"     Consensus time: {consensus_time:.4f}s ({len(consensus_results)} operations)")
-        print(f"     VM time: {vm_time:.4f}s ({len(vm_results)} operations)")
-        print(f"     Storage time: {storage_time:.4f}s ({len(storage_results)} operations)")
-        print(f"     Total time: {total_time:.4f}s")
-        print(f"     Total operations: {total_operations}")
-        print(f"     Throughput: {results['throughput']:.2f} ops/sec")
+        logger.info(f"   Results:")
+        logger.info(f"     Crypto time: {crypto_time:.4f}s ({len(crypto_results)} operations)")
+        logger.info(f"     Consensus time: {consensus_time:.4f}s ({len(consensus_results)} operations)")
+        logger.info(f"     VM time: {vm_time:.4f}s ({len(vm_results)} operations)")
+        logger.info(f"     Storage time: {storage_time:.4f}s ({len(storage_results)} operations)")
+        logger.info(f"     Total time: {total_time:.4f}s")
+        logger.info(f"     Total operations: {total_operations}")
+        logger.info(f"     Throughput: {results['throughput']:.2f} ops/sec")
         
         assert total_operations == test_data_size * 4  # 4 components
         assert total_time > 0
@@ -192,7 +195,7 @@ class TestCUDAComprehensiveIntegration:
                                                cuda_vm_accelerator, 
                                                cuda_storage_accelerator):
         """Test memory management across all CUDA components."""
-        print("🧠 Testing memory management across components...")
+        logger.info("🧠 Testing memory management across components...")
         
         # Perform operations that should trigger memory management
         large_data_size = 200
@@ -247,11 +250,11 @@ class TestCUDAComprehensiveIntegration:
         assert len(vm_results) == large_data_size
         assert len(storage_results) == large_data_size
         
-        print(f"Memory management test completed:")
-        print(f"   Crypto: {len(crypto_results)} operations")
-        print(f"   Consensus: {len(consensus_results)} operations")
-        print(f"   VM: {len(vm_results)} operations")
-        print(f"   Storage: {len(storage_results)} operations")
+        logger.info(f"Memory management test completed:")
+        logger.info(f"   Crypto: {len(crypto_results)} operations")
+        logger.info(f"   Consensus: {len(consensus_results)} operations")
+        logger.info(f"   VM: {len(vm_results)} operations")
+        logger.info(f"   Storage: {len(storage_results)} operations")
     
     def test_concurrent_operations_across_components(self, 
                                                    gpu_crypto, 
@@ -262,7 +265,7 @@ class TestCUDAComprehensiveIntegration:
         import threading
         import queue
         
-        print("🔄 Testing concurrent operations across components...")
+        logger.info("🔄 Testing concurrent operations across components...")
         
         results_queue = queue.Queue()
         
@@ -340,7 +343,7 @@ class TestCUDAComprehensiveIntegration:
         assert len(results) == 4
         for component, count in results:
             assert count == 10
-            print(f"   {component}: {count} operations completed")
+            logger.info(f"   {component}: {count} operations completed")
     
     def test_performance_metrics_across_components(self, 
                                                  gpu_crypto, 
@@ -384,7 +387,7 @@ class TestCUDAComprehensiveIntegration:
             if 'cpu_fallbacks' in metrics:
                 assert isinstance(metrics['cpu_fallbacks'], int)
             
-            print(f"   {component} metrics: {metrics.get('total_operations', 0)} total operations")
+            logger.info(f"   {component} metrics: {metrics.get('total_operations', 0)} total operations")
     
     def test_error_handling_across_components(self, 
                                             gpu_crypto, 
@@ -392,34 +395,34 @@ class TestCUDAComprehensiveIntegration:
                                             cuda_vm_accelerator, 
                                             cuda_storage_accelerator):
         """Test error handling across all CUDA components."""
-        print("⚠️  Testing error handling across components...")
+        logger.info("⚠️  Testing error handling across components...")
         
         # Test with empty data
         try:
             crypto_results = gpu_crypto.hash_data_batch_gpu([], "sha256")
             assert crypto_results == []
         except Exception as e:
-            print(f"Crypto empty data handling: {e}")
+            logger.info(f"Crypto empty data handling: {e}")
         
         try:
             consensus_results = cuda_consensus_accelerator.validate_blocks_batch([])
             assert consensus_results == []
         except Exception as e:
-            print(f"Consensus empty data handling: {e}")
+            logger.info(f"Consensus empty data handling: {e}")
         
         try:
             vm_results = cuda_vm_accelerator.execute_operations_batch([])
             assert vm_results == []
         except Exception as e:
-            print(f"VM empty data handling: {e}")
+            logger.info(f"VM empty data handling: {e}")
         
         try:
             storage_results = cuda_storage_accelerator.serialize_data_batch([], "json")
             assert storage_results == []
         except Exception as e:
-            print(f"Storage empty data handling: {e}")
+            logger.info(f"Storage empty data handling: {e}")
         
-        print("Error handling test completed across all components")
+        logger.info("Error handling test completed across all components")
     
     def test_cuda_manager_global_state(self, cuda_manager):
         """Test global CUDA manager state consistency."""
@@ -441,7 +444,7 @@ class TestCUDAComprehensiveIntegration:
         assert 'gpu_operations' in global_metrics
         assert 'cpu_fallbacks' in global_metrics
         
-        print(f"Global CUDA manager state: {global_metrics}")
+        logger.info(f"Global CUDA manager state: {global_metrics}")
 
 
 if __name__ == "__main__":

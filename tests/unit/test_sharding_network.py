@@ -1,5 +1,8 @@
 """Tests for sharding network module."""
 
+import logging
+
+logger = logging.getLogger(__name__)
 import time
 from unittest.mock import Mock, patch
 

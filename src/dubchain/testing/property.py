@@ -5,6 +5,8 @@ and custom generators for testing invariants and properties.
 """
 
 import logging
+
+logger = logging.getLogger(__name__)
 import random
 import string
 import threading

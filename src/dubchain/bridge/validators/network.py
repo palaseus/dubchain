@@ -9,6 +9,9 @@ This module provides a Byzantine Fault Tolerant validator network for bridge ope
 - Governance integration
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import hashlib
 import json

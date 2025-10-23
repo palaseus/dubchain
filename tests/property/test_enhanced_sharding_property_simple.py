@@ -4,6 +4,9 @@ Simplified Property-based tests for Enhanced Sharding System.
 This module provides simplified property-based tests that won't hang.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 
 # Temporarily disable property tests due to hanging issues

@@ -9,6 +9,9 @@ This module tests all the new optimization implementations including:
 - Batching optimizations
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import pytest
 import time

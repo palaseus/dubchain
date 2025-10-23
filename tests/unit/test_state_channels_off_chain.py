@@ -8,6 +8,9 @@ Tests the off-chain state management including:
 - Conflict resolution
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import json
 import pytest
 import time

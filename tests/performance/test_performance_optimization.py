@@ -9,6 +9,9 @@ This module provides:
 - Automated performance validation
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import gc
 import json

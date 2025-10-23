@@ -9,6 +9,9 @@ This module provides comprehensive Polygon network integration including:
 - Mumbai testnet support
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 from .client import (
     PolygonClient,
     PolygonConfig,

@@ -12,6 +12,9 @@ This module provides comprehensive integration tests for all blockchain bridge c
 - Bridge security and fraud detection tests
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 import unittest
 import asyncio

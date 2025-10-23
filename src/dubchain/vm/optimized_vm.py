@@ -9,6 +9,9 @@ This module provides performance optimizations for the virtual machine including
 - Instruction-level optimizations
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import gc
 import hashlib

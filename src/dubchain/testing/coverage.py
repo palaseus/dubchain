@@ -4,6 +4,8 @@ This module provides code coverage analysis capabilities for testing.
 """
 
 import logging
+
+logger = logging.getLogger(__name__)
 import threading
 import time
 from abc import ABC, abstractmethod

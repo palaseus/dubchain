@@ -10,6 +10,9 @@ This module provides Bayesian optimization for consensus parameters including:
 - Automated parameter tuning
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 from .bayesian import (
     ConsensusParameterOptimizer,
     ParameterConfig,

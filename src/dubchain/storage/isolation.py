@@ -10,6 +10,9 @@ This module provides comprehensive isolation capabilities including:
 - Read/write isolation
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import threading
 import time
 import uuid

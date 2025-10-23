@@ -4,6 +4,9 @@ Routing Optimization Module
 This module provides reinforcement learning for routing optimization.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import numpy as np
 import random
 from dataclasses import dataclass, field

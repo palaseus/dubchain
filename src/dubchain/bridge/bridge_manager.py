@@ -8,6 +8,9 @@ This module provides comprehensive bridge management including:
 - Cross-chain transaction processing
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import hashlib
 import json
 import time

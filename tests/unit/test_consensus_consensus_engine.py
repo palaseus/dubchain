@@ -2,6 +2,9 @@
 Unit tests for consensus engine module.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import time
 from unittest.mock import AsyncMock, Mock, patch

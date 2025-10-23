@@ -5,6 +5,9 @@ This module tests the core governance types, proposal lifecycle,
 voting mechanisms, and basic governance operations.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 import time
 from unittest.mock import Mock, patch

@@ -5,6 +5,9 @@ This module tests delegation management, delegation chains,
 delegation strategies, and circular delegation detection.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 import time
 from unittest.mock import Mock, patch

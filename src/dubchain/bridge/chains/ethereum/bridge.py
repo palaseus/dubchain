@@ -5,6 +5,9 @@ This module provides a production-ready Ethereum bridge manager that integrates
 all security features, monitoring, and validation for enterprise-grade operations.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import json
 import time

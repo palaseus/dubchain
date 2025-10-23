@@ -2,6 +2,9 @@
 Unit tests for transaction system.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 
 from dubchain.core.transaction import (

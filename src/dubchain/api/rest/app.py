@@ -6,6 +6,9 @@ all blockchain operations, smart contracts, wallets, bridges, sharding,
 consensus, and governance endpoints.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import json
 import time
@@ -310,7 +313,7 @@ class ConnectionManager:
             try:
                 await connection.send_text(message)
             except Exception as e:
-                print(f"Error broadcasting message: {e}")
+                logger.info(f"Error broadcasting message: {e}")
 
 manager = ConnectionManager()
 

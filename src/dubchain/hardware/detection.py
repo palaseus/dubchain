@@ -8,6 +8,9 @@ This module provides comprehensive hardware detection including:
 - Automatic hardware selection
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import platform
 import subprocess
 import sys

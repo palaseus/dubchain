@@ -5,6 +5,9 @@ This module provides the main consensus engine that orchestrates all consensus m
 and provides a unified interface for blockchain consensus operations.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import json
 import time

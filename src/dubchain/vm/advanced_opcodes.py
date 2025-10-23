@@ -9,6 +9,9 @@ This module provides sophisticated opcodes including:
 - Custom contract operations
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import hashlib
 import struct
 import time

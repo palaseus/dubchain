@@ -10,6 +10,9 @@ This module provides comprehensive anomaly detection for Byzantine behavior incl
 - Byzantine behavior classification
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import numpy as np
 import pandas as pd

@@ -10,6 +10,9 @@ This module provides reinforcement learning-based routing optimization including
 - Policy gradient methods for continuous action spaces
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 from .optimizer import (
     RoutingOptimizer,
     RoutingConfig,

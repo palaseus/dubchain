@@ -9,6 +9,9 @@ This module provides sophisticated cross-chain interoperability including:
 - Bridge security and validation
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 from .atomic_swap import AtomicSwap, SwapExecution, SwapProposal, SwapValidator
 from .bridge_manager import AssetManager, BridgeManager, BridgeValidator, ChainManager
 from .bridge_security import (

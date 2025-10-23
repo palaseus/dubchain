@@ -1,0 +1,35 @@
+# DubChain Production Requirements
+
+# Core dependencies
+cryptography>=41.0.0
+pydantic>=2.0.0
+fastapi>=0.100.0
+uvicorn>=0.23.0
+websockets>=11.0.0
+aiofiles>=23.0.0
+
+# Testing dependencies
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+pytest-mock>=3.11.0
+hypothesis>=6.82.0
+
+# Code quality tools
+black>=23.0.0
+isort>=5.12.0
+mypy>=1.5.0
+pre-commit>=3.3.0
+
+# Optional GPU acceleration
+torch>=2.0.0
+cupy-cuda12x>=12.0.0
+numpy>=1.24.0
+scipy>=1.10.0
+
+# Type stubs
+types-requests>=2.32.0
+types-setuptools>=80.9.0
+types-protobuf>=6.32.0
+types-psutil>=7.0.0
+types-networkx>=3.5.0

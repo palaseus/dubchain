@@ -6,6 +6,9 @@ generative testing. These tests verify that certain properties always
 hold regardless of the specific inputs or sequences of operations.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 
 # Temporarily disable property tests due to hanging issues

@@ -9,6 +9,9 @@ This module provides comprehensive peer lifecycle management including:
 - Peer communication protocols
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import hashlib
 import json

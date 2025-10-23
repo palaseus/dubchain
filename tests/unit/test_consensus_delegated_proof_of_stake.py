@@ -2,6 +2,9 @@
 Unit tests for delegated proof of stake consensus.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import time
 from dataclasses import dataclass
 from unittest.mock import Mock, patch

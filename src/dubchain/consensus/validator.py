@@ -8,6 +8,9 @@ This module provides comprehensive validator management including:
 - Validator set management
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import hashlib
 import json
 import time

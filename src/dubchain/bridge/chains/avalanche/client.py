@@ -9,6 +9,9 @@ This module provides comprehensive Avalanche integration including:
 - Cross-chain transfers
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import json
 import time

@@ -4,6 +4,9 @@ Performance Benchmark Tests for Hardware Acceleration
 This module provides comprehensive performance benchmarking tests for all hardware acceleration components.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 import unittest
 import numpy as np
@@ -89,9 +92,9 @@ class TestHardwarePerformanceBenchmarks(unittest.TestCase):
             self.assertGreater(benchmark_result['mean_throughput'], 0)
         
         # Log results for analysis
-        print(f"\nCPU Matrix Multiplication Benchmark Results:")
+        logger.info(f"\nCPU Matrix Multiplication Benchmark Results:")
         for size, result in results.items():
-            print(f"  Size {size}x{size}: {result['mean_time']:.4f}s ± {result['std_time']:.4f}s, "
+            logger.info(f"  Size {size}x{size}: {result['mean_time']:.4f}s ± {result['std_time']:.4f}s, "
                   f"{result['mean_throughput']:.2f} ops/s")
     
     def test_cuda_matrix_multiplication_benchmark(self):
@@ -110,9 +113,9 @@ class TestHardwarePerformanceBenchmarks(unittest.TestCase):
             self.assertGreater(benchmark_result['mean_throughput'], 0)
         
         # Log results for analysis
-        print(f"\nCUDA Matrix Multiplication Benchmark Results:")
+        logger.info(f"\nCUDA Matrix Multiplication Benchmark Results:")
         for size, result in results.items():
-            print(f"  Size {size}x{size}: {result['mean_time']:.4f}s ± {result['std_time']:.4f}s, "
+            logger.info(f"  Size {size}x{size}: {result['mean_time']:.4f}s ± {result['std_time']:.4f}s, "
                   f"{result['mean_throughput']:.2f} ops/s")
     
     def test_opencl_matrix_multiplication_benchmark(self):
@@ -131,9 +134,9 @@ class TestHardwarePerformanceBenchmarks(unittest.TestCase):
             self.assertGreater(benchmark_result['mean_throughput'], 0)
         
         # Log results for analysis
-        print(f"\nOpenCL Matrix Multiplication Benchmark Results:")
+        logger.info(f"\nOpenCL Matrix Multiplication Benchmark Results:")
         for size, result in results.items():
-            print(f"  Size {size}x{size}: {result['mean_time']:.4f}s ± {result['std_time']:.4f}s, "
+            logger.info(f"  Size {size}x{size}: {result['mean_time']:.4f}s ± {result['std_time']:.4f}s, "
                   f"{result['mean_throughput']:.2f} ops/s")
     
     def test_performance_comparison(self):
@@ -155,11 +158,11 @@ class TestHardwarePerformanceBenchmarks(unittest.TestCase):
             comparison_results[accelerator] = accelerator_results
         
         # Log comparison results
-        print(f"\nPerformance Comparison Results:")
+        logger.info(f"\nPerformance Comparison Results:")
         for accelerator, results in comparison_results.items():
-            print(f"\n{accelerator.upper()}:")
+            logger.info(f"\n{accelerator.upper()}:")
             for size, result in results.items():
-                print(f"  Size {size}x{size}: {result['mean_time']:.4f}s, "
+                logger.info(f"  Size {size}x{size}: {result['mean_time']:.4f}s, "
                       f"{result['mean_throughput']:.2f} ops/s")
         
         # Verify that results are reasonable
@@ -193,11 +196,11 @@ class TestHardwarePerformanceBenchmarks(unittest.TestCase):
             self.assertGreater(times[-1], times[0] * 0.1)  # Last should be at least 10% of first
         
         # Log scalability results
-        print(f"\nScalability Analysis:")
+        logger.info(f"\nScalability Analysis:")
         for accelerator, results in scalability_results.items():
-            print(f"\n{accelerator.upper()}:")
+            logger.info(f"\n{accelerator.upper()}:")
             for size, result in results.items():
-                print(f"  Size {size}x{size}: {result['mean_time']:.4f}s, "
+                logger.info(f"  Size {size}x{size}: {result['mean_time']:.4f}s, "
                       f"{result['mean_throughput']:.2f} ops/s")
     
     def test_memory_usage_benchmark(self):
@@ -228,11 +231,11 @@ class TestHardwarePerformanceBenchmarks(unittest.TestCase):
             memory_results[accelerator] = accelerator_results
         
         # Log memory usage results
-        print(f"\nMemory Usage Analysis:")
+        logger.info(f"\nMemory Usage Analysis:")
         for accelerator, results in memory_results.items():
-            print(f"\n{accelerator.upper()}:")
+            logger.info(f"\n{accelerator.upper()}:")
             for size, result in results.items():
-                print(f"  Size {size}x{size}: {result['total_memory_mb']:.2f} MB total, "
+                logger.info(f"  Size {size}x{size}: {result['total_memory_mb']:.2f} MB total, "
                       f"{result['memory_efficiency']:.2f} efficiency")
         
         # Verify memory efficiency
@@ -265,11 +268,11 @@ class TestHardwarePerformanceBenchmarks(unittest.TestCase):
             consistency_results[accelerator] = accelerator_results
         
         # Log consistency results
-        print(f"\nThroughput Consistency Analysis:")
+        logger.info(f"\nThroughput Consistency Analysis:")
         for accelerator, results in consistency_results.items():
-            print(f"\n{accelerator.upper()}:")
+            logger.info(f"\n{accelerator.upper()}:")
             for size, result in results.items():
-                print(f"  Size {size}x{size}: CV={result['cv_throughput']:.3f}, "
+                logger.info(f"  Size {size}x{size}: CV={result['cv_throughput']:.3f}, "
                       f"Consistency={result['consistency_score']:.3f}")
         
         # Verify reasonable consistency
@@ -333,11 +336,11 @@ class TestHardwareStressTests(unittest.TestCase):
         success_rate = success_count / operation_count if operation_count > 0 else 0
         self.assertGreater(success_rate, 0.8)  # At least 80% success rate
         
-        print(f"\nContinuous Operation Stress Test:")
-        print(f"  Duration: {test_duration}s")
-        print(f"  Operations: {operation_count}")
-        print(f"  Successes: {success_count}")
-        print(f"  Success Rate: {success_rate:.2%}")
+        logger.info(f"\nContinuous Operation Stress Test:")
+        logger.info(f"  Duration: {test_duration}s")
+        logger.info(f"  Operations: {operation_count}")
+        logger.info(f"  Successes: {success_count}")
+        logger.info(f"  Success Rate: {success_rate:.2%}")
     
     def test_large_matrix_stress(self):
         """Test with very large matrices."""
@@ -365,17 +368,17 @@ class TestHardwareStressTests(unittest.TestCase):
                     end_time = time.time()
                     
                     if result.success:
-                        print(f"\nLarge Matrix Test - {accelerator.upper()}:")
-                        print(f"  Size: {size}x{size}")
-                        print(f"  Time: {end_time - start_time:.4f}s")
-                        print(f"  Throughput: {result.throughput:.2f} ops/s")
+                        logger.info(f"\nLarge Matrix Test - {accelerator.upper()}:")
+                        logger.info(f"  Size: {size}x{size}")
+                        logger.info(f"  Time: {end_time - start_time:.4f}s")
+                        logger.info(f"  Throughput: {result.throughput:.2f} ops/s")
                         
                         # Verify reasonable performance
                         self.assertLess(end_time - start_time, 60.0)  # Should complete within 60 seconds
                     
                 except Exception as e:
                     # Allow failures for very large matrices
-                    print(f"Large matrix test failed for {accelerator} with size {size}: {e}")
+                    logger.info(f"Large matrix test failed for {accelerator} with size {size}: {e}")
     
     def test_memory_pressure_stress(self):
         """Test under memory pressure conditions."""
@@ -410,15 +413,15 @@ class TestHardwareStressTests(unittest.TestCase):
                 success_count = sum(1 for r in results if r.success)
                 success_rate = success_count / len(results)
                 
-                print(f"\nMemory Pressure Test - {accelerator.upper()}:")
-                print(f"  Concurrent Operations: {concurrent_operations}")
-                print(f"  Success Rate: {success_rate:.2%}")
+                logger.info(f"\nMemory Pressure Test - {accelerator.upper()}:")
+                logger.info(f"  Concurrent Operations: {concurrent_operations}")
+                logger.info(f"  Success Rate: {success_rate:.2%}")
                 
                 # Allow some failures under memory pressure
                 self.assertGreater(success_rate, 0.6)  # At least 60% success rate
                 
             except Exception as e:
-                print(f"Memory pressure test failed for {accelerator}: {e}")
+                logger.info(f"Memory pressure test failed for {accelerator}: {e}")
 
 
 if __name__ == '__main__':

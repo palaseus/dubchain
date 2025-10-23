@@ -2,6 +2,9 @@
 Unit tests for wallet encryption functionality.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import json
 import os
 import tempfile

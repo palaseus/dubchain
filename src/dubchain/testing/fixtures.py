@@ -4,6 +4,8 @@ This module provides pre-built test fixtures for common testing scenarios.
 """
 
 import logging
+
+logger = logging.getLogger(__name__)
 import os
 import tempfile
 import threading

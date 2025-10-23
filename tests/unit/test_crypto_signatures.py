@@ -2,6 +2,9 @@
 Unit tests for cryptographic signature functions.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 
 from dubchain.crypto.hashing import Hash, SHA256Hasher

@@ -8,6 +8,9 @@ This module provides comprehensive smart contract interaction including:
 - Contract deployment and management
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import json
 import time
 from dataclasses import dataclass, field
@@ -59,7 +62,7 @@ class ERC20Contract:
         try:
             return self.contract.functions.name().call()
         except Exception as e:
-            print(f"Failed to get token name: {e}")
+            logger.info(f"Failed to get token name: {e}")
             return None
     
     def symbol(self) -> Optional[str]:
@@ -70,7 +73,7 @@ class ERC20Contract:
         try:
             return self.contract.functions.symbol().call()
         except Exception as e:
-            print(f"Failed to get token symbol: {e}")
+            logger.info(f"Failed to get token symbol: {e}")
             return None
     
     def decimals(self) -> Optional[int]:
@@ -81,7 +84,7 @@ class ERC20Contract:
         try:
             return self.contract.functions.decimals().call()
         except Exception as e:
-            print(f"Failed to get token decimals: {e}")
+            logger.info(f"Failed to get token decimals: {e}")
             return None
     
     def total_supply(self) -> Optional[int]:
@@ -92,7 +95,7 @@ class ERC20Contract:
         try:
             return self.contract.functions.totalSupply().call()
         except Exception as e:
-            print(f"Failed to get total supply: {e}")
+            logger.info(f"Failed to get total supply: {e}")
             return None
     
     def balance_of(self, address: str) -> Optional[int]:
@@ -103,7 +106,7 @@ class ERC20Contract:
         try:
             return self.contract.functions.balanceOf(address).call()
         except Exception as e:
-            print(f"Failed to get balance: {e}")
+            logger.info(f"Failed to get balance: {e}")
             return None
     
     def allowance(self, owner: str, spender: str) -> Optional[int]:
@@ -114,7 +117,7 @@ class ERC20Contract:
         try:
             return self.contract.functions.allowance(owner, spender).call()
         except Exception as e:
-            print(f"Failed to get allowance: {e}")
+            logger.info(f"Failed to get allowance: {e}")
             return None
     
     def transfer(self, to: str, amount: int, from_address: str, private_key: str) -> Optional[str]:
@@ -139,7 +142,7 @@ class ERC20Contract:
             return tx_hash
             
         except Exception as e:
-            print(f"Failed to transfer tokens: {e}")
+            logger.info(f"Failed to transfer tokens: {e}")
             return None
     
     def approve(self, spender: str, amount: int, from_address: str, private_key: str) -> Optional[str]:
@@ -164,7 +167,7 @@ class ERC20Contract:
             return tx_hash
             
         except Exception as e:
-            print(f"Failed to approve spender: {e}")
+            logger.info(f"Failed to approve spender: {e}")
             return None
     
     def transfer_from(self, from_address: str, to: str, amount: int, spender: str, private_key: str) -> Optional[str]:
@@ -189,7 +192,7 @@ class ERC20Contract:
             return tx_hash
             
         except Exception as e:
-            print(f"Failed to transfer from: {e}")
+            logger.info(f"Failed to transfer from: {e}")
             return None
 
 
@@ -216,7 +219,7 @@ class ERC721Contract:
         try:
             return self.contract.functions.name().call()
         except Exception as e:
-            print(f"Failed to get contract name: {e}")
+            logger.info(f"Failed to get contract name: {e}")
             return None
     
     def symbol(self) -> Optional[str]:
@@ -227,7 +230,7 @@ class ERC721Contract:
         try:
             return self.contract.functions.symbol().call()
         except Exception as e:
-            print(f"Failed to get contract symbol: {e}")
+            logger.info(f"Failed to get contract symbol: {e}")
             return None
     
     def total_supply(self) -> Optional[int]:
@@ -238,7 +241,7 @@ class ERC721Contract:
         try:
             return self.contract.functions.totalSupply().call()
         except Exception as e:
-            print(f"Failed to get total supply: {e}")
+            logger.info(f"Failed to get total supply: {e}")
             return None
     
     def balance_of(self, owner: str) -> Optional[int]:
@@ -249,7 +252,7 @@ class ERC721Contract:
         try:
             return self.contract.functions.balanceOf(owner).call()
         except Exception as e:
-            print(f"Failed to get balance: {e}")
+            logger.info(f"Failed to get balance: {e}")
             return None
     
     def owner_of(self, token_id: int) -> Optional[str]:
@@ -260,7 +263,7 @@ class ERC721Contract:
         try:
             return self.contract.functions.ownerOf(token_id).call()
         except Exception as e:
-            print(f"Failed to get owner of token: {e}")
+            logger.info(f"Failed to get owner of token: {e}")
             return None
     
     def token_uri(self, token_id: int) -> Optional[str]:
@@ -271,7 +274,7 @@ class ERC721Contract:
         try:
             return self.contract.functions.tokenURI(token_id).call()
         except Exception as e:
-            print(f"Failed to get token URI: {e}")
+            logger.info(f"Failed to get token URI: {e}")
             return None
     
     def approve(self, to: str, token_id: int, from_address: str, private_key: str) -> Optional[str]:
@@ -296,7 +299,7 @@ class ERC721Contract:
             return tx_hash
             
         except Exception as e:
-            print(f"Failed to approve token: {e}")
+            logger.info(f"Failed to approve token: {e}")
             return None
     
     def transfer_from(self, from_address: str, to: str, token_id: int, spender: str, private_key: str) -> Optional[str]:
@@ -321,7 +324,7 @@ class ERC721Contract:
             return tx_hash
             
         except Exception as e:
-            print(f"Failed to transfer token: {e}")
+            logger.info(f"Failed to transfer token: {e}")
             return None
 
 
@@ -362,7 +365,7 @@ class BridgeContract:
             return tx_hash
             
         except Exception as e:
-            print(f"Failed to lock tokens: {e}")
+            logger.info(f"Failed to lock tokens: {e}")
             return None
     
     def unlock_tokens(self, token_address: str, amount: int, to_address: str, from_address: str, private_key: str) -> Optional[str]:
@@ -387,7 +390,7 @@ class BridgeContract:
             return tx_hash
             
         except Exception as e:
-            print(f"Failed to unlock tokens: {e}")
+            logger.info(f"Failed to unlock tokens: {e}")
             return None
     
     def get_locked_amount(self, token_address: str) -> Optional[int]:
@@ -398,7 +401,7 @@ class BridgeContract:
         try:
             return self.contract.functions.getLockedAmount(token_address).call()
         except Exception as e:
-            print(f"Failed to get locked amount: {e}")
+            logger.info(f"Failed to get locked amount: {e}")
             return None
 
 
@@ -429,7 +432,7 @@ class ContractManager:
             return True
             
         except Exception as e:
-            print(f"Failed to add contract: {e}")
+            logger.info(f"Failed to add contract: {e}")
             return False
     
     def get_erc20_contract(self, address: str) -> Optional[ERC20Contract]:
@@ -488,5 +491,5 @@ class ContractManager:
             return True
             
         except Exception as e:
-            print(f"Failed to remove contract: {e}")
+            logger.info(f"Failed to remove contract: {e}")
             return False

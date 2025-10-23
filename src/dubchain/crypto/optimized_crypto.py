@@ -9,6 +9,9 @@ This module provides performance optimizations for cryptographic operations incl
 - Batch processing
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import hashlib
 import threading

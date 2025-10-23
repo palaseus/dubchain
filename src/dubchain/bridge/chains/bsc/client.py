@@ -9,6 +9,9 @@ This module provides comprehensive BSC integration including:
 - Testnet support
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import json
 import time

@@ -4,6 +4,9 @@ Cross-chain bridge types and data structures for DubChain.
 This module defines the core types used in the cross-chain bridge system.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import hashlib
 import json
 import time

@@ -8,6 +8,9 @@ This module implements a sophisticated hybrid consensus that can:
 - Provide fault tolerance and adaptability
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import json
 import random
 import time

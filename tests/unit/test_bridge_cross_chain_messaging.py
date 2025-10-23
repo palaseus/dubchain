@@ -2,6 +2,9 @@
 Unit tests for cross-chain messaging module.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 from unittest.mock import Mock, patch
 
 import pytest

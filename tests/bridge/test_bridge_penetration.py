@@ -10,6 +10,9 @@ This module provides penetration testing for bridge vulnerabilities including:
 - Cryptographic attack testing
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import hashlib
 import json
@@ -788,6 +791,6 @@ if __name__ == "__main__":
         config = PenetrationTestConfig()
         tester = BridgePenetrationTester(config)
         report = await tester.run_comprehensive_penetration_tests()
-        print(json.dumps(report, indent=2))
+        logger.info(json.dumps(report, indent=2))
     
     asyncio.run(main())

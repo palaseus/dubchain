@@ -2,6 +2,9 @@
 Unit tests for testing utilities.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import os
 import tempfile
 import time

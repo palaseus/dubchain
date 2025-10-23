@@ -5,6 +5,9 @@ This module provides configuration management for CUDA operations throughout
 the entire codebase, ensuring consistent GPU acceleration settings.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 from dataclasses import dataclass, field
 from typing import Dict, Any, Optional, List
 import os
@@ -83,7 +86,7 @@ class CUDAConfig:
                     setattr(self, attr_name, value)
                     self.environment_overrides[env_var] = value
                 except (ValueError, TypeError) as e:
-                    print(f"Warning: Invalid environment variable {env_var}={env_value}: {e}")
+                    logger.info(f"Warning: Invalid environment variable {env_var}={env_value}: {e}")
     
     def get_algorithm_config(self, algorithm: str) -> Dict[str, Any]:
         """Get configuration for a specific algorithm."""

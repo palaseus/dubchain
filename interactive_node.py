@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+logger = logging.getLogger(__name__)
 """
 Interactive DubChain Node
 
@@ -9,6 +10,7 @@ mine blocks, and experiment with different consensus mechanisms.
 Usage: python3 interactive_node.py
 """
 
+import logging
 import time
 import json
 import asyncio
@@ -29,15 +31,15 @@ class InteractiveNode:
         self.running = True
         self.node_id = f"node_{int(time.time())}"
         
-        print("🚀 DubChain Interactive Node")
-        print("=" * 50)
-        print("Type 'help' for available commands")
-        print("Type 'quit' to exit")
-        print("=" * 50)
+        logger.info("🚀 DubChain Interactive Node")
+        logger.info("=" * 50)
+        logger.info("Type 'help' for available commands")
+        logger.info("Type 'quit' to exit")
+        logger.info("=" * 50)
     
     def setup_blockchain(self, consensus_type: str = "pos") -> None:
         """Set up the blockchain with specified consensus."""
-        print(f"\n🔧 Setting up blockchain with {consensus_type.upper()} consensus...")
+        logger.info(f"\n🔧 Setting up blockchain with {consensus_type.upper()} consensus...")
         
         # Create consensus configuration
         config = ConsensusConfig(
@@ -56,17 +58,17 @@ class InteractiveNode:
             coinbase_amount=1000000
         )
         
-        print(f"✅ Genesis block created: {genesis_block.get_hash().to_hex()[:16]}...")
+        logger.info(f"✅ Genesis block created: {genesis_block.get_hash().to_hex()[:16]}...")
         
         # Set up consensus engine
         self.consensus_engine = ConsensusEngine(consensus_type)
         
-        print(f"✅ Blockchain initialized with {consensus_type.upper()} consensus")
+        logger.info(f"✅ Blockchain initialized with {consensus_type.upper()} consensus")
     
     def create_wallet(self, name: str) -> None:
         """Create a new wallet."""
         if name in self.wallets:
-            print(f"❌ Wallet '{name}' already exists")
+            logger.info(f"❌ Wallet '{name}' already exists")
             return
         
         private_key = PrivateKey.generate()
@@ -80,30 +82,30 @@ class InteractiveNode:
             'balance': 0
         }
         
-        print(f"✅ Wallet '{name}' created")
-        print(f"   Address: {address}")
-        print(f"   Private Key: {private_key.to_hex()[:16]}...")
+        logger.info(f"✅ Wallet '{name}' created")
+        logger.info(f"   Address: {address}")
+        logger.info(f"   Private Key: {private_key.to_hex()[:16]}...")
     
     def mine_blocks(self, count: int = 1, miner: str = None) -> None:
         """Mine blocks to get funds."""
         if not self.blockchain:
-            print("❌ Blockchain not initialized")
+            logger.info("❌ Blockchain not initialized")
             return
         
         if not miner:
             # Use first available wallet
             if not self.wallets:
-                print("❌ No wallets available. Create a wallet first.")
+                logger.info("❌ No wallets available. Create a wallet first.")
                 return
             miner = list(self.wallets.keys())[0]
         
         if miner not in self.wallets:
-            print(f"❌ Wallet '{miner}' not found")
+            logger.info(f"❌ Wallet '{miner}' not found")
             return
         
         miner_address = self.wallets[miner]['address']
         
-        print(f"\n⛏️  Mining {count} block(s) with {miner}...")
+        logger.info(f"\n⛏️  Mining {count} block(s) with {miner}...")
         
         for i in range(count):
             start_time = time.time()
@@ -111,35 +113,35 @@ class InteractiveNode:
             
             if block:
                 mining_time = time.time() - start_time
-                print(f"   ✅ Block {i+1} mined in {mining_time:.2f}s")
-                print(f"      Hash: {block.get_hash().to_hex()[:16]}...")
-                print(f"      Nonce: {block.header.nonce}")
-                print(f"      Transactions: {len(block.transactions)}")
+                logger.info(f"   ✅ Block {i+1} mined in {mining_time:.2f}s")
+                logger.info(f"      Hash: {block.get_hash().to_hex()[:16]}...")
+                logger.info(f"      Nonce: {block.header.nonce}")
+                logger.info(f"      Transactions: {len(block.transactions)}")
             else:
-                print(f"   ❌ Failed to mine block {i+1}")
+                logger.info(f"   ❌ Failed to mine block {i+1}")
     
     def create_transaction(self, sender: str, recipient: str, amount: int, fee: int = 1000) -> None:
         """Create a transaction between wallets."""
         if not self.blockchain:
-            print("❌ Blockchain not initialized")
+            logger.info("❌ Blockchain not initialized")
             return
         
         if sender not in self.wallets:
-            print(f"❌ Sender wallet '{sender}' not found")
+            logger.info(f"❌ Sender wallet '{sender}' not found")
             return
         
         if recipient not in self.wallets:
-            print(f"❌ Recipient wallet '{recipient}' not found")
+            logger.info(f"❌ Recipient wallet '{recipient}' not found")
             return
         
         sender_private = self.wallets[sender]['private_key']
         recipient_address = self.wallets[recipient]['address']
         
-        print(f"\n💸 Creating transaction...")
-        print(f"   From: {sender} ({self.wallets[sender]['address']})")
-        print(f"   To: {recipient} ({recipient_address})")
-        print(f"   Amount: {amount}")
-        print(f"   Fee: {fee}")
+        logger.info(f"\n💸 Creating transaction...")
+        logger.info(f"   From: {sender} ({self.wallets[sender]['address']})")
+        logger.info(f"   To: {recipient} ({recipient_address})")
+        logger.info(f"   Amount: {amount}")
+        logger.info(f"   Fee: {fee}")
         
         # Create transaction
         tx = self.blockchain.create_transfer_transaction(
@@ -150,69 +152,69 @@ class InteractiveNode:
         )
         
         if tx:
-            print(f"✅ Transaction created: {tx.get_hash().to_hex()[:16]}...")
+            logger.info(f"✅ Transaction created: {tx.get_hash().to_hex()[:16]}...")
             
             # Add to pending pool
             self.blockchain.add_transaction(tx)
-            print("   Transaction added to pending pool")
+            logger.info("   Transaction added to pending pool")
         else:
-            print("❌ Failed to create transaction")
+            logger.info("❌ Failed to create transaction")
     
     def check_balances(self) -> None:
         """Check balances of all wallets."""
         if not self.blockchain:
-            print("❌ Blockchain not initialized")
+            logger.info("❌ Blockchain not initialized")
             return
         
-        print("\n💰 Wallet Balances:")
-        print("-" * 40)
+        logger.info("\n💰 Wallet Balances:")
+        logger.info("-" * 40)
         
         for name, wallet in self.wallets.items():
             balance = self.blockchain.get_balance(wallet['address'])
             wallet['balance'] = balance
-            print(f"   {name}: {balance:,} satoshis")
+            logger.info(f"   {name}: {balance:,} satoshis")
     
     def show_blockchain_info(self) -> None:
         """Show blockchain information."""
         if not self.blockchain:
-            print("❌ Blockchain not initialized")
+            logger.info("❌ Blockchain not initialized")
             return
         
         info = self.blockchain.get_chain_info()
         
-        print("\n📊 Blockchain Information:")
-        print("-" * 40)
-        print(f"   Block count: {info['block_count']}")
-        print(f"   Block height: {info['block_height']}")
-        print(f"   Total difficulty: {info['total_difficulty']}")
-        print(f"   Pending transactions: {info['pending_transactions']}")
-        print(f"   UTXO count: {info['utxo_count']}")
+        logger.info("\n📊 Blockchain Information:")
+        logger.info("-" * 40)
+        logger.info(f"   Block count: {info['block_count']}")
+        logger.info(f"   Block height: {info['block_height']}")
+        logger.info(f"   Total difficulty: {info['total_difficulty']}")
+        logger.info(f"   Pending transactions: {info['pending_transactions']}")
+        logger.info(f"   UTXO count: {info['utxo_count']}")
         
         if 'current_difficulty' in info:
-            print(f"   Current difficulty: {info['current_difficulty']}")
-            print(f"   Average block time: {info.get('average_block_time', 0):.2f}s")
+            logger.info(f"   Current difficulty: {info['current_difficulty']}")
+            logger.info(f"   Average block time: {info.get('average_block_time', 0):.2f}s")
     
     def show_wallets(self) -> None:
         """Show all wallets."""
         if not self.wallets:
-            print("❌ No wallets created")
+            logger.info("❌ No wallets created")
             return
         
-        print("\n👛 Wallets:")
-        print("-" * 40)
+        logger.info("\n👛 Wallets:")
+        logger.info("-" * 40)
         
         for name, wallet in self.wallets.items():
-            print(f"   {name}:")
-            print(f"      Address: {wallet['address']}")
-            print(f"      Balance: {wallet.get('balance', 0):,} satoshis")
+            logger.info(f"   {name}:")
+            logger.info(f"      Address: {wallet['address']}")
+            logger.info(f"      Balance: {wallet.get('balance', 0):,} satoshis")
     
     def stress_test(self, transactions: int = 100) -> None:
         """Run a stress test with many transactions."""
         if not self.blockchain or len(self.wallets) < 2:
-            print("❌ Need blockchain and at least 2 wallets for stress test")
+            logger.info("❌ Need blockchain and at least 2 wallets for stress test")
             return
         
-        print(f"\n🔥 Running stress test with {transactions} transactions...")
+        logger.info(f"\n🔥 Running stress test with {transactions} transactions...")
         
         wallet_names = list(self.wallets.keys())
         start_time = time.time()
@@ -233,17 +235,17 @@ class InteractiveNode:
                 self.blockchain.add_transaction(tx)
             
             if (i + 1) % 10 == 0:
-                print(f"   Created {i + 1} transactions...")
+                logger.info(f"   Created {i + 1} transactions...")
         
         end_time = time.time()
-        print(f"✅ Stress test completed in {end_time - start_time:.2f}s")
-        print(f"   Created {transactions} transactions")
-        print(f"   Rate: {transactions / (end_time - start_time):.2f} tx/s")
+        logger.info(f"✅ Stress test completed in {end_time - start_time:.2f}s")
+        logger.info(f"   Created {transactions} transactions")
+        logger.info(f"   Rate: {transactions / (end_time - start_time):.2f} tx/s")
     
     def chaos_mode(self) -> None:
         """Enter chaos mode - random operations."""
-        print("\n🌪️  CHAOS MODE ACTIVATED!")
-        print("Random operations will be performed...")
+        logger.info("\n🌪️  CHAOS MODE ACTIVATED!")
+        logger.info("Random operations will be performed...")
         
         operations = [
             lambda: self.mine_blocks(1),
@@ -262,43 +264,43 @@ class InteractiveNode:
                 try:
                     op()
                 except Exception as e:
-                    print(f"   💥 Chaos operation failed: {e}")
+                    logger.info(f"   💥 Chaos operation failed: {e}")
             
             time.sleep(0.5)
         
-        print("🌪️  Chaos mode completed!")
+        logger.info("🌪️  Chaos mode completed!")
     
     def help(self) -> None:
         """Show help information."""
-        print("\n📖 Available Commands:")
-        print("-" * 40)
-        print("  setup [consensus]     - Set up blockchain (pos/dpos/pbft)")
-        print("  wallet <name>         - Create a new wallet")
-        print("  mine [count] [miner]  - Mine blocks")
-        print("  send <from> <to> <amount> [fee] - Send transaction")
-        print("  balance               - Check all balances")
-        print("  info                  - Show blockchain info")
-        print("  wallets               - Show all wallets")
-        print("  stress [count]        - Run stress test")
-        print("  chaos                 - Enter chaos mode")
-        print("  validate              - Validate blockchain")
-        print("  help                  - Show this help")
-        print("  quit                  - Exit")
+        logger.info("\n📖 Available Commands:")
+        logger.info("-" * 40)
+        logger.info("  setup [consensus]     - Set up blockchain (pos/dpos/pbft)")
+        logger.info("  wallet <name>         - Create a new wallet")
+        logger.info("  mine [count] [miner]  - Mine blocks")
+        logger.info("  send <from> <to> <amount> [fee] - Send transaction")
+        logger.info("  balance               - Check all balances")
+        logger.info("  info                  - Show blockchain info")
+        logger.info("  wallets               - Show all wallets")
+        logger.info("  stress [count]        - Run stress test")
+        logger.info("  chaos                 - Enter chaos mode")
+        logger.info("  validate              - Validate blockchain")
+        logger.info("  help                  - Show this help")
+        logger.info("  quit                  - Exit")
     
     def validate_blockchain(self) -> None:
         """Validate the entire blockchain."""
         if not self.blockchain:
-            print("❌ Blockchain not initialized")
+            logger.info("❌ Blockchain not initialized")
             return
         
-        print("\n🔍 Validating blockchain...")
+        logger.info("\n🔍 Validating blockchain...")
         start_time = time.time()
         
         is_valid = self.blockchain.validate_chain()
         
         end_time = time.time()
-        print(f"✅ Validation completed in {end_time - start_time:.2f}s")
-        print(f"   Result: {'✅ Valid' if is_valid else '❌ Invalid'}")
+        logger.info(f"✅ Validation completed in {end_time - start_time:.2f}s")
+        logger.info(f"   Result: {'✅ Valid' if is_valid else '❌ Invalid'}")
     
     def run(self) -> None:
         """Run the interactive node."""
@@ -312,7 +314,7 @@ class InteractiveNode:
                 cmd = command[0].lower()
                 
                 if cmd == "quit" or cmd == "exit":
-                    print("👋 Goodbye!")
+                    logger.info("👋 Goodbye!")
                     break
                 
                 elif cmd == "help":
@@ -324,7 +326,7 @@ class InteractiveNode:
                 
                 elif cmd == "wallet":
                     if len(command) < 2:
-                        print("❌ Usage: wallet <name>")
+                        logger.info("❌ Usage: wallet <name>")
                         continue
                     self.create_wallet(command[1])
                 
@@ -335,7 +337,7 @@ class InteractiveNode:
                 
                 elif cmd == "send":
                     if len(command) < 4:
-                        print("❌ Usage: send <from> <to> <amount> [fee]")
+                        logger.info("❌ Usage: send <from> <to> <amount> [fee]")
                         continue
                     
                     try:
@@ -346,7 +348,7 @@ class InteractiveNode:
                         
                         self.create_transaction(sender, recipient, amount, fee)
                     except ValueError:
-                        print("❌ Invalid amount or fee")
+                        logger.info("❌ Invalid amount or fee")
                 
                 elif cmd == "balance":
                     self.check_balances()
@@ -368,14 +370,14 @@ class InteractiveNode:
                     self.validate_blockchain()
                 
                 else:
-                    print(f"❌ Unknown command: {cmd}")
-                    print("Type 'help' for available commands")
+                    logger.info(f"❌ Unknown command: {cmd}")
+                    logger.info("Type 'help' for available commands")
             
             except KeyboardInterrupt:
-                print("\n👋 Goodbye!")
+                logger.info("\n👋 Goodbye!")
                 break
             except Exception as e:
-                print(f"❌ Error: {e}")
+                logger.info(f"❌ Error: {e}")
 
 
 def main():

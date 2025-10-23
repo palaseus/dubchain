@@ -5,6 +5,9 @@ This module provides proof generation capabilities, trusted setup,
 and key management for zero-knowledge proofs.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import hashlib
 import secrets
 import time

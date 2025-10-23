@@ -6,6 +6,9 @@ proposal lifecycle, voting strategies, delegation, security, treasury,
 and upgrade mechanisms.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import sys
 import time
 from pathlib import Path
@@ -34,15 +37,15 @@ from dubchain.governance.upgrades import UpgradeManager, ProxyGovernance
 
 def print_section(title: str):
     """Print a section header."""
-    print(f"\n{'='*60}")
-    print(f"🎯 {title}")
-    print('='*60)
+    logger.info(f"\n{'='*60}")
+    logger.info(f"🎯 {title}")
+    logger.info('='*60)
 
 
 def print_subsection(title: str):
     """Print a subsection header."""
-    print(f"\n📋 {title}")
-    print('-'*40)
+    logger.info(f"\n📋 {title}")
+    logger.info('-'*40)
 
 
 def demo_governance_configuration():
@@ -66,12 +69,12 @@ def demo_governance_configuration():
         emergency_upgrade_threshold=0.9
     )
     
-    print("✅ Governance configuration created with:")
-    print(f"   - Quorum threshold: {config.default_quorum_threshold}")
-    print(f"   - Approval threshold: {config.default_approval_threshold}")
-    print(f"   - Voting period: {config.default_voting_period} blocks")
-    print(f"   - Execution delay: {config.default_execution_delay} blocks")
-    print(f"   - Emergency threshold: {config.emergency_threshold}")
+    logger.info("✅ Governance configuration created with:")
+    logger.info(f"   - Quorum threshold: {config.default_quorum_threshold}")
+    logger.info(f"   - Approval threshold: {config.default_approval_threshold}")
+    logger.info(f"   - Voting period: {config.default_voting_period} blocks")
+    logger.info(f"   - Execution delay: {config.default_execution_delay} blocks")
+    logger.info(f"   - Emergency threshold: {config.emergency_threshold}")
     
     return config
 
@@ -101,17 +104,17 @@ def demo_proposal_lifecycle():
         }
     )
     
-    print(f"✅ Proposal created: {proposal.proposal_id}")
-    print(f"   - Status: {proposal.status.value}")
-    print(f"   - Type: {proposal.proposal_type.value}")
-    print(f"   - Quorum threshold: {proposal.quorum_threshold}")
-    print(f"   - Approval threshold: {proposal.approval_threshold}")
+    logger.info(f"✅ Proposal created: {proposal.proposal_id}")
+    logger.info(f"   - Status: {proposal.status.value}")
+    logger.info(f"   - Type: {proposal.proposal_type.value}")
+    logger.info(f"   - Quorum threshold: {proposal.quorum_threshold}")
+    logger.info(f"   - Approval threshold: {proposal.approval_threshold}")
     
     print_subsection("Activating Proposal")
     
     # Activate the proposal
     engine.state.update_proposal_status(proposal.proposal_id, ProposalStatus.ACTIVE)
-    print(f"✅ Proposal activated: {proposal.status.value}")
+    logger.info(f"✅ Proposal activated: {proposal.status.value}")
     
     print_subsection("Voting on Proposal")
     
@@ -139,35 +142,35 @@ def demo_proposal_lifecycle():
             signature=f"0x{voter_address[-8:]}"
         )
         
-        print(f"   ✅ Vote cast by {voter_address[:10]}...: {choice.value} ({power} power)")
+        logger.info(f"   ✅ Vote cast by {voter_address[:10]}...: {choice.value} ({power} power)")
     
     print_subsection("Vote Summary")
     
     summary = proposal.get_vote_summary()
-    print(f"   - Total voting power: {summary['total_voting_power']}")
-    print(f"   - For: {summary['for_power']}")
-    print(f"   - Against: {summary['against_power']}")
-    print(f"   - Abstain: {summary['abstain_power']}")
-    print(f"   - Quorum met: {summary['quorum_met']}")
-    print(f"   - Approval percentage: {summary['approval_percentage']:.2%}")
-    print(f"   - Approved: {summary['approved']}")
+    logger.info(f"   - Total voting power: {summary['total_voting_power']}")
+    logger.info(f"   - For: {summary['for_power']}")
+    logger.info(f"   - Against: {summary['against_power']}")
+    logger.info(f"   - Abstain: {summary['abstain_power']}")
+    logger.info(f"   - Quorum met: {summary['quorum_met']}")
+    logger.info(f"   - Approval percentage: {summary['approval_percentage']:.2%}")
+    logger.info(f"   - Approved: {summary['approved']}")
     
     if summary['approved']:
         print_subsection("Queuing and Executing Proposal")
         
         # Queue the proposal
         engine.state.update_proposal_status(proposal.proposal_id, ProposalStatus.QUEUED)
-        print(f"✅ Proposal queued: {proposal.status.value}")
+        logger.info(f"✅ Proposal queued: {proposal.status.value}")
         
         # Execute the proposal
         execution_engine = ExecutionEngine(engine.state)
         result = execution_engine.execute_proposal(proposal, current_block=1000)
         
         if result.is_successful():
-            print(f"✅ Proposal executed successfully: {proposal.status.value}")
-            print(f"   - Execution data: {result.execution_data}")
+            logger.info(f"✅ Proposal executed successfully: {proposal.status.value}")
+            logger.info(f"   - Execution data: {result.execution_data}")
         else:
-            print(f"❌ Proposal execution failed: {result.error_message}")
+            logger.info(f"❌ Proposal execution failed: {result.error_message}")
     
     return proposal
 
@@ -199,20 +202,20 @@ def demo_voting_strategies():
             delegated_power=0
         )
         
-        print(f"   - Token balance: {token_balance}")
-        print(f"   - Voting power: {power.power}")
-        print(f"   - Strategy: {strategy.name}")
+        logger.info(f"   - Token balance: {token_balance}")
+        logger.info(f"   - Voting power: {power.power}")
+        logger.info(f"   - Strategy: {strategy.name}")
         
         # Test with different token balances
         test_balances = [100, 1000, 10000, 100000]
-        print("   - Power scaling:")
+        logger.info("   - Power scaling:")
         for balance in test_balances:
             test_power = strategy.calculate_voting_power(
                 voter_address=voter_address,
                 token_balance=balance,
                 delegated_power=0
             )
-            print(f"     {balance:6d} tokens → {test_power.power:6d} power")
+            logger.info(f"     {balance:6d} tokens → {test_power.power:6d} power")
 
 
 def demo_delegation_system():
@@ -238,23 +241,23 @@ def demo_delegation_system():
             delegation_power=power
         )
         
-        print(f"   ✅ {delegator[:10]}... → {delegatee[:10]}... ({power} power)")
+        logger.info(f"   ✅ {delegator[:10]}... → {delegatee[:10]}... ({power} power)")
     
     print_subsection("Delegation Statistics")
     
     stats = delegation_manager.get_delegation_statistics()
-    print(f"   - Total delegations: {stats['total_delegations']}")
-    print(f"   - Active delegations: {stats['active_delegations']}")
-    print(f"   - Total delegated power: {stats['total_delegated_power']}")
-    print(f"   - Unique delegators: {stats['unique_delegators']}")
-    print(f"   - Unique delegatees: {stats['unique_delegatees']}")
+    logger.info(f"   - Total delegations: {stats['total_delegations']}")
+    logger.info(f"   - Active delegations: {stats['active_delegations']}")
+    logger.info(f"   - Total delegated power: {stats['total_delegated_power']}")
+    logger.info(f"   - Unique delegators: {stats['unique_delegators']}")
+    logger.info(f"   - Unique delegatees: {stats['unique_delegatees']}")
     
     print_subsection("Delegated Voting Power")
     
     # Check delegated power for final delegatee
     final_delegatee = "0x4444444444444444"
     delegated_power = delegation_manager.get_delegated_power(final_delegatee, 100)
-    print(f"   - {final_delegatee[:10]}... has {delegated_power} delegated power")
+    logger.info(f"   - {final_delegatee[:10]}... has {delegated_power} delegated power")
     
     print_subsection("Circular Delegation Prevention")
     
@@ -265,9 +268,9 @@ def demo_delegation_system():
             delegatee_address="0x1111111111111111",  # Would create cycle
             delegation_power=500
         )
-        print("   ❌ Circular delegation was allowed (this should not happen)")
+        logger.info("   ❌ Circular delegation was allowed (this should not happen)")
     except ValueError as e:
-        print(f"   ✅ Circular delegation prevented: {e}")
+        logger.info(f"   ✅ Circular delegation prevented: {e}")
 
 
 def demo_security_system():
@@ -291,7 +294,7 @@ def demo_security_system():
     )
     
     # Test Sybil attack detection
-    print("   🔍 Testing Sybil attack detection...")
+    logger.info("   🔍 Testing Sybil attack detection...")
     for i in range(10):
         voting_power = VotingPower(
             voter_address=f"0xsybil{i}",
@@ -310,10 +313,10 @@ def demo_security_system():
         alerts = security_manager.analyze_vote(vote, proposal, {})
         if alerts:
             for alert in alerts:
-                print(f"   ⚠️  Security alert: {alert.alert_type} - {alert.severity}")
+                logger.info(f"   ⚠️  Security alert: {alert.alert_type} - {alert.severity}")
     
     # Test vote buying detection
-    print("   🔍 Testing vote buying detection...")
+    logger.info("   🔍 Testing vote buying detection...")
     suspicious_voter = "0xbribed1234567890"
     
     # Add suspicious transaction
@@ -344,15 +347,15 @@ def demo_security_system():
     alerts = security_manager.analyze_vote(vote, proposal, {})
     if alerts:
         for alert in alerts:
-            print(f"   ⚠️  Security alert: {alert.alert_type} - {alert.severity}")
+            logger.info(f"   ⚠️  Security alert: {alert.alert_type} - {alert.severity}")
     
     print_subsection("Security Statistics")
     
     stats = security_manager.get_security_statistics()
-    print(f"   - Total alerts: {stats['total_alerts']}")
-    print(f"   - Blocked addresses: {stats['blocked_addresses']}")
-    print(f"   - Suspicious addresses: {stats['suspicious_addresses']}")
-    print(f"   - Active detectors: {stats['active_detectors']}")
+    logger.info(f"   - Total alerts: {stats['total_alerts']}")
+    logger.info(f"   - Blocked addresses: {stats['blocked_addresses']}")
+    logger.info(f"   - Suspicious addresses: {stats['suspicious_addresses']}")
+    logger.info(f"   - Active detectors: {stats['active_detectors']}")
 
 
 def demo_treasury_system():
@@ -377,14 +380,14 @@ def demo_treasury_system():
     )
     
     balance = treasury_manager.get_treasury_balance("0xTOKEN")
-    print(f"   ✅ Treasury balance: {balance} TOKEN")
+    logger.info(f"   ✅ Treasury balance: {balance} TOKEN")
     
     # Add multisig signers
     signers = ["0x1111111111111111", "0x2222222222222222", "0x3333333333333333", "0x4444444444444444"]
     for signer in signers:
         treasury_manager.add_multisig_signer(signer)
     
-    print(f"   ✅ Added {len(signers)} multisig signers")
+    logger.info(f"   ✅ Added {len(signers)} multisig signers")
     
     print_subsection("Treasury Proposal")
     
@@ -399,10 +402,10 @@ def demo_treasury_system():
         justification="Funding for community development initiatives"
     )
     
-    print(f"   ✅ Treasury proposal created: {proposal.proposal_id}")
-    print(f"   - Amount: {proposal.amount} TOKEN")
-    print(f"   - Recipient: {proposal.recipient_address}")
-    print(f"   - Status: {proposal.status.value}")
+    logger.info(f"   ✅ Treasury proposal created: {proposal.proposal_id}")
+    logger.info(f"   - Amount: {proposal.amount} TOKEN")
+    logger.info(f"   - Recipient: {proposal.recipient_address}")
+    logger.info(f"   - Status: {proposal.status.value}")
     
     print_subsection("Multisig Approval")
     
@@ -414,9 +417,9 @@ def demo_treasury_system():
             signers[i],
             signature
         )
-        print(f"   ✅ Signature {i+1} added: {approved}")
+        logger.info(f"   ✅ Signature {i+1} added: {approved}")
     
-    print(f"   - Multisig approved: {proposal.is_multisig_approved()}")
+    logger.info(f"   - Multisig approved: {proposal.is_multisig_approved()}")
     
     print_subsection("Treasury Execution")
     
@@ -427,19 +430,19 @@ def demo_treasury_system():
     )
     
     if success:
-        print(f"   ✅ Treasury proposal executed successfully")
+        logger.info(f"   ✅ Treasury proposal executed successfully")
         new_balance = treasury_manager.get_treasury_balance("0xTOKEN")
-        print(f"   - New treasury balance: {new_balance} TOKEN")
+        logger.info(f"   - New treasury balance: {new_balance} TOKEN")
     else:
-        print(f"   ❌ Treasury proposal execution failed")
+        logger.info(f"   ❌ Treasury proposal execution failed")
     
     print_subsection("Treasury Statistics")
     
     stats = treasury_manager.get_treasury_statistics()
-    print(f"   - Total balance: {stats['total_balance']}")
-    print(f"   - Total proposals: {stats['total_proposals']}")
-    print(f"   - Executed proposals: {stats['executed_proposals']}")
-    print(f"   - Multisig signers: {stats['multisig_signers']}")
+    logger.info(f"   - Total balance: {stats['total_balance']}")
+    logger.info(f"   - Total proposals: {stats['total_proposals']}")
+    logger.info(f"   - Executed proposals: {stats['executed_proposals']}")
+    logger.info(f"   - Multisig signers: {stats['multisig_signers']}")
 
 
 def demo_observability_system():
@@ -465,17 +468,17 @@ def demo_observability_system():
             event_type=event_type,
             metadata=metadata
         )
-        print(f"   ✅ Event emitted: {event_type} - {event.event_id}")
+        logger.info(f"   ✅ Event emitted: {event_type} - {event.event_id}")
     
     print_subsection("Audit Trail")
     
     audit_trail = observability.get_audit_trail()
     summary = audit_trail.get_audit_summary()
     
-    print(f"   - Total events: {summary['total_events']}")
-    print(f"   - Unique proposals: {summary['unique_proposals']}")
-    print(f"   - Unique voters: {summary['unique_voters']}")
-    print(f"   - Integrity verified: {summary['integrity_verified']}")
+    logger.info(f"   - Total events: {summary['total_events']}")
+    logger.info(f"   - Unique proposals: {summary['unique_proposals']}")
+    logger.info(f"   - Unique voters: {summary['unique_voters']}")
+    logger.info(f"   - Integrity verified: {summary['integrity_verified']}")
     
     print_subsection("Merkle Proofs")
     
@@ -490,13 +493,13 @@ def demo_observability_system():
     ]
     
     merkle_root = merkle_manager.create_merkle_tree("test_votes", vote_data)
-    print(f"   ✅ Merkle tree created: {merkle_root}")
+    logger.info(f"   ✅ Merkle tree created: {merkle_root}")
     
     # Generate proof for a vote
     proof = merkle_manager.generate_merkle_proof("test_votes", "0x111:for:1000")
     if proof:
-        print(f"   ✅ Merkle proof generated for vote")
-        print(f"   - Proof verified: {merkle_manager.verify_merkle_proof(proof)}")
+        logger.info(f"   ✅ Merkle proof generated for vote")
+        logger.info(f"   - Proof verified: {merkle_manager.verify_merkle_proof(proof)}")
 
 
 def demo_upgrade_system():
@@ -525,8 +528,8 @@ def demo_upgrade_system():
         is_governance_controlled=True
     )
     
-    print(f"   ✅ Governance proxy: {governance_proxy.proxy_address}")
-    print(f"   ✅ Timelock proxy: {timelock_proxy.proxy_address}")
+    logger.info(f"   ✅ Governance proxy: {governance_proxy.proxy_address}")
+    logger.info(f"   ✅ Timelock proxy: {timelock_proxy.proxy_address}")
     
     print_subsection("Upgrade Proposal")
     
@@ -541,10 +544,10 @@ def demo_upgrade_system():
         execution_delay=1000
     )
     
-    print(f"   ✅ Upgrade proposal created: {upgrade_proposal.proposal_id}")
-    print(f"   - Target contract: {upgrade_proposal.target_contract}")
-    print(f"   - New implementation: {upgrade_proposal.new_implementation}")
-    print(f"   - Status: {upgrade_proposal.status.value}")
+    logger.info(f"   ✅ Upgrade proposal created: {upgrade_proposal.proposal_id}")
+    logger.info(f"   - Target contract: {upgrade_proposal.target_contract}")
+    logger.info(f"   - New implementation: {upgrade_proposal.new_implementation}")
+    logger.info(f"   - Status: {upgrade_proposal.status.value}")
     
     print_subsection("Emergency Escape Hatch")
     
@@ -556,19 +559,19 @@ def demo_upgrade_system():
         required_signatures=3
     )
     
-    print(f"   ✅ Emergency escape hatch created: {escape_hatch.hatch_id}")
-    print(f"   - Required signatures: {escape_hatch.required_signatures}")
-    print(f"   - Trigger conditions: {escape_hatch.trigger_conditions}")
+    logger.info(f"   ✅ Emergency escape hatch created: {escape_hatch.hatch_id}")
+    logger.info(f"   - Required signatures: {escape_hatch.required_signatures}")
+    logger.info(f"   - Trigger conditions: {escape_hatch.trigger_conditions}")
     
     print_subsection("Upgrade Statistics")
     
     stats = upgrade_manager.get_upgrade_statistics()
-    print(f"   - Total proposals: {stats['total_proposals']}")
-    print(f"   - Completed upgrades: {stats['completed_upgrades']}")
-    print(f"   - Failed upgrades: {stats['failed_upgrades']}")
-    print(f"   - Success rate: {stats['success_rate']:.2%}")
-    print(f"   - Proxy contracts: {stats['proxy_contracts']}")
-    print(f"   - Emergency hatches: {stats['emergency_hatches']}")
+    logger.info(f"   - Total proposals: {stats['total_proposals']}")
+    logger.info(f"   - Completed upgrades: {stats['completed_upgrades']}")
+    logger.info(f"   - Failed upgrades: {stats['failed_upgrades']}")
+    logger.info(f"   - Success rate: {stats['success_rate']:.2%}")
+    logger.info(f"   - Proxy contracts: {stats['proxy_contracts']}")
+    logger.info(f"   - Emergency hatches: {stats['emergency_hatches']}")
 
 
 def demo_emergency_scenarios():
@@ -582,9 +585,9 @@ def demo_emergency_scenarios():
     
     # Pause governance due to emergency
     engine.emergency_pause("Critical security vulnerability detected", 1000)
-    print(f"   ✅ Governance paused: {engine.state.emergency_paused}")
-    print(f"   - Reason: {engine.state.emergency_pause_reason}")
-    print(f"   - Block: {engine.state.emergency_pause_block}")
+    logger.info(f"   ✅ Governance paused: {engine.state.emergency_paused}")
+    logger.info(f"   - Reason: {engine.state.emergency_pause_reason}")
+    logger.info(f"   - Block: {engine.state.emergency_pause_block}")
     
     # Try to create proposal during pause (should fail)
     try:
@@ -594,15 +597,15 @@ def demo_emergency_scenarios():
             description="This should fail during pause",
             proposal_type=ProposalType.PARAMETER_CHANGE
         )
-        print("   ❌ Proposal creation should have failed during pause")
+        logger.info("   ❌ Proposal creation should have failed during pause")
     except Exception as e:
-        print(f"   ✅ Proposal creation blocked during pause: {type(e).__name__}")
+        logger.info(f"   ✅ Proposal creation blocked during pause: {type(e).__name__}")
     
     print_subsection("Emergency Resume")
     
     # Resume governance
     engine.emergency_resume()
-    print(f"   ✅ Governance resumed: {not engine.state.emergency_paused}")
+    logger.info(f"   ✅ Governance resumed: {not engine.state.emergency_paused}")
     
     # Now should be able to create proposals
     proposal = engine.create_proposal(
@@ -611,22 +614,22 @@ def demo_emergency_scenarios():
         description="This should work after resume",
         proposal_type=ProposalType.PARAMETER_CHANGE
     )
-    print(f"   ✅ Proposal created after resume: {proposal.proposal_id}")
+    logger.info(f"   ✅ Proposal created after resume: {proposal.proposal_id}")
 
 
 def main():
     """Main demonstration function."""
-    print("🎯 DubChain Governance System Demonstration")
-    print("=" * 60)
-    print("This demonstration showcases all features of the governance system:")
-    print("- Proposal lifecycle management")
-    print("- Multiple voting strategies")
-    print("- Vote delegation system")
-    print("- Security and attack detection")
-    print("- Treasury management")
-    print("- Observability and audit trails")
-    print("- Upgrade mechanisms")
-    print("- Emergency scenarios")
+    logger.info("🎯 DubChain Governance System Demonstration")
+    logger.info("=" * 60)
+    logger.info("This demonstration showcases all features of the governance system:")
+    logger.info("- Proposal lifecycle management")
+    logger.info("- Multiple voting strategies")
+    logger.info("- Vote delegation system")
+    logger.info("- Security and attack detection")
+    logger.info("- Treasury management")
+    logger.info("- Observability and audit trails")
+    logger.info("- Upgrade mechanisms")
+    logger.info("- Emergency scenarios")
     
     try:
         # Run all demonstrations
@@ -641,21 +644,21 @@ def main():
         demo_emergency_scenarios()
         
         print_section("Demonstration Complete")
-        print("✅ All governance system features demonstrated successfully!")
-        print("\nKey Features Demonstrated:")
-        print("   🗳️  Proposal lifecycle with voting and execution")
-        print("   🎯 Multiple voting strategies (token-weighted, quadratic, etc.)")
-        print("   🔗 Delegation system with circular prevention")
-        print("   🔒 Security system with attack detection")
-        print("   💰 Treasury management with multisig controls")
-        print("   📊 Observability with events and audit trails")
-        print("   🔄 Upgrade system with proxy patterns")
-        print("   🚨 Emergency pause and resume functionality")
+        logger.info("✅ All governance system features demonstrated successfully!")
+        logger.info("\nKey Features Demonstrated:")
+        logger.info("   🗳️  Proposal lifecycle with voting and execution")
+        logger.info("   🎯 Multiple voting strategies (token-weighted, quadratic, etc.)")
+        logger.info("   🔗 Delegation system with circular prevention")
+        logger.info("   🔒 Security system with attack detection")
+        logger.info("   💰 Treasury management with multisig controls")
+        logger.info("   📊 Observability with events and audit trails")
+        logger.info("   🔄 Upgrade system with proxy patterns")
+        logger.info("   🚨 Emergency pause and resume functionality")
         
-        print("\n🎉 Governance system is production-ready!")
+        logger.info("\n🎉 Governance system is production-ready!")
         
     except Exception as e:
-        print(f"\n❌ Demonstration failed: {e}")
+        logger.info(f"\n❌ Demonstration failed: {e}")
         import traceback
         traceback.print_exc()
         return 1

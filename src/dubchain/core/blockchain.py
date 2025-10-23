@@ -9,6 +9,9 @@ This module provides the core blockchain functionality including:
 - State management
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import json
 import time
 from dataclasses import dataclass, field
@@ -154,7 +157,7 @@ class Blockchain:
             return True
 
         except Exception as e:
-            print(f"Error adding block: {e}")
+            logger.info(f"Error adding block: {e}")
             return False
 
     def _validate_block(self, block: Block) -> bool:
@@ -284,7 +287,7 @@ class Blockchain:
             return None
 
         except Exception as e:
-            print(f"Error mining block: {e}")
+            logger.info(f"Error mining block: {e}")
             return None
 
     def _calculate_block_reward(self) -> int:

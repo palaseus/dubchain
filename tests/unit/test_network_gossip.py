@@ -2,6 +2,9 @@
 Unit tests for network gossip module.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import time
 from unittest.mock import AsyncMock, MagicMock, Mock, patch

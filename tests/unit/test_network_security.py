@@ -1,5 +1,8 @@
 """Tests for network security module."""
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 import time
 from unittest.mock import Mock, patch

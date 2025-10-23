@@ -9,6 +9,9 @@ This module provides:
 - Performance trend analysis and forecasting
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import json
 import os
@@ -286,7 +289,7 @@ class AlertManager:
                 try:
                     callback(alert)
                 except Exception as e:
-                    print(f"Alert callback failed: {e}")
+                    logger.info(f"Alert callback failed: {e}")
                     
         return new_alerts
         
@@ -411,7 +414,7 @@ class PerformanceMonitor:
                 self._collect_system_metrics()
                 self.alert_manager.check_thresholds()
             except Exception as e:
-                print(f"Monitoring error: {e}")
+                logger.info(f"Monitoring error: {e}")
                 
     def _collect_system_metrics(self) -> None:
         """Collect system performance metrics."""

@@ -5,6 +5,9 @@ This module tests all voting strategies including token-weighted,
 quadratic voting, conviction voting, and snapshot-based voting.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 import math
 from unittest.mock import Mock, patch

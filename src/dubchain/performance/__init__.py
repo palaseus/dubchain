@@ -9,6 +9,9 @@ This module provides comprehensive performance optimization tools including:
 - Performance monitoring and alerting
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 from .profiling import (
     ProfilingHarness,
     PerformanceProfiler,

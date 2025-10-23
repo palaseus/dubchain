@@ -5,6 +5,9 @@ This module provides a sophisticated HD wallet system with multi-account support
 advanced key derivation, and comprehensive wallet management features.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import json
 import time
 from dataclasses import dataclass, field
@@ -354,7 +357,7 @@ class HDWallet:
             
         except Exception as e:
             # Log error and return False
-            print(f"Signature verification failed: {e}")
+            logger.info(f"Signature verification failed: {e}")
             return False
 
     def export_private_key(self, account_index: int) -> str:

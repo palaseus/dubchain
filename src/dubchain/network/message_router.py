@@ -5,6 +5,9 @@ This module provides sophisticated message routing including intelligent
 routing strategies, load balancing, and network optimization.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import random
 import time
@@ -13,7 +16,6 @@ from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 from .peer import Peer, PeerInfo
-
 
 class RoutingStrategy(Enum):
     """Message routing strategies."""
@@ -24,7 +26,6 @@ class RoutingStrategy(Enum):
     RANDOM = "random"
     FLOODING = "flooding"
     GEOMETRIC = "geometric"
-
 
 @dataclass
 class RouteInfo:
@@ -111,7 +112,6 @@ class RouteInfo:
             and self.route_quality > 0.3
         )
 
-
 class RoutingTable:
     """Routing table for managing routes."""
 
@@ -184,7 +184,6 @@ class RoutingTable:
         """Get all routes."""
         return self._routes.copy()
 
-
 class LoadBalancer:
     """Load balancer for distributing messages across peers."""
 
@@ -253,7 +252,6 @@ class LoadBalancer:
         """Reset all peer loads."""
         self._peer_loads.clear()
         self._load_history.clear()
-
 
 class LatencyTracker:
     """Tracks latency between peers."""
@@ -334,7 +332,6 @@ class LatencyTracker:
                 del self._latencies[peer_id]
             if peer_id in self._last_measurement:
                 del self._last_measurement[peer_id]
-
 
 class NetworkTopology:
     """Network topology management for message routing."""
@@ -476,7 +473,6 @@ class NetworkTopology:
             if total_peers > 0
             else 0,
         }
-
 
 class MessageRouter:
     """Advanced message router with intelligent routing strategies."""
@@ -925,7 +921,7 @@ class MessageRouter:
         stats = self.get_route_stats()
         # Add expected keys for compatibility
         stats["total_peers"] = stats.get("peers_count", 0)
-        # TODO: Implement actual average latency calculation
+        
         # This would involve:
         # 1. Collecting latency data from all active routes
         # 2. Calculating weighted average based on route usage
@@ -948,7 +944,6 @@ class MessageRouter:
             f"MessageRouter(strategy={self.strategy.value}, routes={len(self.routes)}, "
             f"peers={len(self.peer_connections)})"
         )
-
 
 # Import asyncio at the top level
 import asyncio

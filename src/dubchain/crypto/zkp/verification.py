@@ -5,6 +5,9 @@ This module provides proof verification, caching, replay protection,
 and batch verification capabilities.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import hashlib
 import threading
 import time

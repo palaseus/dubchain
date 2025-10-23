@@ -8,17 +8,21 @@ This module implements off-chain state management including:
 - State validation and integrity checks
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import hashlib
 import json
 import time
 import uuid
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 from ..errors import ClientError
 from dubchain.logging import get_logger
-from .channel_protocol import ChannelState, ChannelParticipant, Payment
+from .channel_protocol import ChannelState, ChannelParticipant, Payment, StateUpdateType
+from .channel_protocol import ChannelStatus
 
 logger = get_logger(__name__)
 
@@ -83,14 +87,14 @@ class StateCompressor:
     def compress_state(self, state: ChannelState) -> Tuple[bytes, CompressionType]:
         """Compress state data."""
         try:
-            if not self.config.compression_enabled:
+            if not getattr(self.config, 'compression_enabled', True):
                 return self._serialize_state(state), CompressionType.NONE
             
             # Serialize state
             state_data = self._serialize_state(state)
             
             # Choose compression type
-            compression_type = self.config.compression_type
+            compression_type = getattr(self.config, 'compression_type', CompressionType.GZIP)
             
             # Compress based on type
             if compression_type == CompressionType.GZIP:
@@ -314,7 +318,7 @@ class StateVersioner:
             self.snapshots[channel_id].append(snapshot)
             
             # Limit snapshots per channel
-            if len(self.snapshots[channel_id]) > self.config.max_snapshots_per_channel:
+            if len(self.snapshots[channel_id]) > getattr(self.config, 'max_snapshots_per_channel', 100):
                 # Remove oldest snapshot
                 self.snapshots[channel_id].pop(0)
             
@@ -348,7 +352,7 @@ class StateVersioner:
     def rollback_to_snapshot(self, channel_id: str, snapshot_id: str) -> Optional[ChannelState]:
         """Rollback to a specific snapshot."""
         try:
-            if not self.config.enable_rollback:
+            if not getattr(self.config, 'enable_rollback', True):
                 logger.error("Rollback not enabled")
                 return None
             
@@ -477,6 +481,7 @@ class StateValidator:
     def __init__(self, config: StateConfig):
         """Initialize state validator."""
         self.config = config
+        self.custom_rules = {}  # Added for test compatibility
         logger.info("Initialized state validator")
     
     def validate_state(self, state: ChannelState) -> bool:
@@ -496,10 +501,18 @@ class StateValidator:
                 return False
             
             # Check participant consistency
-            for addr, participant in state.participants.items():
-                if not self._validate_participant(participant):
-                    logger.error(f"Invalid participant {addr}")
-                    return False
+            if isinstance(state.participants, list):
+                # participants is a list of strings
+                for participant in state.participants:
+                    if not isinstance(participant, str) or not participant:
+                        logger.error(f"Invalid participant: {participant}")
+                        return False
+            elif isinstance(state.participants, dict):
+                # participants is a dictionary of ChannelParticipant objects
+                for addr, participant in state.participants.items():
+                    if not self._validate_participant(participant):
+                        logger.error(f"Invalid participant {addr}")
+                        return False
             
             # Check balance consistency
             if not self._validate_balance_consistency(state):
@@ -550,8 +563,11 @@ class StateValidator:
     def _validate_balance_consistency(self, state: ChannelState) -> bool:
         """Validate balance consistency."""
         try:
-            # Calculate total balance from participants
-            calculated_total = sum(p.balance for p in state.participants.values())
+            # Calculate total balance from balances dictionary
+            if state.balances:
+                calculated_total = sum(state.balances.values())
+            else:
+                calculated_total = 0
             
             if calculated_total != state.total_balance:
                 logger.error(f"Balance mismatch: calculated {calculated_total}, stored {state.total_balance}")
@@ -583,13 +599,17 @@ class StateValidator:
         """Validate state size."""
         try:
             # Estimate state size
-            size = len(state.channel_id)
-            size += sum(len(addr) + len(p.public_key) for addr, p in state.participants.items())
+            size = len(str(state.channel_id))
+            if isinstance(state.participants, list):
+                size += sum(len(p) for p in state.participants)
+            elif isinstance(state.participants, dict):
+                size += sum(len(addr) + len(p.public_key) for addr, p in state.participants.items())
             size += len(state.payments) * 100  # Estimate per payment
             size += len(state.metadata) * 50  # Estimate per metadata entry
             
-            if size > self.config.max_state_size:
-                logger.error(f"State size {size} exceeds limit {self.config.max_state_size}")
+            max_size = getattr(self.config, 'max_state_size', 10 * 1024 * 1024)  # Default 10MB
+            if size > max_size:
+                logger.error(f"State size {size} exceeds limit {max_size}")
                 return False
             
             return True
@@ -603,16 +623,11 @@ class StateValidator:
         try:
             # Create hashable representation
             hash_data = {
-                'channel_id': state.channel_id,
-                'participants': {
-                    addr: {
-                        'balance': p.balance,
-                        'nonce': p.nonce,
-                        'public_key': p.public_key
-                    }
-                    for addr, p in state.participants.items()
-                },
+                'channel_id': str(state.channel_id),
+                'participants': state.participants,
+                'balances': state.balances,
                 'total_balance': state.total_balance,
+                'sequence_number': state.sequence_number,
                 'nonce': state.nonce,
                 'created_at': state.created_at,
                 'last_updated': state.last_updated
@@ -635,6 +650,79 @@ class StateValidator:
         except Exception as e:
             logger.error(f"Error calculating state hash: {e}")
             return ""
+    
+    def validate_state_update(self, update: "StateUpdate", channel_state: "ChannelState", public_keys: Dict[str, "PublicKey"]) -> Tuple[bool, List[str]]:
+        """Validate a state update."""
+        errors = []
+        
+        try:
+            # Check sequence number
+            if update.sequence_number != (channel_state.sequence_number or 0) + 1:
+                errors.append("Invalid sequence number")
+            
+            # Check participants match
+            if update.participants != channel_state.participants:
+                errors.append("Participant set mismatch")
+            
+            # Check signatures
+            if not update.verify_signatures(public_keys):
+                errors.append("Invalid signatures")
+            
+            # Check signature requirements
+            if hasattr(self.config, 'require_all_signatures') and self.config.require_all_signatures:
+                if not update.signatures or len(update.signatures) < len(channel_state.participants):
+                    errors.append("Insufficient signatures")
+            
+            # Check update-specific validation
+            if update.update_type == StateUpdateType.TRANSFER:
+                sender = update.data.get("sender")
+                recipient = update.data.get("recipient")
+                amount = update.data.get("amount", 0)
+                
+                if sender not in channel_state.balances:
+                    errors.append(f"Sender {sender} not found")
+                elif channel_state.balances[sender] < amount:
+                    errors.append("Insufficient balance")
+                
+                if recipient not in channel_state.balances:
+                    errors.append(f"Recipient {recipient} not found")
+            
+            elif update.update_type == StateUpdateType.MULTI_PARTY:
+                transfers = update.data.get("transfers", [])
+                for transfer in transfers:
+                    sender = transfer.get("sender")
+                    recipient = transfer.get("recipient")
+                    amount = transfer.get("amount", 0)
+                    
+                    if sender not in channel_state.balances:
+                        errors.append(f"Sender {sender} not found")
+                    elif channel_state.balances[sender] < amount:
+                        errors.append(f"Insufficient balance for {sender}")
+                    
+                    if recipient not in channel_state.balances:
+                        errors.append(f"Recipient {recipient} not found")
+            
+            elif update.update_type == StateUpdateType.CONDITIONAL:
+                # Basic conditional validation
+                condition = update.data.get("condition", {})
+                if not condition:
+                    errors.append("Condition required for conditional update")
+            
+            # Run custom validation rules
+            for rule_name, rule_func in self.custom_rules.items():
+                is_valid, rule_errors = rule_func(update, channel_state, public_keys)
+                if not is_valid:
+                    errors.extend(rule_errors)
+            
+            return len(errors) == 0, errors
+            
+        except Exception as e:
+            logger.error(f"Error validating state update: {e}")
+            return False, [f"Validation error: {str(e)}"]
+    
+    def add_validation_rule(self, name: str, rule_func: Callable) -> None:
+        """Add a custom validation rule."""
+        self.custom_rules[name] = rule_func
 
 class OffChainStateManager:
     """Main off-chain state management system."""
@@ -646,6 +734,7 @@ class OffChainStateManager:
         self.versioner = StateVersioner(config)
         self.validator = StateValidator(config)
         self.states: Dict[str, ChannelState] = {}
+        self.pending_updates: Dict[str, List["StateUpdate"]] = {}  # Added for test compatibility
         logger.info("Initialized off-chain state manager")
     
     def store_state(self, channel_id: str, state: ChannelState) -> bool:
@@ -660,7 +749,7 @@ class OffChainStateManager:
             self.states[channel_id] = state
             
             # Create snapshot if needed
-            if self.config.enable_versioning:
+            if getattr(self.config, 'enable_versioning', True):
                 self.versioner.create_snapshot(channel_id, state)
             
             logger.info(f"Stored state for channel {channel_id}")
@@ -752,6 +841,294 @@ class OffChainStateManager:
         except Exception as e:
             logger.error(f"Error cleaning up snapshots: {e}")
             return 0
+    
+    def create_channel_state(self, channel_id: str, participants: List[str], deposits: Dict[str, int]) -> ChannelState:
+        """Create a new channel state."""
+        try:
+            # Create initial balances from deposits
+            balances = deposits.copy()
+            total_balance = sum(deposits.values())
+            
+            # Create channel state
+            state = ChannelState(
+                channel_id=channel_id,
+                participants=participants,
+                deposits=deposits,
+                balances=balances,
+                total_balance=total_balance,
+                sequence_number=0,
+                last_update_timestamp=int(time.time()),
+                status=ChannelStatus.PENDING,
+                config=self.config
+            )
+            
+            # Set state hash
+            state.state_hash = self.validator._calculate_state_hash(state)
+            
+            # Store the state
+            self.store_state(channel_id, state)
+            
+            logger.info(f"Created channel state for {channel_id}")
+            return state
+            
+        except Exception as e:
+            logger.error(f"Error creating channel state: {e}")
+            raise
+    
+    def get_channel_state(self, channel_id: str) -> Optional[ChannelState]:
+        """Get channel state by ID."""
+        return self.get_state(channel_id)
+    
+    def update_channel_state(self, channel_id: str, update: "StateUpdate", public_keys: Dict[str, "PublicKey"]) -> Tuple[bool, List[str]]:
+        """Update channel state with a state update."""
+        try:
+            # Get current state
+            current_state = self.get_state(channel_id)
+            if not current_state:
+                logger.error(f"Channel {channel_id} not found")
+                return False, [f"Channel {channel_id} not found"]
+            
+            # Validate the update
+            is_valid, errors = self.validator.validate_state_update(update, current_state, public_keys)
+            if not is_valid:
+                logger.error(f"Invalid state update: {errors}")
+                return False, errors
+            
+            # Apply the update
+            if not current_state.apply_state_update(update):
+                logger.error("Failed to apply state update")
+                return False, ["Failed to apply state update"]
+            
+            # Update state hash
+            current_state.state_hash = self.validator._calculate_state_hash(current_state)
+            
+            # Store updated state
+            self.store_state(channel_id, current_state)
+            
+            logger.info(f"Updated channel state for {channel_id}")
+            return True, []
+            
+        except Exception as e:
+            logger.error(f"Error updating channel state: {e}")
+            return False, [f"Error updating channel state: {str(e)}"]
+    
+    def sign_state_update(self, update: "StateUpdate", participant: str, private_key: "PrivateKey") -> "StateSignature":
+        """Sign a state update."""
+        try:
+            # Create signature
+            message_hash = update.get_hash().encode()
+            signature = private_key.sign(message_hash)
+            
+            # Create state signature
+            state_sig = StateSignature(
+                channel_id=str(update.channel_id),
+                state_hash=update.get_hash(),
+                signer=participant,
+                signature=signature,
+                timestamp=int(time.time()),
+                participant=participant
+            )
+            
+            logger.info(f"Signed state update for participant {participant}")
+            return state_sig
+            
+        except Exception as e:
+            logger.error(f"Error signing state update: {e}")
+            raise
+    
+    def collect_signatures(self, update: "StateUpdate", participants: List[str], private_keys: Dict[str, "PrivateKey"]) -> Dict[str, "StateSignature"]:
+        """Collect signatures from multiple participants."""
+        try:
+            signatures = {}
+            
+            for participant in participants:
+                if participant in private_keys:
+                    signature = self.sign_state_update(update, participant, private_keys[participant])
+                    signatures[participant] = signature
+                    
+                    # Add signature to update
+                    update.add_signature(participant, signature.signature)
+            
+            logger.info(f"Collected {len(signatures)} signatures")
+            return signatures
+            
+        except Exception as e:
+            logger.error(f"Error collecting signatures: {e}")
+            return {}
+    
+    def verify_state_consistency(self, channel_id: str) -> Tuple[bool, List[str]]:
+        """Verify state consistency for a channel."""
+        try:
+            state = self.get_state(channel_id)
+            if not state:
+                logger.error(f"Channel {channel_id} not found")
+                return False, [f"Channel {channel_id} not found"]
+            
+            errors = []
+            
+            # Validate state integrity
+            if not self.validator.validate_state(state):
+                logger.error(f"State validation failed for channel {channel_id}")
+                errors.append("State validation failed")
+            
+            # Check balance consistency
+            if state.balances:
+                total_balances = sum(state.balances.values())
+                if total_balances != state.total_balance:
+                    logger.error(f"Balance conservation violated: {total_balances} != {state.total_balance}")
+                    errors.append(f"Balance conservation violated: {total_balances} != {state.total_balance}")
+            
+            if errors:
+                return False, errors
+            
+            logger.info(f"State consistency verified for channel {channel_id}")
+            return True, []
+            
+        except Exception as e:
+            logger.error(f"Error verifying state consistency: {e}")
+            return False, [f"Error verifying state consistency: {str(e)}"]
+    
+    def resolve_state_conflicts(self, channel_id: str, conflicting_states: List[ChannelState]) -> Optional[ChannelState]:
+        """Resolve state conflicts using latest wins strategy."""
+        try:
+            if not conflicting_states:
+                return None
+            
+            # Sort by sequence number (latest first)
+            sorted_states = sorted(conflicting_states, key=lambda s: s.sequence_number, reverse=True)
+            
+            # Take the latest state
+            resolved_state = sorted_states[0]
+            
+            # Store the resolved state
+            self.store_state(channel_id, resolved_state)
+            
+            logger.info(f"Resolved state conflicts for channel {channel_id} using latest wins")
+            return resolved_state
+            
+        except Exception as e:
+            logger.error(f"Error resolving state conflicts: {e}")
+            return None
+    
+    def synchronize_states(self, channel_id: str, remote_states: List[ChannelState]) -> bool:
+        """Synchronize local state with remote states."""
+        try:
+            if not remote_states:
+                logger.error("No remote states provided")
+                return False
+            
+            # Use the first remote state for synchronization
+            remote_state = remote_states[0]
+            local_state = self.get_state(channel_id)
+            
+            if not local_state:
+                # No local state, use remote state
+                self.store_state(channel_id, remote_state)
+                logger.info(f"Stored remote state for channel {channel_id}")
+                return True
+            
+            # Compare sequence numbers
+            if remote_state.sequence_number > local_state.sequence_number:
+                # Remote state is newer, update local
+                self.store_state(channel_id, remote_state)
+                logger.info(f"Updated local state with remote for channel {channel_id}")
+                return True
+            elif remote_state.sequence_number < local_state.sequence_number:
+                # Local state is newer, keep local
+                logger.info(f"Local state is newer for channel {channel_id}")
+                return True
+            else:
+                # Same sequence number, check timestamps
+                if remote_state.last_update_timestamp > local_state.last_update_timestamp:
+                    self.store_state(channel_id, remote_state)
+                    logger.info(f"Updated local state with newer remote for channel {channel_id}")
+                    return True
+                else:
+                    logger.info(f"Local state is up to date for channel {channel_id}")
+                    return True
+            
+        except Exception as e:
+            logger.error(f"Error synchronizing states: {e}")
+            return False
+    
+    def export_state(self, channel_id: str) -> Optional[Dict[str, Any]]:
+        """Export channel state for import."""
+        try:
+            state = self.get_state(channel_id)
+            if not state:
+                logger.error(f"Channel {channel_id} not found")
+                return None
+            
+            # Convert state to dictionary
+            state_dict = {
+                "channel_id": str(state.channel_id),
+                "participants": state.participants,
+                "deposits": state.deposits,
+                "balances": state.balances,
+                "total_balance": state.total_balance,
+                "sequence_number": state.sequence_number,
+                "last_update_timestamp": state.last_update_timestamp,
+                "status": state.status.value if hasattr(state.status, 'value') else str(state.status),
+                "nonce": state.nonce,
+                "created_at": state.created_at,
+                "last_updated": state.last_updated,
+                "state_hash": state.state_hash,
+                "metadata": state.metadata
+            }
+            
+            logger.info(f"Exported state for channel {channel_id}")
+            return state_dict
+            
+        except Exception as e:
+            logger.error(f"Error exporting state: {e}")
+            return None
+    
+    def import_state(self, state_data: Dict[str, Any]) -> bool:
+        """Import channel state from exported data."""
+        try:
+            # Create ChannelState from imported data
+            state = ChannelState(
+                channel_id=state_data["channel_id"],
+                participants=state_data["participants"],
+                deposits=state_data["deposits"],
+                balances=state_data["balances"],
+                total_balance=state_data["total_balance"],
+                sequence_number=state_data["sequence_number"],
+                last_update_timestamp=state_data["last_update_timestamp"],
+                status=ChannelStatus(state_data["status"]) if isinstance(state_data["status"], str) else state_data["status"],
+                nonce=state_data["nonce"],
+                created_at=state_data["created_at"],
+                last_updated=state_data["last_updated"],
+                state_hash=state_data["state_hash"],
+                metadata=state_data["metadata"]
+            )
+            
+            # Store the imported state
+            self.store_state(state_data["channel_id"], state)
+            
+            logger.info(f"Imported state for channel {state_data['channel_id']}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error importing state: {e}")
+            return False
+    
+    def cleanup_channel(self, channel_id: str) -> bool:
+        """Clean up channel data."""
+        try:
+            # Clean up snapshots but preserve the channel state
+            self.cleanup_old_snapshots(channel_id, 0)
+            
+            # Clear pending updates
+            if channel_id in self.pending_updates:
+                del self.pending_updates[channel_id]
+            
+            logger.info(f"Cleaned up channel {channel_id}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error cleaning up channel: {e}")
+            return False
 
 @dataclass
 class StateTransition:
@@ -763,7 +1140,101 @@ class StateTransition:
     transition_type: str
     timestamp: int
     signature: Optional[str] = None
+    validation_rules: Optional[List[str]] = None  # Added for test compatibility
+    preconditions: Optional[Dict[str, Any]] = None  # Added for test compatibility
+    postconditions: Optional[Dict[str, Any]] = None  # Added for test compatibility
     metadata: Dict[str, Any] = field(default_factory=dict)
+    
+    def __init__(self, transition_id: str = None, channel_id: str = None, 
+                 from_state: ChannelState = None, to_state: ChannelState = None,
+                 transition_type: str = None, timestamp: int = None,
+                 validation_rules: List[str] = None, preconditions: Dict[str, Any] = None,
+                 postconditions: Dict[str, Any] = None, **kwargs):
+        """Initialize StateTransition with flexible parameters."""
+        self.transition_id = transition_id or f"transition_{int(time.time())}_{uuid.uuid4().hex[:8]}"
+        self.channel_id = channel_id or "default_channel"
+        self.from_state = from_state
+        self.to_state = to_state
+        self.transition_type = transition_type or "default"
+        self.timestamp = timestamp or int(time.time())
+        self.signature = kwargs.get('signature')
+        self.validation_rules = validation_rules or []
+        self.preconditions = preconditions or {}
+        self.postconditions = postconditions or {}
+        self.metadata = kwargs.get('metadata', {})
+    
+    def validate_preconditions(self, channel_state=None) -> bool:
+        """Validate preconditions for the transition."""
+        try:
+            if not self.preconditions:
+                return True
+            
+            # Use provided channel_state or self.from_state
+            state_to_check = channel_state or self.from_state
+            
+            # Example precondition validation
+            if "min_balance" in self.preconditions:
+                min_balance_info = self.preconditions["min_balance"]
+                participant = min_balance_info.get("participant")
+                amount = min_balance_info.get("amount", 0)
+                
+                if participant and state_to_check:
+                    if hasattr(state_to_check, 'balances') and state_to_check.balances:
+                        if participant in state_to_check.balances:
+                            return state_to_check.balances[participant] >= amount
+                    elif isinstance(state_to_check, dict) and 'balances' in state_to_check:
+                        if participant in state_to_check['balances']:
+                            return state_to_check['balances'][participant] >= amount
+            
+            return True
+        except Exception:
+            return False
+    
+    def validate_postconditions(self, new_state=None) -> bool:
+        """Validate postconditions for the transition."""
+        try:
+            if not self.postconditions:
+                return True
+            
+            # Use provided new_state or self.to_state
+            state_to_check = new_state or self.to_state
+            
+            # Example postcondition validation
+            if "balance_conservation" in self.postconditions:
+                if self.from_state and state_to_check:
+                    # Calculate original total
+                    if hasattr(self.from_state, 'balances') and self.from_state.balances:
+                        original_total = sum(self.from_state.balances.values())
+                    elif isinstance(self.from_state, dict) and 'balances' in self.from_state:
+                        original_total = sum(self.from_state['balances'].values())
+                    else:
+                        original_total = 0
+                    
+                    # Calculate new total
+                    if hasattr(state_to_check, 'balances') and state_to_check.balances:
+                        new_total = sum(state_to_check.balances.values())
+                    elif isinstance(state_to_check, dict) and 'balances' in state_to_check:
+                        new_total = sum(state_to_check['balances'].values())
+                    else:
+                        new_total = 0
+                    
+                    # Balance conservation means total should remain the same
+                    return original_total == new_total
+            
+            return True
+        except Exception:
+            return False
+    
+    def get_transition_hash(self) -> str:
+        """Get hash of the transition."""
+        import hashlib
+        # Use a deterministic hash that doesn't include timestamps for consistency
+        transition_data = f"{self.channel_id}:{self.transition_type}"
+        if self.from_state:
+            transition_data += f":{str(self.from_state)}"
+        if self.to_state:
+            transition_data += f":{str(self.to_state)}"
+        return hashlib.sha256(transition_data.encode()).hexdigest()
 
 @dataclass
 class StateSignature:
@@ -775,11 +1246,12 @@ class StateSignature:
     signature: str
     timestamp: int
     participant: Optional[str] = None  # For backward compatibility
+    nonce: Optional[int] = None  # Added for test compatibility
     metadata: Dict[str, Any] = field(default_factory=dict)
     
     def __init__(self, signature_id: str = None, channel_id: str = None, state_hash: str = None, 
                  signer: str = None, signature: str = None, timestamp: int = None, 
-                 participant: str = None, **kwargs):
+                 participant: str = None, nonce: int = None, **kwargs):
         """Initialize StateSignature with flexible parameters."""
         self.signature_id = signature_id or f"sig_{int(time.time())}_{uuid.uuid4().hex[:8]}"
         self.channel_id = channel_id or "default_channel"
@@ -788,6 +1260,7 @@ class StateSignature:
         self.signature = signature or ""
         self.timestamp = timestamp or int(time.time())
         self.participant = participant
+        self.nonce = nonce
         self.metadata = kwargs.get('metadata', {})
     
     def __post_init__(self):
@@ -795,6 +1268,33 @@ class StateSignature:
         if self.participant is not None and self.signer != self.participant:
             # If participant is provided and different from signer, use participant as signer
             self.signer = self.participant
+    
+    def verify(self, public_key: "PublicKey", message_hash: bytes) -> bool:
+        """Verify the signature."""
+        try:
+            # Handle both Signature objects and raw bytes
+            if hasattr(self.signature, 'verify'):
+                # It's a Signature object
+                return public_key.verify(self.signature, message_hash)
+            else:
+                # It's raw bytes or string, try to verify directly
+                return public_key.verify(self.signature, message_hash)
+        except Exception:
+            return False
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary."""
+        return {
+            "signature_id": self.signature_id,
+            "channel_id": self.channel_id,
+            "state_hash": self.state_hash,
+            "signer": self.signer,
+            "signature": str(self.signature) if self.signature else "",
+            "timestamp": self.timestamp,
+            "participant": self.participant,
+            "nonce": self.nonce,
+            "metadata": self.metadata,
+        }
 
 __all__ = [
     "OffChainStateManager",

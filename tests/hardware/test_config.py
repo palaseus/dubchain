@@ -4,6 +4,9 @@ Hardware Acceleration Test Configuration
 This module provides configuration and utilities for hardware acceleration tests.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 import unittest
 import os

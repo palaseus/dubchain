@@ -2,6 +2,9 @@
 Tests for sharding cross-shard communication module.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import time
 from dataclasses import dataclass

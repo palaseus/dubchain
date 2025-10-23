@@ -5,6 +5,9 @@ This module automatically fixes interface mismatches between tests and implement
 using GPU acceleration and parallel processing for maximum speed.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import time
 import threading
 import concurrent.futures
@@ -73,7 +76,7 @@ class CUDATestAnalyzer:
                     mismatches.extend(class_mismatches)
         
         except Exception as e:
-            print(f"⚠️  Error analyzing {test_file}: {e}")
+            logger.info(f"⚠️  Error analyzing {test_file}: {e}")
         
         return mismatches
     
@@ -489,9 +492,9 @@ class CUDAInterfaceFixer:
         self.mismatches: List[InterfaceMismatch] = []
         self.fix_results: List[FixResult] = []
         
-        print(f"🚀 CUDA Interface Fixer initialized")
-        print(f"   Max Workers: {max_workers}")
-        print(f"   GPU Acceleration: {self.accelerator.available}")
+        logger.info(f"🚀 CUDA Interface Fixer initialized")
+        logger.info(f"   Max Workers: {max_workers}")
+        logger.info(f"   GPU Acceleration: {self.accelerator.available}")
     
     def discover_test_files(self, test_dir: str = "tests") -> List[str]:
         """Discover all test files."""
@@ -499,7 +502,7 @@ class CUDAInterfaceFixer:
         test_path = Path(test_dir)
         
         if not test_path.exists():
-            print(f"⚠️  Test directory {test_dir} not found")
+            logger.info(f"⚠️  Test directory {test_dir} not found")
             return test_files
         
         # Find all test files
@@ -508,12 +511,12 @@ class CUDAInterfaceFixer:
         
         test_files = [str(f) for f in test_files if f.is_file()]
         
-        print(f"📁 Discovered {len(test_files)} test files")
+        logger.info(f"📁 Discovered {len(test_files)} test files")
         return test_files
     
     def analyze_all_tests(self, test_files: List[str]) -> List[InterfaceMismatch]:
         """Analyze all test files for interface mismatches."""
-        print(f"🔍 Analyzing {len(test_files)} test files for interface mismatches")
+        logger.info(f"🔍 Analyzing {len(test_files)} test files for interface mismatches")
         
         # Use GPU acceleration for parallel analysis
         if self.accelerator.available and len(test_files) > 10:
@@ -549,34 +552,34 @@ class CUDAInterfaceFixer:
                         mismatches = future.result()
                         all_mismatches.extend(mismatches)
                     except Exception as e:
-                        print(f"⚠️  Error analyzing {test_file}: {e}")
+                        logger.info(f"⚠️  Error analyzing {test_file}: {e}")
         
         self.mismatches = all_mismatches
         
-        print(f"🎯 Found {len(self.mismatches)} interface mismatches")
+        logger.info(f"🎯 Found {len(self.mismatches)} interface mismatches")
         
         # Group by priority
         high_priority = [m for m in self.mismatches if m.priority == 1]
         medium_priority = [m for m in self.mismatches if m.priority == 2]
         low_priority = [m for m in self.mismatches if m.priority == 3]
         
-        print(f"   High Priority: {len(high_priority)}")
-        print(f"   Medium Priority: {len(medium_priority)}")
-        print(f"   Low Priority: {len(low_priority)}")
+        logger.info(f"   High Priority: {len(high_priority)}")
+        logger.info(f"   Medium Priority: {len(medium_priority)}")
+        logger.info(f"   Low Priority: {len(low_priority)}")
         
         return self.mismatches
     
     def fix_all_mismatches(self) -> List[FixResult]:
         """Fix all discovered interface mismatches."""
         if not self.mismatches:
-            print("⚠️  No mismatches to fix")
+            logger.info("⚠️  No mismatches to fix")
             return []
         
-        print(f"🔧 Fixing {len(self.mismatches)} interface mismatches")
+        logger.info(f"🔧 Fixing {len(self.mismatches)} interface mismatches")
         
         # Filter auto-fixable mismatches
         auto_fixable = [m for m in self.mismatches if m.auto_fixable]
-        print(f"   Auto-fixable: {len(auto_fixable)}")
+        logger.info(f"   Auto-fixable: {len(auto_fixable)}")
         
         # Use GPU acceleration for parallel fixing
         if self.accelerator.available and len(auto_fixable) > 5:
@@ -632,13 +635,13 @@ class CUDAInterfaceFixer:
         successful_fixes = [r for r in fix_results if r.success]
         failed_fixes = [r for r in fix_results if not r.success]
         
-        print(f"✅ Successfully fixed: {len(successful_fixes)}")
-        print(f"❌ Failed to fix: {len(failed_fixes)}")
+        logger.info(f"✅ Successfully fixed: {len(successful_fixes)}")
+        logger.info(f"❌ Failed to fix: {len(failed_fixes)}")
         
         if failed_fixes:
-            print(f"\n❌ Failed fixes:")
+            logger.info(f"\n❌ Failed fixes:")
             for result in failed_fixes[:5]:  # Show first 5 failures
-                print(f"   - {result.mismatch.file_path}: {result.error_message}")
+                logger.info(f"   - {result.mismatch.file_path}: {result.error_message}")
         
         return fix_results
     
@@ -709,7 +712,7 @@ def fix_interface_mismatches_cuda(test_dir: str = "tests",
 
 if __name__ == "__main__":
     # Example usage
-    print("🚀 CUDA Interface Fixer Demo")
+    logger.info("🚀 CUDA Interface Fixer Demo")
     
     fixer = CUDAInterfaceFixer(max_workers=4)
     
@@ -724,15 +727,15 @@ if __name__ == "__main__":
         # Get summary
         summary = fixer.get_fix_summary()
         
-        print(f"\n📊 Fix Summary:")
-        print(f"   Total Mismatches: {summary['total_mismatches']}")
-        print(f"   Successful Fixes: {summary['successful_fixes']}")
-        print(f"   Success Rate: {summary['success_rate']:.1f}%")
-        print(f"   Avg Fix Duration: {summary['avg_fix_duration']:.3f}s")
+        logger.info(f"\n📊 Fix Summary:")
+        logger.info(f"   Total Mismatches: {summary['total_mismatches']}")
+        logger.info(f"   Successful Fixes: {summary['successful_fixes']}")
+        logger.info(f"   Success Rate: {summary['success_rate']:.1f}%")
+        logger.info(f"   Avg Fix Duration: {summary['avg_fix_duration']:.3f}s")
         
         if summary['fixes_by_type']:
-            print(f"\n🔧 Fixes by Type:")
+            logger.info(f"\n🔧 Fixes by Type:")
             for fix_type, stats in summary['fixes_by_type'].items():
-                print(f"   {fix_type}: {stats['successful']}/{stats['total']} successful")
+                logger.info(f"   {fix_type}: {stats['successful']}/{stats['total']} successful")
     else:
-        print("✅ No interface mismatches found!")
+        logger.info("✅ No interface mismatches found!")

@@ -11,6 +11,9 @@ This module provides comprehensive testing for all hardware acceleration compone
 - Error handling and edge case tests
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 import unittest
 import asyncio

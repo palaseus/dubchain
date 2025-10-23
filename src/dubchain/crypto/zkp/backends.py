@@ -5,6 +5,9 @@ This module provides concrete implementations of ZKP backends for different
 proof systems (zk-SNARKs, zk-STARKs, Bulletproofs, and mock for testing).
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import hashlib
 import secrets
 import time

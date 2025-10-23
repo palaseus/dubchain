@@ -11,6 +11,9 @@ transactions with on-chain dispute resolution. Features include:
 - Comprehensive testing suite with property-based and adversarial tests
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 from .channel_manager import ChannelManager
 from .channel_protocol import (
     ChannelCloseReason,

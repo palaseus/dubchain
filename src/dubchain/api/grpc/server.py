@@ -7,6 +7,8 @@ for the DubChain blockchain platform.
 
 import asyncio
 import logging
+
+logger = logging.getLogger(__name__)
 from typing import Any, Dict, List, Optional
 import grpc
 from grpc import aio

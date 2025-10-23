@@ -5,6 +5,9 @@ This module provides comprehensive rate limiting across all API protocols
 with token bucket algorithm, sliding window, and adaptive rate limiting.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import time
 from collections import defaultdict, deque
@@ -212,7 +215,7 @@ class RateLimiter:
             raise
         except Exception as e:
             # Log error but don't block request
-            print(f"Rate limiting error: {e}")
+            logger.info(f"Rate limiting error: {e}")
             return True
     
     async def _check_client_rate_limit(self, client_id: str, adaptive_factor: float) -> bool:
@@ -309,7 +312,7 @@ class RateLimiter:
                     await asyncio.sleep(300)  # Cleanup every 5 minutes
                     self._cleanup_expired_data()
                 except Exception as e:
-                    print(f"Cleanup task error: {e}")
+                    logger.info(f"Cleanup task error: {e}")
         
         self._cleanup_task = asyncio.create_task(cleanup())
     
@@ -346,7 +349,7 @@ class RateLimitMiddleware:
             return await self.rate_limiter.check_rate_limit(client_id, operation)
         except RateLimitError as e:
             # Log rate limit violation
-            print(f"Rate limit exceeded for {client_id}: {e}")
+            logger.info(f"Rate limit exceeded for {client_id}: {e}")
             return False
     
     def get_rate_limit_headers(self, client_id: str) -> Dict[str, str]:

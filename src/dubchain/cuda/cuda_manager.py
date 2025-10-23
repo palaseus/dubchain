@@ -5,6 +5,9 @@ This module provides centralized CUDA management throughout the entire codebase,
 ensuring consistent GPU acceleration across all components.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import time
 import threading
 from typing import Dict, Any, Optional, List, Callable, Union
@@ -61,7 +64,7 @@ class CUDAManager:
         if self.available:
             self._initialize_cuda()
         
-        print(f"🚀 CUDA Manager initialized - Available: {self.available}, Device: {self.device}")
+        logger.info(f"🚀 CUDA Manager initialized - Available: {self.available}, Device: {self.device}")
     
     def _initialize_cuda(self):
         """Initialize CUDA environment."""
@@ -79,7 +82,7 @@ class CUDAManager:
                 self._log_cuda_info()
                 
         except Exception as e:
-            print(f"Warning: CUDA initialization failed: {e}")
+            logger.info(f"Warning: CUDA initialization failed: {e}")
             self.available = False
     
     def _set_memory_limits(self):
@@ -94,7 +97,7 @@ class CUDAManager:
                 memory_limit_bytes = self.config.memory_limit_mb * 1024 * 1024
                 torch.cuda.set_per_process_memory_limit(memory_limit_bytes)
         except Exception as e:
-            print(f"Warning: Failed to set CUDA memory limits: {e}")
+            logger.info(f"Warning: Failed to set CUDA memory limits: {e}")
     
     def _initialize_memory_pool(self):
         """Initialize CUDA memory pool."""
@@ -104,17 +107,17 @@ class CUDAManager:
                 # Enable memory pool
                 cp.cuda.set_allocator(cp.cuda.MemoryPool().malloc)
         except Exception as e:
-            print(f"Warning: Failed to initialize CUDA memory pool: {e}")
+            logger.info(f"Warning: Failed to initialize CUDA memory pool: {e}")
     
     def _log_cuda_info(self):
         """Log CUDA information."""
         device_info = cuda_device_info()
         memory_info = get_cuda_memory_info()
         
-        print(f"CUDA Device: {device_info.get('name', 'Unknown')}")
-        print(f"Compute Capability: {device_info.get('compute_capability', 'Unknown')}")
-        print(f"Total Memory: {memory_info.get('total_memory', 0) / (1024**3):.2f} GB")
-        print(f"Free Memory: {memory_info.get('free_memory', 0) / (1024**3):.2f} GB")
+        logger.info(f"CUDA Device: {device_info.get('name', 'Unknown')}")
+        logger.info(f"Compute Capability: {device_info.get('compute_capability', 'Unknown')}")
+        logger.info(f"Total Memory: {memory_info.get('total_memory', 0) / (1024**3):.2f} GB")
+        logger.info(f"Free Memory: {memory_info.get('free_memory', 0) / (1024**3):.2f} GB")
     
     def should_use_gpu(self, algorithm: str, batch_size: int = 1) -> bool:
         """Determine if GPU should be used for a given algorithm and batch size."""
@@ -151,7 +154,7 @@ class CUDAManager:
             return self._execute_gpu_operation(operation_func, data)
         except Exception as e:
             if self.config.fallback_to_cpu:
-                print(f"⚠️  GPU operation failed, falling back to CPU: {e}")
+                logger.info(f"⚠️  GPU operation failed, falling back to CPU: {e}")
                 if fallback_func:
                     return self._execute_cpu_operation(fallback_func, data)
                 else:
@@ -266,7 +269,7 @@ class CUDAManager:
             return self._execute_gpu_batch_operation(operation_func, data_list)
         except Exception as e:
             if self.config.fallback_to_cpu:
-                print(f"⚠️  GPU batch operation failed, falling back to CPU: {e}")
+                logger.info(f"⚠️  GPU batch operation failed, falling back to CPU: {e}")
                 if fallback_func:
                     return self._execute_cpu_batch_operation(fallback_func, data_list)
                 else:
@@ -316,7 +319,7 @@ class CUDAManager:
         """Log current memory usage."""
         memory_usage = cuda_memory_usage()
         if memory_usage.get('available'):
-            print(f"CUDA Memory - Allocated: {memory_usage.get('allocated', 0) / (1024**2):.2f} MB, "
+            logger.info(f"CUDA Memory - Allocated: {memory_usage.get('allocated', 0) / (1024**2):.2f} MB, "
                   f"Reserved: {memory_usage.get('reserved', 0) / (1024**2):.2f} MB")
     
     def get_performance_metrics(self) -> Dict[str, Any]:
@@ -374,12 +377,12 @@ class CUDAManager:
         Returns:
             Benchmark results
         """
-        print(f"🔬 Benchmarking {algorithm} operation...")
-        print(f"   Data size: {len(test_data)} items")
-        print(f"   Iterations: {num_iterations}")
+        logger.info(f"🔬 Benchmarking {algorithm} operation...")
+        logger.info(f"   Data size: {len(test_data)} items")
+        logger.info(f"   Iterations: {num_iterations}")
         
         # CPU benchmark
-        print("   Testing CPU performance...")
+        logger.info("   Testing CPU performance...")
         cpu_times = []
         for _ in range(num_iterations):
             start_time = time.time()
@@ -390,7 +393,7 @@ class CUDAManager:
         cpu_throughput = len(test_data) / cpu_avg_time
         
         # GPU benchmark
-        print("   Testing GPU performance...")
+        logger.info("   Testing GPU performance...")
         gpu_times = []
         gpu_success = False
         
@@ -403,7 +406,7 @@ class CUDAManager:
                     gpu_times.append(time.time() - start_time)
                 gpu_success = True
             except Exception as e:
-                print(f"   GPU benchmark failed: {e}")
+                logger.info(f"   GPU benchmark failed: {e}")
         
         if gpu_success and gpu_times:
             gpu_avg_time = sum(gpu_times) / len(gpu_times)
@@ -427,11 +430,11 @@ class CUDAManager:
             'used_gpu': self.should_use_gpu(algorithm, len(test_data)),
         }
         
-        print(f"   Results:")
-        print(f"     CPU time: {cpu_avg_time:.4f}s")
-        print(f"     GPU time: {gpu_avg_time:.4f}s")
-        print(f"     Speedup: {speedup:.2f}x")
-        print(f"     GPU success: {gpu_success}")
+        logger.info(f"   Results:")
+        logger.info(f"     CPU time: {cpu_avg_time:.4f}s")
+        logger.info(f"     GPU time: {gpu_avg_time:.4f}s")
+        logger.info(f"     Speedup: {speedup:.2f}x")
+        logger.info(f"     GPU success: {gpu_success}")
         
         return results
 

@@ -5,6 +5,9 @@ These tests attempt to break the system with malicious inputs,
 malformed data, and edge cases to ensure robust security.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 import random
 import secrets

@@ -10,6 +10,9 @@ This module provides production-grade security features for the Ethereum bridge 
 - Emergency pause mechanisms
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import hashlib
 import json

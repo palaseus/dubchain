@@ -6,6 +6,9 @@ This module provides unified authentication across all API protocols
 role-based access control.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import hashlib
 import hmac

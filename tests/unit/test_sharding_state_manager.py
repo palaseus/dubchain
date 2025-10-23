@@ -1,5 +1,8 @@
 """Tests for sharding state manager module."""
 
+import logging
+
+logger = logging.getLogger(__name__)
 import time
 from unittest.mock import Mock, patch
 

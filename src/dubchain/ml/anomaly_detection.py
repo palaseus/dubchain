@@ -4,6 +4,9 @@ Anomaly Detection Module
 This module provides machine learning-based anomaly detection for blockchain networks.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import numpy as np
 import time
 from dataclasses import dataclass, field

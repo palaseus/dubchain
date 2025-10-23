@@ -10,6 +10,9 @@ This module provides Graph Neural Network-based network topology optimization in
 - Network health scoring with ML
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import numpy as np
 import pandas as pd

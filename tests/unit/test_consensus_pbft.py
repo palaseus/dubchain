@@ -2,6 +2,9 @@
 Tests for Practical Byzantine Fault Tolerance (PBFT) consensus implementation.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import time
 from dataclasses import dataclass
 from unittest.mock import MagicMock, Mock, patch

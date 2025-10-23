@@ -5,6 +5,9 @@ This module provides sophisticated multi-signature wallet functionality with
 support for various signature schemes and threshold configurations.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import json
 import time
 from dataclasses import dataclass, field

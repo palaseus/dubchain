@@ -1,5 +1,8 @@
 """Tests for the DubChain logging system."""
 
+import logging
+
+logger = logging.getLogger(__name__)
 import os
 import tempfile
 import threading

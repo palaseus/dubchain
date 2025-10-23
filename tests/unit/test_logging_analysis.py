@@ -2,6 +2,9 @@
 Tests for logging analysis module.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import csv
 import json
 import os

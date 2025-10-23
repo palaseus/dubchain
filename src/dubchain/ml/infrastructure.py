@@ -8,6 +8,9 @@ This module provides the core ML infrastructure including:
 - Configuration management
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import json
 import time

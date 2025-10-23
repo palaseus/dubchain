@@ -9,6 +9,9 @@ This module tests the memory-based cache implementations including:
 - Cache statistics and monitoring
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import threading
 import time
 from collections import OrderedDict

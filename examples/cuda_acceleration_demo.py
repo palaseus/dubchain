@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+logger = logging.getLogger(__name__)
 """
 CUDA Acceleration Demo for DubChain.
 
@@ -10,6 +11,7 @@ of the DubChain blockchain system, showcasing GPU acceleration for:
 - Storage operations
 """
 
+import logging
 import time
 import secrets
 import json
@@ -29,16 +31,16 @@ from dubchain.storage import CUDAStorageAccelerator, CUDAStorageConfig
 
 def print_header(title: str):
     """Print a formatted header."""
-    print(f"\n{'='*60}")
-    print(f"  {title}")
-    print(f"{'='*60}")
+    logger.info(f"\n{'='*60}")
+    logger.info(f"  {title}")
+    logger.info(f"{'='*60}")
 
 
 def print_section(title: str):
     """Print a formatted section header."""
-    print(f"\n{'-'*40}")
-    print(f"  {title}")
-    print(f"{'-'*40}")
+    logger.info(f"\n{'-'*40}")
+    logger.info(f"  {title}")
+    logger.info(f"{'-'*40}")
 
 
 def check_cuda_availability():
@@ -46,7 +48,7 @@ def check_cuda_availability():
     print_header("CUDA AVAILABILITY CHECK")
     
     available = cuda_available()
-    print(f"CUDA Available: {'✅ YES' if available else '❌ NO'}")
+    logger.info(f"CUDA Available: {'✅ YES' if available else '❌ NO'}")
     
     if available:
         from dubchain.cuda import get_cuda_device, get_cuda_memory_info
@@ -54,12 +56,12 @@ def check_cuda_availability():
         device = get_cuda_device()
         memory_info = get_cuda_memory_info()
         
-        print(f"CUDA Device: {device}")
-        print(f"Total Memory: {memory_info.get('total_memory', 0) / (1024**3):.2f} GB")
-        print(f"Free Memory: {memory_info.get('free_memory', 0) / (1024**3):.2f} GB")
-        print(f"Device Name: {memory_info.get('device_name', 'Unknown')}")
+        logger.info(f"CUDA Device: {device}")
+        logger.info(f"Total Memory: {memory_info.get('total_memory', 0) / (1024**3):.2f} GB")
+        logger.info(f"Free Memory: {memory_info.get('free_memory', 0) / (1024**3):.2f} GB")
+        logger.info(f"Device Name: {memory_info.get('device_name', 'Unknown')}")
     else:
-        print("CUDA is not available. Operations will fall back to CPU.")
+        logger.info("CUDA is not available. Operations will fall back to CPU.")
     
     return available
 
@@ -70,30 +72,30 @@ def demo_crypto_acceleration():
     
     # Initialize GPU crypto
     gpu_crypto = GPUCrypto()
-    print(f"GPU Crypto initialized - Available: {gpu_crypto.gpu_available}")
+    logger.info(f"GPU Crypto initialized - Available: {gpu_crypto.gpu_available}")
     
     # Generate test data
     test_data = [secrets.token_bytes(64) for _ in range(100)]
-    print(f"Generated {len(test_data)} test data items")
+    logger.info(f"Generated {len(test_data)} test data items")
     
     # Test single hash operation
-    print("\nTesting single hash operation...")
+    logger.info("\nTesting single hash operation...")
     single_data = test_data[0]
     start_time = time.time()
     single_hash = gpu_crypto.hash_data_gpu(single_data, "sha256")
     single_time = time.time() - start_time
-    print(f"Single hash: {single_hash.hex()[:16]}... (took {single_time:.4f}s)")
+    logger.info(f"Single hash: {single_hash.hex()[:16]}... (took {single_time:.4f}s)")
     
     # Test batch hash operations
-    print("\nTesting batch hash operations...")
+    logger.info("\nTesting batch hash operations...")
     start_time = time.time()
     batch_hashes = gpu_crypto.hash_data_batch_gpu(test_data, "sha256")
     batch_time = time.time() - start_time
-    print(f"Batch hashes: {len(batch_hashes)} operations (took {batch_time:.4f}s)")
-    print(f"Throughput: {len(batch_hashes) / batch_time:.2f} hashes/sec")
+    logger.info(f"Batch hashes: {len(batch_hashes)} operations (took {batch_time:.4f}s)")
+    logger.info(f"Throughput: {len(batch_hashes) / batch_time:.2f} hashes/sec")
     
     # Test signature verification
-    print("\nTesting signature verification...")
+    logger.info("\nTesting signature verification...")
     signatures = [secrets.token_bytes(64) for _ in range(50)]
     public_keys = [secrets.token_bytes(33) for _ in range(50)]
     messages = [secrets.token_bytes(32) for _ in range(50)]
@@ -103,16 +105,16 @@ def demo_crypto_acceleration():
         list(zip(messages, signatures, public_keys, ["ecdsa"] * 50))
     )
     verification_time = time.time() - start_time
-    print(f"Signature verification: {len(verification_results)} verifications (took {verification_time:.4f}s)")
-    print(f"Throughput: {len(verification_results) / verification_time:.2f} verifications/sec")
+    logger.info(f"Signature verification: {len(verification_results)} verifications (took {verification_time:.4f}s)")
+    logger.info(f"Throughput: {len(verification_results) / verification_time:.2f} verifications/sec")
     
     # Get performance metrics
     metrics = gpu_crypto.get_performance_metrics()
-    print(f"\nPerformance Metrics:")
-    print(f"  Total operations: {metrics['total_operations']}")
-    print(f"  GPU operations: {metrics['gpu_operations']}")
-    print(f"  CPU fallbacks: {metrics['cpu_fallbacks']}")
-    print(f"  GPU utilization: {metrics['gpu_utilization']:.2%}")
+    logger.info(f"\nPerformance Metrics:")
+    logger.info(f"  Total operations: {metrics['total_operations']}")
+    logger.info(f"  GPU operations: {metrics['gpu_operations']}")
+    logger.info(f"  CPU fallbacks: {metrics['cpu_fallbacks']}")
+    logger.info(f"  GPU utilization: {metrics['gpu_utilization']:.2%}")
 
 
 def demo_consensus_acceleration():
@@ -121,7 +123,7 @@ def demo_consensus_acceleration():
     
     # Initialize CUDA consensus accelerator
     consensus_accelerator = CUDAConsensusAccelerator()
-    print(f"CUDA Consensus Accelerator initialized - Available: {consensus_accelerator.cuda_manager.available}")
+    logger.info(f"CUDA Consensus Accelerator initialized - Available: {consensus_accelerator.cuda_manager.available}")
     
     # Generate test blocks
     test_blocks = []
@@ -136,18 +138,18 @@ def demo_consensus_acceleration():
         }
         test_blocks.append(block)
     
-    print(f"Generated {len(test_blocks)} test blocks")
+    logger.info(f"Generated {len(test_blocks)} test blocks")
     
     # Test block validation
-    print("\nTesting block validation...")
+    logger.info("\nTesting block validation...")
     start_time = time.time()
     validation_results = consensus_accelerator.validate_blocks_batch(test_blocks)
     validation_time = time.time() - start_time
-    print(f"Block validation: {len(validation_results)} blocks (took {validation_time:.4f}s)")
-    print(f"Throughput: {len(validation_results) / validation_time:.2f} blocks/sec")
+    logger.info(f"Block validation: {len(validation_results)} blocks (took {validation_time:.4f}s)")
+    logger.info(f"Throughput: {len(validation_results) / validation_time:.2f} blocks/sec")
     
     # Test signature verification
-    print("\nTesting consensus signature verification...")
+    logger.info("\nTesting consensus signature verification...")
     signatures = [secrets.token_bytes(64) for _ in range(60)]
     public_keys = [secrets.token_bytes(33) for _ in range(60)]
     messages = [secrets.token_bytes(32) for _ in range(60)]
@@ -155,11 +157,11 @@ def demo_consensus_acceleration():
     start_time = time.time()
     sig_results = consensus_accelerator.verify_signatures_batch(signatures, public_keys, messages)
     sig_time = time.time() - start_time
-    print(f"Signature verification: {len(sig_results)} signatures (took {sig_time:.4f}s)")
-    print(f"Throughput: {len(sig_results) / sig_time:.2f} signatures/sec")
+    logger.info(f"Signature verification: {len(sig_results)} signatures (took {sig_time:.4f}s)")
+    logger.info(f"Throughput: {len(sig_results) / sig_time:.2f} signatures/sec")
     
     # Test consensus operations
-    print("\nTesting consensus operations...")
+    logger.info("\nTesting consensus operations...")
     operations = []
     for i in range(40):
         operation = {
@@ -173,15 +175,15 @@ def demo_consensus_acceleration():
     start_time = time.time()
     op_results = consensus_accelerator.process_consensus_operations(operations)
     op_time = time.time() - start_time
-    print(f"Consensus operations: {len(op_results)} operations (took {op_time:.4f}s)")
-    print(f"Throughput: {len(op_results) / op_time:.2f} operations/sec")
+    logger.info(f"Consensus operations: {len(op_results)} operations (took {op_time:.4f}s)")
+    logger.info(f"Throughput: {len(op_results) / op_time:.2f} operations/sec")
     
     # Get performance metrics
     metrics = consensus_accelerator.get_performance_metrics()
-    print(f"\nPerformance Metrics:")
-    print(f"  Total operations: {metrics['total_operations']}")
-    print(f"  GPU operations: {metrics['gpu_operations']}")
-    print(f"  CPU fallbacks: {metrics['cpu_fallbacks']}")
+    logger.info(f"\nPerformance Metrics:")
+    logger.info(f"  Total operations: {metrics['total_operations']}")
+    logger.info(f"  GPU operations: {metrics['gpu_operations']}")
+    logger.info(f"  CPU fallbacks: {metrics['cpu_fallbacks']}")
 
 
 def demo_vm_acceleration():
@@ -190,19 +192,19 @@ def demo_vm_acceleration():
     
     # Initialize CUDA VM accelerator
     vm_accelerator = CUDAVMAccelerator()
-    print(f"CUDA VM Accelerator initialized - Available: {vm_accelerator.cuda_manager.available}")
+    logger.info(f"CUDA VM Accelerator initialized - Available: {vm_accelerator.cuda_manager.available}")
     
     # Test bytecode processing
-    print("\nTesting bytecode processing...")
+    logger.info("\nTesting bytecode processing...")
     bytecode_list = [secrets.token_bytes(64) for _ in range(80)]
     start_time = time.time()
     processed_bytecode = vm_accelerator.process_bytecode_batch(bytecode_list, optimization_level=1)
     processing_time = time.time() - start_time
-    print(f"Bytecode processing: {len(processed_bytecode)} bytecode sequences (took {processing_time:.4f}s)")
-    print(f"Throughput: {len(processed_bytecode) / processing_time:.2f} sequences/sec")
+    logger.info(f"Bytecode processing: {len(processed_bytecode)} bytecode sequences (took {processing_time:.4f}s)")
+    logger.info(f"Throughput: {len(processed_bytecode) / processing_time:.2f} sequences/sec")
     
     # Test VM operations
-    print("\nTesting VM operations...")
+    logger.info("\nTesting VM operations...")
     vm_operations = []
     for i in range(60):
         operation = {
@@ -217,24 +219,24 @@ def demo_vm_acceleration():
     start_time = time.time()
     vm_results = vm_accelerator.execute_operations_batch(vm_operations)
     vm_time = time.time() - start_time
-    print(f"VM operations: {len(vm_results)} operations (took {vm_time:.4f}s)")
-    print(f"Throughput: {len(vm_results) / vm_time:.2f} operations/sec")
+    logger.info(f"VM operations: {len(vm_results)} operations (took {vm_time:.4f}s)")
+    logger.info(f"Throughput: {len(vm_results) / vm_time:.2f} operations/sec")
     
     # Test bytecode optimization
-    print("\nTesting bytecode optimization...")
+    logger.info("\nTesting bytecode optimization...")
     optimization_rules = ["constant_folding", "dead_code_elimination", "peephole"]
     start_time = time.time()
     optimized_bytecode = vm_accelerator.optimize_bytecode_batch(bytecode_list, optimization_rules)
     optimization_time = time.time() - start_time
-    print(f"Bytecode optimization: {len(optimized_bytecode)} optimizations (took {optimization_time:.4f}s)")
-    print(f"Throughput: {len(optimized_bytecode) / optimization_time:.2f} optimizations/sec")
+    logger.info(f"Bytecode optimization: {len(optimized_bytecode)} optimizations (took {optimization_time:.4f}s)")
+    logger.info(f"Throughput: {len(optimized_bytecode) / optimization_time:.2f} optimizations/sec")
     
     # Get performance metrics
     metrics = vm_accelerator.get_performance_metrics()
-    print(f"\nPerformance Metrics:")
-    print(f"  Total operations: {metrics['total_operations']}")
-    print(f"  GPU operations: {metrics['gpu_operations']}")
-    print(f"  CPU fallbacks: {metrics['cpu_fallbacks']}")
+    logger.info(f"\nPerformance Metrics:")
+    logger.info(f"  Total operations: {metrics['total_operations']}")
+    logger.info(f"  GPU operations: {metrics['gpu_operations']}")
+    logger.info(f"  CPU fallbacks: {metrics['cpu_fallbacks']}")
 
 
 def demo_storage_acceleration():
@@ -243,10 +245,10 @@ def demo_storage_acceleration():
     
     # Initialize CUDA storage accelerator
     storage_accelerator = CUDAStorageAccelerator()
-    print(f"CUDA Storage Accelerator initialized - Available: {storage_accelerator.cuda_manager.available}")
+    logger.info(f"CUDA Storage Accelerator initialized - Available: {storage_accelerator.cuda_manager.available}")
     
     # Test data serialization
-    print("\nTesting data serialization...")
+    logger.info("\nTesting data serialization...")
     test_data = []
     for i in range(70):
         data = {
@@ -263,36 +265,36 @@ def demo_storage_acceleration():
     start_time = time.time()
     serialized_data = storage_accelerator.serialize_data_batch(test_data, "json")
     serialization_time = time.time() - start_time
-    print(f"Data serialization: {len(serialized_data)} objects (took {serialization_time:.4f}s)")
-    print(f"Throughput: {len(serialized_data) / serialization_time:.2f} objects/sec")
+    logger.info(f"Data serialization: {len(serialized_data)} objects (took {serialization_time:.4f}s)")
+    logger.info(f"Throughput: {len(serialized_data) / serialization_time:.2f} objects/sec")
     
     # Test data deserialization
-    print("\nTesting data deserialization...")
+    logger.info("\nTesting data deserialization...")
     start_time = time.time()
     deserialized_data = storage_accelerator.deserialize_data_batch(serialized_data, "json")
     deserialization_time = time.time() - start_time
-    print(f"Data deserialization: {len(deserialized_data)} objects (took {deserialization_time:.4f}s)")
-    print(f"Throughput: {len(deserialized_data) / deserialization_time:.2f} objects/sec")
+    logger.info(f"Data deserialization: {len(deserialized_data)} objects (took {deserialization_time:.4f}s)")
+    logger.info(f"Throughput: {len(deserialized_data) / deserialization_time:.2f} objects/sec")
     
     # Test data compression
-    print("\nTesting data compression...")
+    logger.info("\nTesting data compression...")
     raw_data = [secrets.token_bytes(128) for _ in range(50)]
     start_time = time.time()
     compressed_data = storage_accelerator.compress_data_batch(raw_data, compression_level=6)
     compression_time = time.time() - start_time
-    print(f"Data compression: {len(compressed_data)} objects (took {compression_time:.4f}s)")
-    print(f"Throughput: {len(compressed_data) / compression_time:.2f} objects/sec")
+    logger.info(f"Data compression: {len(compressed_data)} objects (took {compression_time:.4f}s)")
+    logger.info(f"Throughput: {len(compressed_data) / compression_time:.2f} objects/sec")
     
     # Test data decompression
-    print("\nTesting data decompression...")
+    logger.info("\nTesting data decompression...")
     start_time = time.time()
     decompressed_data = storage_accelerator.decompress_data_batch(compressed_data)
     decompression_time = time.time() - start_time
-    print(f"Data decompression: {len(decompressed_data)} objects (took {decompression_time:.4f}s)")
-    print(f"Throughput: {len(decompressed_data) / decompression_time:.2f} objects/sec")
+    logger.info(f"Data decompression: {len(decompressed_data)} objects (took {decompression_time:.4f}s)")
+    logger.info(f"Throughput: {len(decompressed_data) / decompression_time:.2f} objects/sec")
     
     # Test storage operations
-    print("\nTesting storage operations...")
+    logger.info("\nTesting storage operations...")
     storage_operations = []
     for i in range(45):
         operation = {
@@ -306,15 +308,15 @@ def demo_storage_acceleration():
     start_time = time.time()
     storage_results = storage_accelerator.process_storage_operations(storage_operations)
     storage_time = time.time() - start_time
-    print(f"Storage operations: {len(storage_results)} operations (took {storage_time:.4f}s)")
-    print(f"Throughput: {len(storage_results) / storage_time:.2f} operations/sec")
+    logger.info(f"Storage operations: {len(storage_results)} operations (took {storage_time:.4f}s)")
+    logger.info(f"Throughput: {len(storage_results) / storage_time:.2f} operations/sec")
     
     # Get performance metrics
     metrics = storage_accelerator.get_performance_metrics()
-    print(f"\nPerformance Metrics:")
-    print(f"  Total operations: {metrics['total_operations']}")
-    print(f"  GPU operations: {metrics['gpu_operations']}")
-    print(f"  CPU fallbacks: {metrics['cpu_fallbacks']}")
+    logger.info(f"\nPerformance Metrics:")
+    logger.info(f"  Total operations: {metrics['total_operations']}")
+    logger.info(f"  GPU operations: {metrics['gpu_operations']}")
+    logger.info(f"  CPU fallbacks: {metrics['cpu_fallbacks']}")
 
 
 def demo_comprehensive_benchmark():
@@ -327,11 +329,11 @@ def demo_comprehensive_benchmark():
     vm_accelerator = CUDAVMAccelerator()
     storage_accelerator = CUDAStorageAccelerator()
     
-    print("All CUDA components initialized")
+    logger.info("All CUDA components initialized")
     
     # Generate comprehensive test data
     test_size = 100
-    print(f"Running comprehensive benchmark with {test_size} operations per component...")
+    logger.info(f"Running comprehensive benchmark with {test_size} operations per component...")
     
     # Crypto benchmark
     crypto_data = [secrets.token_bytes(64) for _ in range(test_size)]
@@ -361,41 +363,41 @@ def demo_comprehensive_benchmark():
     total_time = crypto_time + consensus_time + vm_time + storage_time
     total_operations = len(crypto_results) + len(consensus_results) + len(vm_results) + len(storage_results)
     
-    print(f"\nBenchmark Results:")
-    print(f"  Crypto: {crypto_time:.4f}s ({len(crypto_results)} operations)")
-    print(f"  Consensus: {consensus_time:.4f}s ({len(consensus_results)} operations)")
-    print(f"  VM: {vm_time:.4f}s ({len(vm_results)} operations)")
-    print(f"  Storage: {storage_time:.4f}s ({len(storage_results)} operations)")
-    print(f"  Total: {total_time:.4f}s ({total_operations} operations)")
-    print(f"  Overall Throughput: {total_operations / total_time:.2f} operations/sec")
+    logger.info(f"\nBenchmark Results:")
+    logger.info(f"  Crypto: {crypto_time:.4f}s ({len(crypto_results)} operations)")
+    logger.info(f"  Consensus: {consensus_time:.4f}s ({len(consensus_results)} operations)")
+    logger.info(f"  VM: {vm_time:.4f}s ({len(vm_results)} operations)")
+    logger.info(f"  Storage: {storage_time:.4f}s ({len(storage_results)} operations)")
+    logger.info(f"  Total: {total_time:.4f}s ({total_operations} operations)")
+    logger.info(f"  Overall Throughput: {total_operations / total_time:.2f} operations/sec")
     
     # Get global CUDA metrics
     from dubchain.cuda import get_global_cuda_manager
     global_manager = get_global_cuda_manager()
     global_metrics = global_manager.get_performance_metrics()
     
-    print(f"\nGlobal CUDA Metrics:")
-    print(f"  Total operations: {global_metrics['total_operations']}")
-    print(f"  GPU operations: {global_metrics['gpu_operations']}")
-    print(f"  CPU fallbacks: {global_metrics['cpu_fallbacks']}")
-    print(f"  GPU utilization: {global_metrics.get('gpu_utilization', 0):.2%}")
+    logger.info(f"\nGlobal CUDA Metrics:")
+    logger.info(f"  Total operations: {global_metrics['total_operations']}")
+    logger.info(f"  GPU operations: {global_metrics['gpu_operations']}")
+    logger.info(f"  CPU fallbacks: {global_metrics['cpu_fallbacks']}")
+    logger.info(f"  GPU utilization: {global_metrics.get('gpu_utilization', 0):.2%}")
 
 
 def main():
     """Main demo function."""
     print_header("DUBCHAIN CUDA ACCELERATION DEMO")
-    print("This demo showcases comprehensive CUDA integration across all DubChain components.")
+    logger.info("This demo showcases comprehensive CUDA integration across all DubChain components.")
     
     # Check CUDA availability
     cuda_available = check_cuda_availability()
     
     if not cuda_available:
-        print("\n⚠️  CUDA is not available. All operations will use CPU fallback.")
-        print("   To enable CUDA acceleration, ensure you have:")
-        print("   - NVIDIA GPU with CUDA support")
-        print("   - CUDA toolkit installed")
-        print("   - PyTorch with CUDA support")
-        print("   - CuPy installed (optional)")
+        logger.info("\n⚠️  CUDA is not available. All operations will use CPU fallback.")
+        logger.info("   To enable CUDA acceleration, ensure you have:")
+        logger.info("   - NVIDIA GPU with CUDA support")
+        logger.info("   - CUDA toolkit installed")
+        logger.info("   - PyTorch with CUDA support")
+        logger.info("   - CuPy installed (optional)")
     
     # Run component demos
     demo_crypto_acceleration()
@@ -407,15 +409,15 @@ def main():
     demo_comprehensive_benchmark()
     
     print_header("DEMO COMPLETED")
-    print("CUDA acceleration has been successfully demonstrated across all DubChain components!")
-    print("The system provides:")
-    print("  ✅ GPU-accelerated cryptographic operations")
-    print("  ✅ GPU-accelerated consensus mechanisms")
-    print("  ✅ GPU-accelerated virtual machine operations")
-    print("  ✅ GPU-accelerated storage operations")
-    print("  ✅ Automatic CPU fallback when GPU is not available")
-    print("  ✅ Comprehensive performance monitoring")
-    print("  ✅ Thread-safe concurrent operations")
+    logger.info("CUDA acceleration has been successfully demonstrated across all DubChain components!")
+    logger.info("The system provides:")
+    logger.info("  ✅ GPU-accelerated cryptographic operations")
+    logger.info("  ✅ GPU-accelerated consensus mechanisms")
+    logger.info("  ✅ GPU-accelerated virtual machine operations")
+    logger.info("  ✅ GPU-accelerated storage operations")
+    logger.info("  ✅ Automatic CPU fallback when GPU is not available")
+    logger.info("  ✅ Comprehensive performance monitoring")
+    logger.info("  ✅ Thread-safe concurrent operations")
 
 
 if __name__ == "__main__":

@@ -13,6 +13,9 @@ This module implements comprehensive block validation including:
 - Proof of work validation
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import math
 import time
 from dataclasses import dataclass

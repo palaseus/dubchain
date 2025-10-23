@@ -4,6 +4,9 @@ Hash functions and utilities for GodChain.
 Implements SHA-256 hashing with additional utilities for blockchain operations.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import hashlib
 from dataclasses import dataclass
 from typing import List, Optional, Union

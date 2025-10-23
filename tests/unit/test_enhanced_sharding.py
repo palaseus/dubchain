@@ -10,6 +10,9 @@ This module provides comprehensive unit tests covering:
 - Edge cases and error conditions
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import pytest
 import time

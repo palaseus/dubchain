@@ -4,6 +4,9 @@ Cross-chain messaging system for DubChain.
 This module provides cross-chain message passing capabilities.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import hashlib
 import time
 from dataclasses import dataclass, field

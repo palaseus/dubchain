@@ -7,6 +7,8 @@ components working together in realistic environments.
 import asyncio
 import json
 import logging
+
+logger = logging.getLogger(__name__)
 import os
 import shutil
 import socket

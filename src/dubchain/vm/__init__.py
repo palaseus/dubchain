@@ -5,6 +5,9 @@ This package provides a sophisticated virtual machine for executing smart contra
 with advanced features including gas metering, opcode execution, and contract management.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 from .advanced_execution_engine import (
     AdvancedExecutionEngine,
     ExecutionMetrics,

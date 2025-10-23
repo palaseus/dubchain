@@ -14,6 +14,10 @@ import time
 from pathlib import Path
 from typing import Dict, Any, List
 
+logger = logging.getLogger(__name__)
+
+import logging
+
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
@@ -21,16 +25,14 @@ from dubchain.performance.profiling import (
     ProfilingHarness,
     ProfilingConfig,
     PerformanceProfiler,
-)
 from dubchain.performance.benchmarks import (
     BenchmarkSuite,
     BenchmarkConfig,
-)
 from dubchain.performance.optimizations import OptimizationManager
 from dubchain.performance.monitoring import PerformanceMonitor
 
 
-class DubChainBaselineProfiler:
+class DubChainBaselineProfiler:)
     """Baseline profiler for DubChain subsystems."""
     
     def __init__(self, output_dir: str = "baseline_profiling_results"):
@@ -38,25 +40,23 @@ class DubChainBaselineProfiler:
         self.output_dir.mkdir(exist_ok=True)
         
         # Setup profiling configuration
-        self.profiling_config = ProfilingConfig(
+        self.profiling_config = ProfilingConfig()
             enable_cpu_profiling=True,
-            enable_memory_profiling=True,
+                    enable_memory_profiling=True)
             output_directory=str(self.output_dir / "profiling_artifacts"),
             generate_flamegraph=True,
             generate_callgrind=True,
-            generate_json_report=True,
-        )
+            generate_json_report=True)
         
         # Setup benchmark configuration
         self.benchmark_config = BenchmarkConfig(
             warmup_iterations=3,
             min_iterations=10,
-            max_iterations=50,
-            max_duration=30.0,
+                    max_iterations=50)
+            max_duration=30.0)
             output_directory=str(self.output_dir / "benchmark_results"),
             generate_reports=True,
-            save_artifacts=True,
-        )
+            save_artifacts=True)
         
         # Initialize components
         self.profiling_harness = ProfilingHarness(self.profiling_config)
@@ -66,51 +66,50 @@ class DubChainBaselineProfiler:
         
     def run_complete_baseline(self) -> Dict[str, Any]:
         """Run complete baseline profiling."""
-        print("🚀 Starting DubChain Baseline Profiling")
-        print("=" * 60)
+        logger.info("🚀 Starting DubChain Baseline Profiling")
+        logger.info("=" * 60)
         
         results = {
             "timestamp": time.time(),
             "profiling_results": {},
             "benchmark_results": {},
             "optimization_status": {},
-            "performance_summary": {},
-        }
+            "performance_summary": {}}
         
         # Start performance monitoring
         self.performance_monitor.start_monitoring()
         
         try:
             # 1. Core blockchain profiling
-            print("\n📊 Profiling Core Blockchain Components...")
+            logger.info("\n📊 Profiling Core Blockchain Components...")
             results["profiling_results"]["core_blockchain"] = self._profile_core_blockchain()
             
             # 2. Consensus mechanism profiling
-            print("\n🔄 Profiling Consensus Mechanisms...")
+            logger.info("\n🔄 Profiling Consensus Mechanisms...")
             results["profiling_results"]["consensus"] = self._profile_consensus_mechanisms()
             
             # 3. Virtual machine profiling
-            print("\n💻 Profiling Virtual Machine...")
+            logger.info("\n💻 Profiling Virtual Machine...")
             results["profiling_results"]["virtual_machine"] = self._profile_virtual_machine()
             
             # 4. Network layer profiling
-            print("\n🌐 Profiling Network Layer...")
+            logger.info("\n🌐 Profiling Network Layer...")
             results["profiling_results"]["network"] = self._profile_network_layer()
             
             # 5. Storage layer profiling
-            print("\n💾 Profiling Storage Layer...")
+            logger.info("\n💾 Profiling Storage Layer...")
             results["profiling_results"]["storage"] = self._profile_storage_layer()
             
             # 6. Cryptographic operations profiling
-            print("\n🔐 Profiling Cryptographic Operations...")
+            logger.info("\n🔐 Profiling Cryptographic Operations...")
             results["profiling_results"]["crypto"] = self._profile_crypto_operations()
             
             # 7. Run comprehensive benchmarks
-            print("\n⚡ Running Performance Benchmarks...")
+            logger.info("\n⚡ Running Performance Benchmarks...")
             results["benchmark_results"] = self._run_benchmarks()
             
             # 8. Generate optimization recommendations
-            print("\n🎯 Generating Optimization Recommendations...")
+            logger.info("\n🎯 Generating Optimization Recommendations...")
             results["optimization_recommendations"] = self._generate_optimization_recommendations()
             
             # 9. Get performance summary
@@ -126,7 +125,7 @@ class DubChainBaselineProfiler:
         # Generate reports
         self._generate_reports(results)
         
-        print(f"\n✅ Baseline profiling complete! Results saved to: {self.output_dir}")
+        logger.info(f"\n✅ Baseline profiling complete! Results saved to: {self.output_dir}")
         return results
         
     def _profile_core_blockchain(self) -> Dict[str, Any]:
@@ -136,8 +135,8 @@ class DubChainBaselineProfiler:
         # Block creation workload
         def block_creation_workload():
             from dubchain.core.block import Block
-            block = Block(
-                index=1,
+            block = Block()
+                index=1)
                 timestamp=time.time(),
                 transactions=[],
                 previous_hash="0",
@@ -152,11 +151,10 @@ class DubChainBaselineProfiler:
             from dubchain.core.transaction import Transaction
             tx = Transaction(
                 sender="sender",
-                recipient="recipient",
+                recipient="recipient")
                 amount=100,
-                fee=1,
+                    fee=1)
                 timestamp=time.time()
-            )
             return tx.validate()
             
         workloads["transaction_validation"] = transaction_validation_workload
@@ -167,8 +165,8 @@ class DubChainBaselineProfiler:
             blockchain = Blockchain()
             # Simulate some operations
             for i in range(10):
-                block = Block(
-                    index=i,
+                block = Block()
+                    index=i)
                     timestamp=time.time(),
                     transactions=[],
                     previous_hash="0" if i == 0 else f"hash_{i-1}",
@@ -229,9 +227,9 @@ class DubChainBaselineProfiler:
             from dubchain.vm.contract import SmartContract
             
             engine = ExecutionEngine()
-            contract = SmartContract(
-                address="test_address",
-                code=b"test_bytecode",
+            contract = SmartContract()
+                address="test_address")
+                code=b"test_bytecode")
                 creator="creator"
             )
             
@@ -246,7 +244,6 @@ class DubChainBaselineProfiler:
             from dubchain.vm.gas_meter import GasMeter
             
             gas_meter = GasMeter(gas_limit=1000000)
-            
             # Simulate gas operations
             for i in range(100):
                 gas_meter.consume_gas(1000)
@@ -285,7 +282,6 @@ class DubChainBaselineProfiler:
             from dubchain.network.connection_manager import ConnectionManager
             
             manager = ConnectionManager()
-            
             # Simulate peer operations
             for i in range(10):
                 peer = Peer(f"peer_{i}", "127.0.0.1", 8000 + i)
@@ -333,7 +329,6 @@ class DubChainBaselineProfiler:
             from dubchain.cache.core import Cache
             
             cache = Cache(max_size=1000)
-            
             # Simulate cache operations
             for i in range(500):
                 cache.set(f"key_{i}", f"value_{i}")
@@ -386,7 +381,7 @@ class DubChainBaselineProfiler:
         
     def _run_benchmarks(self) -> Dict[str, Any]:
         """Run comprehensive benchmarks."""
-        print("Running benchmark suite...")
+        logger.info("Running benchmark suite...")
         
         # Run all benchmarks
         benchmark_results = self.benchmark_suite.run_all_benchmarks()
@@ -409,8 +404,7 @@ class DubChainBaselineProfiler:
                 "throughput": result.throughput,
                 "memory_usage_mb": result.memory_usage_mb,
                 "cpu_usage_percent": result.cpu_usage_percent,
-                "budget_violations": result.budget_violations,
-            }
+                "budget_violations": result.budget_violations}
             results["benchmarks"].append(benchmark_data)
             
         return results
@@ -421,8 +415,7 @@ class DubChainBaselineProfiler:
             "high_impact": [],
             "medium_impact": [],
             "low_impact": [],
-            "risky": [],
-        }
+            "risky": []}
         
         # Analyze profiling results to generate recommendations
         # This is a simplified version - in practice, this would analyze
@@ -476,7 +469,7 @@ class DubChainBaselineProfiler:
         with open(results_file, 'w') as f:
             json.dump(results, f, indent=2, default=str)
             
-        print(f"📁 Results saved to: {results_file}")
+        logger.info(f"📁 Results saved to: {results_file}")
         
     def _generate_reports(self, results: Dict[str, Any]) -> None:
         """Generate human-readable reports."""
@@ -487,7 +480,7 @@ class DubChainBaselineProfiler:
         with open(hotspot_file, 'w') as f:
             f.write(hotspot_report)
             
-        print(f"🔥 Hotspot report saved to: {hotspot_file}")
+        logger.info(f"🔥 Hotspot report saved to: {hotspot_file}")
         
         # Generate optimization plan
         optimization_plan = self._generate_optimization_plan(results)
@@ -496,7 +489,7 @@ class DubChainBaselineProfiler:
         with open(plan_file, 'w') as f:
             f.write(optimization_plan)
             
-        print(f"📋 Optimization plan saved to: {plan_file}")
+        logger.info(f"📋 Optimization plan saved to: {plan_file}")
         
     def _generate_optimization_plan(self, results: Dict[str, Any]) -> str:
         """Generate optimization plan markdown."""
@@ -510,35 +503,31 @@ class DubChainBaselineProfiler:
             "The plan prioritizes optimizations by impact and risk level.",
             "",
             "## High Impact Optimizations (Implement First)",
-            "",
-        ]
+            ""]
         
         recommendations = results.get("optimization_recommendations", {})
         
         for rec in recommendations.get("high_impact", []):
             plan_lines.extend([
                 f"### {rec['optimization']}",
-                f"- **Reason**: {rec['reason']}",
-                f"- **Estimated Improvement**: {rec['estimated_improvement']}",
-                f"- **Risk Level**: {rec['risk_level']}",
+                f"- **Reason**: {rec['reason']}")
+                f"- **Estimated Improvement**: {rec['estimated_improvement']}")
+                f"- **Risk Level**: {rec['risk_level']}")
                 f"- **Implementation Priority**: High",
-                "",
-            ])
+                ""])
             
         plan_lines.extend([
             "## Medium Impact Optimizations",
-            "",
-        ])
+            ""])
         
         for rec in recommendations.get("medium_impact", []):
             plan_lines.extend([
                 f"### {rec['optimization']}",
-                f"- **Reason**: {rec['reason']}",
-                f"- **Estimated Improvement**: {rec['estimated_improvement']}",
-                f"- **Risk Level**: {rec['risk_level']}",
+                f"- **Reason**: {rec['reason']}")
+                f"- **Estimated Improvement**: {rec['estimated_improvement']}")
+                f"- **Risk Level**: {rec['risk_level']}")
                 f"- **Implementation Priority**: Medium",
-                "",
-            ])
+                ""])
             
         plan_lines.extend([
             "## Implementation Guidelines",
@@ -557,8 +546,7 @@ class DubChainBaselineProfiler:
             "- Transaction throughput: > 1000 TPS",
             "- Memory usage: < 1GB per node",
             "- CPU usage: < 80% under normal load",
-            "",
-        ])
+            ""])
         
         return "\n".join(plan_lines)
 
@@ -569,13 +557,13 @@ def main():
     
     parser = argparse.ArgumentParser(description="Run DubChain baseline profiling")
     parser.add_argument(
-        "--output-dir",
-        default="baseline_profiling_results",
+        "--output-dir")
+        default="baseline_profiling_results")
         help="Output directory for profiling results"
     )
     parser.add_argument(
-        "--quick",
-        action="store_true",
+        "--quick")
+        action="store_true")
         help="Run quick profiling (fewer iterations)"
     )
     
@@ -593,13 +581,13 @@ def main():
     try:
         results = profiler.run_complete_baseline()
         
-        print("\n🎉 Baseline profiling completed successfully!")
-        print(f"📊 Total profiling sessions: {len(results['profiling_results'])}")
-        print(f"⚡ Total benchmarks: {results['benchmark_results'].get('total_benchmarks', 0)}")
-        print(f"🎯 Optimization recommendations: {len(results.get('optimization_recommendations', {}).get('high_impact', []))}")
+        logger.info("\n🎉 Baseline profiling completed successfully!")
+        logger.info(f"📊 Total profiling sessions: {len(results['profiling_results'])}")
+        logger.info(f"⚡ Total benchmarks: {results['benchmark_results'].get('total_benchmarks', 0)}")
+        logger.info(f"🎯 Optimization recommendations: {len(results.get('optimization_recommendations', {}).get('high_impact', []))}")
         
     except Exception as e:
-        print(f"❌ Profiling failed: {e}")
+        logger.info(f"❌ Profiling failed: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)

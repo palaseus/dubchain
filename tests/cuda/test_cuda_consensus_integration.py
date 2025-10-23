@@ -4,6 +4,9 @@ CUDA Consensus Integration Tests for DubChain.
 This module provides comprehensive tests for CUDA integration in consensus operations.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 import time
 import secrets
@@ -74,20 +77,20 @@ class TestCUDAConsensusIntegration:
         """Test CUDA availability detection."""
         available = cuda_available()
         assert isinstance(available, bool)
-        print(f"CUDA Available: {available}")
+        logger.info(f"CUDA Available: {available}")
     
     def test_cuda_consensus_accelerator_initialization(self, cuda_consensus_config):
         """Test CUDA consensus accelerator initialization."""
         accelerator = CUDAConsensusAccelerator(cuda_consensus_config)
         assert accelerator.config == cuda_consensus_config
         assert isinstance(accelerator.cuda_manager, CUDAManager)
-        print(f"CUDA Consensus Accelerator - Available: {accelerator.cuda_manager.available}")
+        logger.info(f"CUDA Consensus Accelerator - Available: {accelerator.cuda_manager.available}")
     
     def test_consensus_engine_cuda_integration(self, consensus_engine):
         """Test consensus engine CUDA integration."""
         assert hasattr(consensus_engine, 'cuda_accelerator')
         assert isinstance(consensus_engine.cuda_accelerator, CUDAConsensusAccelerator)
-        print(f"Consensus Engine CUDA Integration - Available: {consensus_engine.cuda_accelerator.cuda_manager.available}")
+        logger.info(f"Consensus Engine CUDA Integration - Available: {consensus_engine.cuda_accelerator.cuda_manager.available}")
     
     def test_signature_verification_batch(self, cuda_consensus_accelerator):
         """Test batch signature verification with CUDA acceleration."""
@@ -108,7 +111,7 @@ class TestCUDAConsensusIntegration:
         for result in results:
             assert isinstance(result, bool)
         
-        print(f"Batch signature verification completed: {len(results)} verifications")
+        logger.info(f"Batch signature verification completed: {len(results)} verifications")
     
     def test_block_validation_batch(self, cuda_consensus_accelerator):
         """Test batch block validation with CUDA acceleration."""
@@ -136,7 +139,7 @@ class TestCUDAConsensusIntegration:
             assert hasattr(result, 'block_hash')
             assert hasattr(result, 'consensus_type')
         
-        print(f"Batch block validation completed: {len(results)} validations")
+        logger.info(f"Batch block validation completed: {len(results)} validations")
     
     def test_consensus_operations_batch(self, cuda_consensus_accelerator):
         """Test batch consensus operations with CUDA acceleration."""
@@ -164,7 +167,7 @@ class TestCUDAConsensusIntegration:
             assert 'success' in result
             assert 'result' in result
         
-        print(f"Batch consensus operations completed: {len(results)} operations")
+        logger.info(f"Batch consensus operations completed: {len(results)} operations")
     
     def test_consensus_engine_signature_verification(self, consensus_engine):
         """Test consensus engine signature verification with CUDA."""
@@ -185,7 +188,7 @@ class TestCUDAConsensusIntegration:
         for result in results:
             assert isinstance(result, bool)
         
-        print(f"Consensus engine signature verification completed: {len(results)} verifications")
+        logger.info(f"Consensus engine signature verification completed: {len(results)} verifications")
     
     def test_consensus_engine_block_validation(self, consensus_engine):
         """Test consensus engine block validation with CUDA."""
@@ -213,7 +216,7 @@ class TestCUDAConsensusIntegration:
             assert hasattr(result, 'block_hash')
             assert hasattr(result, 'consensus_type')
         
-        print(f"Consensus engine block validation completed: {len(results)} validations")
+        logger.info(f"Consensus engine block validation completed: {len(results)} validations")
     
     def test_performance_metrics(self, cuda_consensus_accelerator):
         """Test performance metrics collection."""
@@ -234,7 +237,7 @@ class TestCUDAConsensusIntegration:
         assert 'cuda_available' in metrics
         assert 'config' in metrics
         
-        print(f"Performance metrics: {metrics}")
+        logger.info(f"Performance metrics: {metrics}")
     
     def test_consensus_engine_performance_metrics(self, consensus_engine):
         """Test consensus engine performance metrics."""
@@ -254,7 +257,7 @@ class TestCUDAConsensusIntegration:
         assert 'cpu_fallbacks' in metrics
         assert 'cuda_available' in metrics
         
-        print(f"Consensus engine CUDA metrics: {metrics}")
+        logger.info(f"Consensus engine CUDA metrics: {metrics}")
     
     def test_benchmark_consensus_operations(self, cuda_consensus_accelerator):
         """Test consensus operations benchmarking."""
@@ -282,7 +285,7 @@ class TestCUDAConsensusIntegration:
         assert 'speedup' in benchmark_results
         assert 'gpu_success' in benchmark_results
         
-        print(f"Consensus benchmark results: {benchmark_results}")
+        logger.info(f"Consensus benchmark results: {benchmark_results}")
     
     def test_consensus_engine_benchmark(self, consensus_engine):
         """Test consensus engine benchmarking."""
@@ -310,7 +313,7 @@ class TestCUDAConsensusIntegration:
         assert 'gpu_avg_time' in benchmark_results
         assert 'speedup' in benchmark_results
         
-        print(f"Consensus engine benchmark results: {benchmark_results}")
+        logger.info(f"Consensus engine benchmark results: {benchmark_results}")
     
     def test_fallback_behavior(self, cuda_consensus_accelerator):
         """Test CPU fallback behavior when GPU is not available."""
@@ -327,7 +330,7 @@ class TestCUDAConsensusIntegration:
         assert isinstance(results, list)
         assert len(results) == len(signatures)
         
-        print(f"Fallback test successful: {len(results)} verifications")
+        logger.info(f"Fallback test successful: {len(results)} verifications")
     
     def test_memory_management(self, cuda_consensus_accelerator):
         """Test GPU memory management."""
@@ -348,7 +351,7 @@ class TestCUDAConsensusIntegration:
         
         assert len(results) == len(large_blocks)
         
-        print(f"Memory management test completed: {len(results)} operations")
+        logger.info(f"Memory management test completed: {len(results)} operations")
     
     def test_concurrent_consensus_operations(self, cuda_consensus_accelerator):
         """Test concurrent consensus operations."""
@@ -388,7 +391,7 @@ class TestCUDAConsensusIntegration:
         for worker_id, count in results:
             assert count == 5
         
-        print(f"Concurrent consensus operations completed: {results}")
+        logger.info(f"Concurrent consensus operations completed: {results}")
     
     def test_error_handling(self, cuda_consensus_accelerator):
         """Test error handling in consensus operations."""
@@ -397,7 +400,7 @@ class TestCUDAConsensusIntegration:
             results = cuda_consensus_accelerator.verify_signatures_batch([], [], [])
             assert results == []
         except Exception as e:
-            print(f"Empty data handling: {e}")
+            logger.info(f"Empty data handling: {e}")
         
         # Test with mismatched data lengths
         try:
@@ -408,9 +411,9 @@ class TestCUDAConsensusIntegration:
             )
             # Should either work or fail gracefully
         except ValueError as e:
-            print(f"Mismatched data handling: {e}")
+            logger.info(f"Mismatched data handling: {e}")
         
-        print("Error handling test completed")
+        logger.info("Error handling test completed")
 
 
 if __name__ == "__main__":

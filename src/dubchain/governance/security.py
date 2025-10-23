@@ -5,6 +5,9 @@ This module implements various security measures to defend against attacks
 such as Sybil attacks, vote buying, flash loan attacks, and governance front-running.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -449,7 +452,7 @@ class SecurityManager:
                     alerts.append(alert)
             except Exception as e:
                 # Log detector error but don't fail the analysis
-                print(f"Error in detector {detector.get_detector_name()}: {e}")
+                logger.info(f"Error in detector {detector.get_detector_name()}: {e}")
         
         # Add alerts to history
         self.alerts.extend(alerts)

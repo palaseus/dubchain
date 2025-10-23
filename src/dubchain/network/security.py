@@ -2,6 +2,9 @@
 Security mechanisms for GodChain P2P network.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import hashlib
 import hmac
 import time

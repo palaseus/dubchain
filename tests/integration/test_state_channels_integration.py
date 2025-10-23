@@ -9,6 +9,9 @@ Tests the complete state channel lifecycle including:
 - Performance under load
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import json
 import pytest
@@ -417,15 +420,15 @@ class TestSecurityIntegration:
             if success:
                 successful_updates += 1
             else:
-                print(f"Update {i+1} failed: {errors}")
+                logger.info(f"Update {i+1} failed: {errors}")
                 break  # Stop if update fails
         
         # Check for security events
         security = self.manager.security_manager.get_channel_security(channel_id)
         security_events = security.get_security_events()
         
-        print(f"Successful updates: {successful_updates}")
-        print(f"Security events: {len(security_events)}")
+        logger.info(f"Successful updates: {successful_updates}")
+        logger.info(f"Security events: {len(security_events)}")
         
         # Should have some security events due to rapid updates, or at least some successful updates
         assert successful_updates > 0 or len(security_events) > 0

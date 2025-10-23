@@ -1,5 +1,8 @@
 """Tests for storage database module."""
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 
 from dubchain.storage.database import (

@@ -9,6 +9,9 @@ This module provides sophisticated execution capabilities including:
 - Execution caching
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import concurrent.futures
 import hashlib
 import json

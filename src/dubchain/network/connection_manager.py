@@ -9,6 +9,9 @@ This module provides connection management including:
 - Automatic failover and reconnection
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import time
 from dataclasses import dataclass, field

@@ -2,6 +2,9 @@
 Unit tests for core consensus module.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import math
 import time
 from unittest.mock import Mock, patch

@@ -10,6 +10,9 @@ This module provides comprehensive backup capabilities including:
 - Backup scheduling
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import gzip
 import json
 import os

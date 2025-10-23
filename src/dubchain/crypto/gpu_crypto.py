@@ -8,6 +8,9 @@ This module provides CUDA-accelerated cryptographic operations including:
 - Memory-efficient GPU operations
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import hashlib
 import threading
 import time
@@ -91,13 +94,13 @@ class GPUCrypto:
         # Thread safety
         self._metrics_lock = threading.Lock()
 
-        print(f"🚀 GPU Crypto initialized - GPU Available: {self.gpu_available}")
+        logger.info(f"🚀 GPU Crypto initialized - GPU Available: {self.gpu_available}")
         if self.gpu_available:
-            print(f"   Device: {self.device}")
+            logger.info(f"   Device: {self.device}")
             if TORCH_AVAILABLE:
-                print(f"   PyTorch CUDA: {torch.cuda.is_available()}")
+                logger.info(f"   PyTorch CUDA: {torch.cuda.is_available()}")
             if CUPY_AVAILABLE:
-                print(f"   CuPy CUDA: {cp.cuda.is_available()}")
+                logger.info(f"   CuPy CUDA: {cp.cuda.is_available()}")
 
     def _check_gpu_availability(self) -> bool:
         """Check if GPU acceleration is available."""

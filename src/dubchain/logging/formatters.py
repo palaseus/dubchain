@@ -6,6 +6,8 @@ text, and custom formatters for the DubChain logging system.
 
 import json
 import logging
+
+logger = logging.getLogger(__name__)
 import time
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional

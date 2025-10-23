@@ -4,6 +4,9 @@ Shard consensus implementation for DubChain.
 This module provides consensus mechanisms for individual shards.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set

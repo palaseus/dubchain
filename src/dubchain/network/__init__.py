@@ -5,6 +5,9 @@ This package provides sophisticated peer-to-peer networking capabilities includi
 gossip protocols, peer discovery, connection management, and network optimization.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 from .connection_manager import (
     ConnectionConfig,
     ConnectionManager,

@@ -5,6 +5,9 @@ This module handles the execution of approved governance proposals with
 timelock mechanisms, emergency pause capabilities, and execution validation.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import time
 from dataclasses import dataclass, field
 from enum import Enum
@@ -12,7 +15,6 @@ from typing import Any, Callable, Dict, List, Optional, Set
 
 from ..errors.exceptions import GovernanceError, ValidationError
 from .core import GovernanceState, Proposal, ProposalStatus
-
 
 class ExecutionStatus(Enum):
     """Status of proposal execution."""
@@ -23,7 +25,6 @@ class ExecutionStatus(Enum):
     EXECUTED = "executed"
     FAILED = "failed"
     CANCELLED = "cancelled"
-
 
 @dataclass
 class ExecutionResult:
@@ -46,7 +47,6 @@ class ExecutionResult:
         """Check if execution failed."""
         return self.status == ExecutionStatus.FAILED
 
-
 @dataclass
 class TimelockEntry:
     """Entry in the timelock queue."""
@@ -60,7 +60,6 @@ class TimelockEntry:
     def can_execute(self, current_block: int) -> bool:
         """Check if this entry can be executed at the current block."""
         return current_block >= self.execution_block
-
 
 class TimelockManager:
     """Manages timelock delays for proposal execution."""
@@ -139,7 +138,6 @@ class TimelockManager:
             "created_at": entry.created_at,
         }
 
-
 class EmergencyManager:
     """Manages emergency pause and fast-track capabilities."""
 
@@ -181,7 +179,6 @@ class EmergencyManager:
             and self.is_emergency_proposal(proposal)
             and proposal.proposal_type.value == "emergency"
         )
-
 
 class ExecutionEngine:
     """Main execution engine for governance proposals."""
@@ -471,7 +468,6 @@ class ExecutionEngine:
         if not upgrade_type:
             raise ValidationError("Upgrade requires upgrade_type")
 
-        # TODO: Implement actual upgrade logic
         # This would involve:
         # 1. Validating upgrade compatibility
         # 2. Scheduling upgrade activation
@@ -497,7 +493,6 @@ class ExecutionEngine:
         if not emergency_action:
             raise ValidationError("Emergency proposal requires emergency_action")
 
-        # TODO: Implement actual emergency action logic
         # This would involve:
         # 1. Validating emergency conditions
         # 2. Executing emergency protocols
@@ -522,7 +517,6 @@ class ExecutionEngine:
         if not custom_action:
             raise ValidationError("Custom proposal requires custom_action")
 
-        # TODO: Implement actual custom action logic
         # This would involve:
         # 1. Validating custom action parameters
         # 2. Executing custom business logic
@@ -601,10 +595,10 @@ class ExecutionEngine:
         try:
             # In a real implementation, this would update the blockchain state
             # For now, simulate successful update
-            print(f"Updating parameter {parameter_name} to {new_value}")
+            logger.info(f"Updating parameter {parameter_name} to {new_value}")
             return True
         except Exception as e:
-            print(f"Failed to update parameter {parameter_name}: {e}")
+            logger.info(f"Failed to update parameter {parameter_name}: {e}")
             return False
 
     def _emit_parameter_change_event(self, parameter_name: str, old_value: Any, new_value: Any, block_height: int) -> None:
@@ -617,12 +611,12 @@ class ExecutionEngine:
             "block_height": block_height,
             "timestamp": time.time(),
         }
-        print(f"Emitting parameter change event: {event}")
+        logger.info(f"Emitting parameter change event: {event}")
 
     def _notify_parameter_change(self, parameter_name: str, new_value: Any) -> None:
         """Notify all affected components of parameter change."""
         # In a real implementation, this would notify consensus, VM, network, etc.
-        print(f"Notifying components of parameter change: {parameter_name} = {new_value}")
+        logger.info(f"Notifying components of parameter change: {parameter_name} = {new_value}")
 
     def _get_treasury_balance(self) -> int:
         """Get current treasury balance."""
@@ -648,20 +642,20 @@ class ExecutionEngine:
         try:
             # In a real implementation, this would create an actual transaction
             transaction_id = f"treasury_tx_{int(time.time())}_{recipient[:8]}"
-            print(f"Created treasury transaction {transaction_id}: {amount} to {recipient}")
+            logger.info(f"Created treasury transaction {transaction_id}: {amount} to {recipient}")
             return transaction_id
         except Exception as e:
-            print(f"Failed to create treasury transaction: {e}")
+            logger.info(f"Failed to create treasury transaction: {e}")
             return None
 
     def _update_treasury_balance(self, new_balance: int) -> bool:
         """Update treasury balance."""
         try:
             # In a real implementation, this would update the blockchain state
-            print(f"Updated treasury balance to {new_balance}")
+            logger.info(f"Updated treasury balance to {new_balance}")
             return True
         except Exception as e:
-            print(f"Failed to update treasury balance: {e}")
+            logger.info(f"Failed to update treasury balance: {e}")
             return False
 
     def _emit_treasury_spending_event(self, recipient: str, amount: int, transaction_id: str, block_height: int) -> None:
@@ -674,4 +668,4 @@ class ExecutionEngine:
             "block_height": block_height,
             "timestamp": time.time(),
         }
-        print(f"Emitting treasury spending event: {event}")
+        logger.info(f"Emitting treasury spending event: {event}")

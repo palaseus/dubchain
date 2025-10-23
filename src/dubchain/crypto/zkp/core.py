@@ -5,6 +5,9 @@ This module defines the fundamental types and interfaces for the ZKP system,
 including the backend abstraction, configuration, and core data structures.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import hashlib
 import json
 import secrets

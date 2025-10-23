@@ -5,6 +5,9 @@ This module provides the base classes and interfaces for all hardware
 acceleration implementations.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import time
 import threading
 from abc import ABC, abstractmethod
@@ -247,7 +250,7 @@ class ErrorHandler:
     def handle_error(error: Exception, context: str = "") -> None:
         """Handle hardware acceleration errors."""
         error_msg = f"Hardware acceleration error in {context}: {str(error)}"
-        print(f"ERROR: {error_msg}")
+        logger.info(f"ERROR: {error_msg}")
         
         # Log error details
         import traceback

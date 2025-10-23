@@ -2,6 +2,9 @@
 Performance monitoring and optimization for GodChain P2P network.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import statistics
 import time
 from dataclasses import dataclass, field

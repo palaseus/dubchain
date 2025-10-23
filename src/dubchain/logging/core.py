@@ -6,6 +6,8 @@ and configuration options for the DubChain logging system.
 
 import json
 import logging
+
+logger = logging.getLogger(__name__)
 import threading
 import time
 import uuid

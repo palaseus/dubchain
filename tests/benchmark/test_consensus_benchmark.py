@@ -5,6 +5,9 @@ This module provides comprehensive performance benchmarking for all consensus
 mechanisms, measuring throughput, latency, and resource usage.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 pytest.skip("Consensus benchmark tests temporarily disabled due to hanging issues", allow_module_level=True)
 import time
@@ -31,7 +34,7 @@ class ConsensusBenchmark:
 
     def benchmark_throughput(self, num_blocks: int = 10) -> Dict[str, Any]:
         """Benchmark consensus throughput."""
-        print(f"Benchmarking {self.consensus_type.value} throughput: {num_blocks} blocks")
+        logger.info(f"Benchmarking {self.consensus_type.value} throughput: {num_blocks} blocks")
         
         # Create consensus mechanism
         consensus = self._create_consensus()
@@ -92,7 +95,7 @@ class ConsensusBenchmark:
 
     def benchmark_latency(self, num_blocks: int = 10) -> Dict[str, Any]:
         """Benchmark consensus latency."""
-        print(f"Benchmarking {self.consensus_type.value} latency: {num_blocks} blocks")
+        logger.info(f"Benchmarking {self.consensus_type.value} latency: {num_blocks} blocks")
         
         # Create consensus mechanism
         consensus = self._create_consensus()
@@ -141,7 +144,7 @@ class ConsensusBenchmark:
 
     def benchmark_concurrent_load(self, num_threads: int = 4, blocks_per_thread: int = 25) -> Dict[str, Any]:
         """Benchmark consensus under concurrent load."""
-        print(f"Benchmarking {self.consensus_type.value} concurrent load: {num_threads} threads, {blocks_per_thread} blocks/thread")
+        logger.info(f"Benchmarking {self.consensus_type.value} concurrent load: {num_threads} threads, {blocks_per_thread} blocks/thread")
         
         # Create consensus mechanism
         consensus = self._create_consensus()
@@ -212,12 +215,12 @@ class ConsensusBenchmark:
 
     def benchmark_scalability(self, validator_counts: List[int]) -> Dict[str, Any]:
         """Benchmark consensus scalability with different validator counts."""
-        print(f"Benchmarking {self.consensus_type.value} scalability: {validator_counts} validators")
+        logger.info(f"Benchmarking {self.consensus_type.value} scalability: {validator_counts} validators")
         
         results = {}
         
         for num_validators in validator_counts:
-            print(f"  Testing with {num_validators} validators")
+            logger.info(f"  Testing with {num_validators} validators")
             
             # Create consensus mechanism
             consensus = self._create_consensus()

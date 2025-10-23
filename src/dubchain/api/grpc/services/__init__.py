@@ -5,6 +5,9 @@ This module provides the implementation of all gRPC services including
 blockchain, wallet, bridge, governance, network, and consensus services.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import time
 from typing import Any, AsyncIterator, Dict, List, Optional

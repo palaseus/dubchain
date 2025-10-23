@@ -6,6 +6,8 @@ This module provides utility functions and helpers for testing.
 import hashlib
 import json
 import logging
+
+logger = logging.getLogger(__name__)
 import random
 import string
 import threading

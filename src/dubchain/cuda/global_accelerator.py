@@ -5,6 +5,9 @@ This module provides comprehensive CUDA acceleration across the entire codebase,
 automatically accelerating all operations that can benefit from GPU processing.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import time
 import threading
 import asyncio
@@ -105,10 +108,10 @@ class GlobalCUDAAccelerator:
         
         self._initialized = True
         
-        print(f"🚀 Global CUDA Accelerator initialized - Available: {self.available}")
+        logger.info(f"🚀 Global CUDA Accelerator initialized - Available: {self.available}")
         if self.available:
-            print(f"   GPU Device: {get_cuda_device()}")
-            print(f"   Max Concurrent Kernels: {self.config.max_concurrent_kernels}")
+            logger.info(f"   GPU Device: {get_cuda_device()}")
+            logger.info(f"   Max Concurrent Kernels: {self.config.max_concurrent_kernels}")
     
     def accelerate_function(self, 
                           batch_size: int = 100,

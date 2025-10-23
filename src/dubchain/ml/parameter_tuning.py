@@ -4,6 +4,9 @@ Parameter Tuning Module
 This module provides automated parameter optimization for blockchain network parameters.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import numpy as np
 import time
 from dataclasses import dataclass, field

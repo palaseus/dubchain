@@ -4,6 +4,9 @@ Topology Optimization Module
 This module provides network topology optimization using machine learning techniques.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import numpy as np
 import time
 from dataclasses import dataclass, field

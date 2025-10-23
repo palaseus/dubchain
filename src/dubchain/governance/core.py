@@ -5,6 +5,9 @@ This module defines the fundamental types and data structures used throughout
 the governance system, including proposals, votes, and governance state.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import hashlib
 import json
 import time

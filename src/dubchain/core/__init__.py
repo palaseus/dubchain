@@ -8,6 +8,9 @@ This module provides the fundamental blockchain data structures and logic:
 - Consensus mechanisms
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 from .block import Block, BlockHeader
 from .blockchain import Blockchain
 from .consensus import ConsensusEngine, ProofOfWork

@@ -2,6 +2,9 @@
 Unit tests for atomic swap functionality.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import hashlib
 import time
 from unittest.mock import Mock, patch

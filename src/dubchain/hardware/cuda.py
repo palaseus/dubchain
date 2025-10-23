@@ -8,6 +8,9 @@ This module provides CUDA-specific hardware acceleration including:
 - Performance monitoring
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import time
 import threading
 from dataclasses import dataclass

@@ -14,6 +14,9 @@ This module provides a comprehensive, production-grade governance system with:
 - Comprehensive audit trails and observability
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 from .core import (
     GovernanceEngine,
     GovernanceConfig,

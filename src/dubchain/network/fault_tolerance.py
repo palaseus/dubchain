@@ -2,6 +2,9 @@
 Fault tolerance mechanisms for GodChain P2P network.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import random
 import time
 from dataclasses import dataclass, field

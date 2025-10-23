@@ -5,6 +5,9 @@ This module implements various voting strategies including token-weighted,
 quadratic voting, conviction voting, and snapshot-based voting.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import hashlib
 import math
 import time

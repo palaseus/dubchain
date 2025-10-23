@@ -8,6 +8,9 @@ This module tests the bridge management system including:
 - Cross-chain transaction processing
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import time
 from dataclasses import dataclass
 from unittest.mock import MagicMock, Mock, patch

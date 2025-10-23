@@ -5,6 +5,9 @@ This module tests the circuit definitions, constraint systems, witnesses,
 and circuit builders.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 import hashlib
 from unittest.mock import Mock

@@ -10,6 +10,9 @@ This module provides comprehensive anomaly detection for Byzantine behavior incl
 - Byzantine behavior classification
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 from .anomaly import (
     AnomalyDetector,
     AnomalyConfig,

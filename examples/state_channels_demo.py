@@ -9,6 +9,9 @@ This demo showcases the complete state channels implementation including:
 - Performance monitoring
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import time
 from typing import List, Dict, Any
@@ -51,15 +54,15 @@ class StateChannelsDemo:
         """Set up event handlers for monitoring."""
         def event_handler(event, channel_id):
             self.events_received.append((event, channel_id, time.time()))
-            print(f"📢 Event: {event.value} for channel {channel_id}")
+            logger.info(f"📢 Event: {event.value} for channel {channel_id}")
         
         for event in ChannelEvent:
             self.manager.add_event_handler(event, event_handler)
     
     def demo_basic_channel_lifecycle(self):
         """Demo basic channel lifecycle."""
-        print("🚀 Demo: Basic Channel Lifecycle")
-        print("=" * 50)
+        logger.info("🚀 Demo: Basic Channel Lifecycle")
+        logger.info("=" * 50)
         
         # Create participants
         participants = ["alice", "bob", "charlie"]
@@ -67,33 +70,33 @@ class StateChannelsDemo:
         public_keys = {p: key.get_public_key() for p, key in private_keys.items()}
         deposits = {"alice": 10000, "bob": 8000, "charlie": 6000}
         
-        print(f"👥 Participants: {participants}")
-        print(f"💰 Deposits: {deposits}")
+        logger.info(f"👥 Participants: {participants}")
+        logger.info(f"💰 Deposits: {deposits}")
         
         # 1. Create channel
-        print("\n1️⃣ Creating channel...")
+        logger.info("\n1️⃣ Creating channel...")
         success, channel_id, errors = self.manager.create_channel(
             participants, deposits, public_keys
         )
         
         if success:
-            print(f"✅ Channel created: {channel_id}")
+            logger.info(f"✅ Channel created: {channel_id}")
         else:
-            print(f"❌ Channel creation failed: {errors}")
+            logger.info(f"❌ Channel creation failed: {errors}")
             return
         
         # 2. Open channel
-        print("\n2️⃣ Opening channel...")
+        logger.info("\n2️⃣ Opening channel...")
         success, errors = self.manager.open_channel(channel_id)
         
         if success:
-            print("✅ Channel opened successfully")
+            logger.info("✅ Channel opened successfully")
         else:
-            print(f"❌ Channel opening failed: {errors}")
+            logger.info(f"❌ Channel opening failed: {errors}")
             return
         
         # 3. Perform state updates
-        print("\n3️⃣ Performing state updates...")
+        logger.info("\n3️⃣ Performing state updates...")
         
         # Transfer from alice to bob
         update1 = self._create_transfer_update(
@@ -106,9 +109,9 @@ class StateChannelsDemo:
         )
         
         if success:
-            print("✅ Transfer: Alice → Bob (1000)")
+            logger.info("✅ Transfer: Alice → Bob (1000)")
         else:
-            print(f"❌ Transfer failed: {errors}")
+            logger.info(f"❌ Transfer failed: {errors}")
         
         # Transfer from bob to charlie
         update2 = self._create_transfer_update(
@@ -121,9 +124,9 @@ class StateChannelsDemo:
         )
         
         if success:
-            print("✅ Transfer: Bob → Charlie (500)")
+            logger.info("✅ Transfer: Bob → Charlie (500)")
         else:
-            print(f"❌ Transfer failed: {errors}")
+            logger.info(f"❌ Transfer failed: {errors}")
         
         # Multi-party transfer
         update3 = self._create_multi_party_update(
@@ -139,30 +142,30 @@ class StateChannelsDemo:
         )
         
         if success:
-            print("✅ Multi-party transfer completed")
+            logger.info("✅ Multi-party transfer completed")
         else:
-            print(f"❌ Multi-party transfer failed: {errors}")
+            logger.info(f"❌ Multi-party transfer failed: {errors}")
         
         # 4. Show channel info
-        print("\n4️⃣ Channel Information:")
+        logger.info("\n4️⃣ Channel Information:")
         info = self.manager.get_channel_info(channel_id)
         self._print_channel_info(info)
         
         # 5. Close channel
-        print("\n5️⃣ Closing channel...")
+        logger.info("\n5️⃣ Closing channel...")
         success, errors = self.manager.close_channel(channel_id, "cooperative")
         
         if success:
-            print("✅ Channel closed cooperatively")
+            logger.info("✅ Channel closed cooperatively")
         else:
-            print(f"❌ Channel closure failed: {errors}")
+            logger.info(f"❌ Channel closure failed: {errors}")
         
         return channel_id
     
     def demo_dispute_resolution(self):
         """Demo dispute resolution process."""
-        print("\n⚖️ Demo: Dispute Resolution")
-        print("=" * 50)
+        logger.info("\n⚖️ Demo: Dispute Resolution")
+        logger.info("=" * 50)
         
         # Create participants
         participants = ["alice", "bob"]
@@ -186,12 +189,12 @@ class StateChannelsDemo:
             self._sign_update(update, private_keys)
             self.manager.update_channel_state(channel_id, update, public_keys)
         
-        print(f"📊 Channel state after {3} updates:")
+        logger.info(f"📊 Channel state after {3} updates:")
         info = self.manager.get_channel_info(channel_id)
         self._print_channel_info(info)
         
         # Initiate dispute
-        print("\n🚨 Initiating dispute...")
+        logger.info("\n🚨 Initiating dispute...")
         evidence = {
             "type": "state_disagreement",
             "disputed_sequence": 2,
@@ -203,20 +206,20 @@ class StateChannelsDemo:
         )
         
         if success:
-            print(f"✅ Dispute initiated: {dispute_id}")
+            logger.info(f"✅ Dispute initiated: {dispute_id}")
         else:
-            print(f"❌ Dispute initiation failed: {errors}")
+            logger.info(f"❌ Dispute initiation failed: {errors}")
             return
         
         # Show dispute information
         dispute = self.manager.dispute_manager.contract.get_dispute(dispute_id)
         if dispute:
-            print(f"📋 Dispute Status: {dispute.status.value}")
-            print(f"📋 Evidence Period End: {dispute.evidence_period_end}")
-            print(f"📋 Challenge Period End: {dispute.challenge_period_end}")
+            logger.info(f"📋 Dispute Status: {dispute.status.value}")
+            logger.info(f"📋 Evidence Period End: {dispute.evidence_period_end}")
+            logger.info(f"📋 Challenge Period End: {dispute.challenge_period_end}")
         
         # Submit additional evidence
-        print("\n📝 Submitting additional evidence...")
+        logger.info("\n📝 Submitting additional evidence...")
         from dubchain.state_channels.dispute_resolution import DisputeEvidence
         
         evidence_update = DisputeEvidence(
@@ -233,12 +236,12 @@ class StateChannelsDemo:
         )
         
         if success:
-            print("✅ Evidence submitted successfully")
+            logger.info("✅ Evidence submitted successfully")
         else:
-            print("❌ Evidence submission failed")
+            logger.info("❌ Evidence submission failed")
         
         # Resolve dispute
-        print("\n🔧 Resolving dispute...")
+        logger.info("\n🔧 Resolving dispute...")
         channel_state = self.manager.off_chain_manager.get_channel_state(channel_id)
         
         success = self.manager.dispute_manager.resolve_dispute(
@@ -246,16 +249,16 @@ class StateChannelsDemo:
         )
         
         if success:
-            print("✅ Dispute resolved successfully")
+            logger.info("✅ Dispute resolved successfully")
         else:
-            print("❌ Dispute resolution failed")
+            logger.info("❌ Dispute resolution failed")
         
         return channel_id
     
     def demo_security_mechanisms(self):
         """Demo security mechanisms."""
-        print("\n🔒 Demo: Security Mechanisms")
-        print("=" * 50)
+        logger.info("\n🔒 Demo: Security Mechanisms")
+        logger.info("=" * 50)
         
         # Create participants
         participants = ["alice", "bob"]
@@ -272,7 +275,7 @@ class StateChannelsDemo:
         self.manager.open_channel(channel_id)
         
         # Test 1: Replay attack prevention
-        print("\n🛡️ Test 1: Replay Attack Prevention")
+        logger.info("\n🛡️ Test 1: Replay Attack Prevention")
         
         # Create legitimate update
         update = self._create_transfer_update(
@@ -283,16 +286,16 @@ class StateChannelsDemo:
         success, errors = self.manager.update_channel_state(
             channel_id, update, public_keys
         )
-        print(f"✅ Legitimate update: {'Success' if success else 'Failed'}")
+        logger.info(f"✅ Legitimate update: {'Success' if success else 'Failed'}")
         
         # Try to replay the same update
         success, errors = self.manager.update_channel_state(
             channel_id, update, public_keys
         )
-        print(f"🚫 Replay attempt: {'Blocked' if not success else 'Allowed'}")
+        logger.info(f"🚫 Replay attempt: {'Blocked' if not success else 'Allowed'}")
         
         # Test 2: Insufficient balance protection
-        print("\n🛡️ Test 2: Insufficient Balance Protection")
+        logger.info("\n🛡️ Test 2: Insufficient Balance Protection")
         
         # Try to transfer more than available
         update2 = self._create_transfer_update(
@@ -303,10 +306,10 @@ class StateChannelsDemo:
         success, errors = self.manager.update_channel_state(
             channel_id, update2, public_keys
         )
-        print(f"🚫 Overspend attempt: {'Blocked' if not success else 'Allowed'}")
+        logger.info(f"🚫 Overspend attempt: {'Blocked' if not success else 'Allowed'}")
         
         # Test 3: Invalid signature detection
-        print("\n🛡️ Test 3: Invalid Signature Detection")
+        logger.info("\n🛡️ Test 3: Invalid Signature Detection")
         
         # Create update with invalid signature
         update3 = self._create_transfer_update(
@@ -321,10 +324,10 @@ class StateChannelsDemo:
         success, errors = self.manager.update_channel_state(
             channel_id, update3, public_keys
         )
-        print(f"🚫 Invalid signature: {'Blocked' if not success else 'Allowed'}")
+        logger.info(f"🚫 Invalid signature: {'Blocked' if not success else 'Allowed'}")
         
         # Test 4: Sequence number validation
-        print("\n🛡️ Test 4: Sequence Number Validation")
+        logger.info("\n🛡️ Test 4: Sequence Number Validation")
         
         # Try to skip sequence numbers
         update4 = self._create_transfer_update(
@@ -335,23 +338,23 @@ class StateChannelsDemo:
         success, errors = self.manager.update_channel_state(
             channel_id, update4, public_keys
         )
-        print(f"🚫 Sequence skip: {'Blocked' if not success else 'Allowed'}")
+        logger.info(f"🚫 Sequence skip: {'Blocked' if not success else 'Allowed'}")
         
         # Show security statistics
-        print("\n📊 Security Statistics:")
+        logger.info("\n📊 Security Statistics:")
         security = self.manager.security_manager.get_channel_security(channel_id)
         security_events = security.get_security_events()
         fraud_proofs = security.get_fraud_proofs()
         
-        print(f"  Security Events: {len(security_events)}")
-        print(f"  Fraud Proofs: {len(fraud_proofs)}")
+        logger.info(f"  Security Events: {len(security_events)}")
+        logger.info(f"  Fraud Proofs: {len(fraud_proofs)}")
         
         return channel_id
     
     def demo_performance_monitoring(self):
         """Demo performance monitoring."""
-        print("\n📈 Demo: Performance Monitoring")
-        print("=" * 50)
+        logger.info("\n📈 Demo: Performance Monitoring")
+        logger.info("=" * 50)
         
         # Create participants
         participants = ["alice", "bob", "charlie", "dave"]
@@ -368,7 +371,7 @@ class StateChannelsDemo:
         self.manager.open_channel(channel_id)
         
         # Perform many updates and measure performance
-        print("🏃‍♂️ Performing 100 state updates...")
+        logger.info("🏃‍♂️ Performing 100 state updates...")
         
         start_time = time.time()
         
@@ -386,40 +389,40 @@ class StateChannelsDemo:
             )
             
             if not success and i % 10 == 0:  # Log every 10th failure
-                print(f"  Update {i} failed: {errors}")
+                logger.info(f"  Update {i} failed: {errors}")
         
         end_time = time.time()
         total_time = end_time - start_time
         
-        print(f"✅ Completed 100 updates in {total_time:.2f} seconds")
-        print(f"📊 Average time per update: {total_time / 100:.4f} seconds")
-        print(f"📊 Throughput: {100 / total_time:.2f} updates/second")
+        logger.info(f"✅ Completed 100 updates in {total_time:.2f} seconds")
+        logger.info(f"📊 Average time per update: {total_time / 100:.4f} seconds")
+        logger.info(f"📊 Throughput: {100 / total_time:.2f} updates/second")
         
         # Show performance metrics
         metrics = self.manager.get_channel_metrics(channel_id)
         if metrics:
-            print(f"\n📊 Channel Metrics:")
-            print(f"  Total Updates: {metrics.total_updates}")
-            print(f"  Successful Updates: {metrics.successful_updates}")
-            print(f"  Failed Updates: {metrics.failed_updates}")
-            print(f"  Success Rate: {metrics.get_success_rate():.2%}")
-            print(f"  Average Update Time: {metrics.average_update_time:.4f}s")
-            print(f"  Total Volume: {metrics.total_volume}")
+            logger.info(f"\n📊 Channel Metrics:")
+            logger.info(f"  Total Updates: {metrics.total_updates}")
+            logger.info(f"  Successful Updates: {metrics.successful_updates}")
+            logger.info(f"  Failed Updates: {metrics.failed_updates}")
+            logger.info(f"  Success Rate: {metrics.get_success_rate():.2%}")
+            logger.info(f"  Average Update Time: {metrics.average_update_time:.4f}s")
+            logger.info(f"  Total Volume: {metrics.total_volume}")
         
         # Show global metrics
         global_metrics = self.manager.get_global_metrics()
-        print(f"\n📊 Global Metrics:")
-        print(f"  Active Channels: {global_metrics['total_channels']}")
-        print(f"  Total Updates: {global_metrics['total_updates']}")
-        print(f"  Total Volume: {global_metrics['total_volume']}")
-        print(f"  Average Success Rate: {global_metrics['average_success_rate']:.2%}")
+        logger.info(f"\n📊 Global Metrics:")
+        logger.info(f"  Active Channels: {global_metrics['total_channels']}")
+        logger.info(f"  Total Updates: {global_metrics['total_updates']}")
+        logger.info(f"  Total Volume: {global_metrics['total_volume']}")
+        logger.info(f"  Average Success Rate: {global_metrics['average_success_rate']:.2%}")
         
         return channel_id
     
     def demo_multi_channel_operations(self):
         """Demo operations across multiple channels."""
-        print("\n🔄 Demo: Multi-Channel Operations")
-        print("=" * 50)
+        logger.info("\n🔄 Demo: Multi-Channel Operations")
+        logger.info("=" * 50)
         
         # Create participants
         participants = ["alice", "bob", "charlie"]
@@ -436,12 +439,12 @@ class StateChannelsDemo:
             if success:
                 channel_ids.append(channel_id)
                 self.manager.open_channel(channel_id)
-                print(f"✅ Created channel {i + 1}: {channel_id}")
+                logger.info(f"✅ Created channel {i + 1}: {channel_id}")
         
-        print(f"\n📊 Created {len(channel_ids)} channels")
+        logger.info(f"\n📊 Created {len(channel_ids)} channels")
         
         # Perform operations across all channels
-        print("\n🔄 Performing operations across all channels...")
+        logger.info("\n🔄 Performing operations across all channels...")
         
         for i, channel_id in enumerate(channel_ids):
             # Perform some updates
@@ -459,21 +462,21 @@ class StateChannelsDemo:
                 )
                 
                 if not success:
-                    print(f"  Channel {i + 1}, Update {j + 1} failed")
+                    logger.info(f"  Channel {i + 1}, Update {j + 1} failed")
         
         # Show statistics for all channels
-        print("\n📊 Multi-Channel Statistics:")
+        logger.info("\n📊 Multi-Channel Statistics:")
         for i, channel_id in enumerate(channel_ids):
             info = self.manager.get_channel_info(channel_id)
             if info:
-                print(f"  Channel {i + 1}: {info['sequence_number']} updates, "
+                logger.info(f"  Channel {i + 1}: {info['sequence_number']} updates, "
                       f"Status: {info['status']}")
         
         # Show global statistics
         global_stats = self.manager.get_channel_statistics()
-        print(f"\n📊 Global Statistics:")
-        print(f"  Total Channels: {global_stats['active_channels']}")
-        print(f"  Total Participants: {global_stats['total_participants']}")
+        logger.info(f"\n📊 Global Statistics:")
+        logger.info(f"  Total Channels: {global_stats['active_channels']}")
+        logger.info(f"  Total Participants: {global_stats['total_participants']}")
         
         return channel_ids
     
@@ -510,27 +513,27 @@ class StateChannelsDemo:
     def _print_channel_info(self, info):
         """Print formatted channel information."""
         if not info:
-            print("  No channel information available")
+            logger.info("  No channel information available")
             return
         
-        print(f"  Channel ID: {info['channel_id']}")
-        print(f"  Status: {info['status']}")
-        print(f"  Participants: {info['participants']}")
-        print(f"  Total Deposits: {info['total_deposits']}")
-        print(f"  Total Balances: {info['total_balances']}")
-        print(f"  Sequence Number: {info['sequence_number']}")
-        print(f"  Created At: {info['created_at']}")
+        logger.info(f"  Channel ID: {info['channel_id']}")
+        logger.info(f"  Status: {info['status']}")
+        logger.info(f"  Participants: {info['participants']}")
+        logger.info(f"  Total Deposits: {info['total_deposits']}")
+        logger.info(f"  Total Balances: {info['total_balances']}")
+        logger.info(f"  Sequence Number: {info['sequence_number']}")
+        logger.info(f"  Created At: {info['created_at']}")
         if info.get('opened_at'):
-            print(f"  Opened At: {info['opened_at']}")
+            logger.info(f"  Opened At: {info['opened_at']}")
         if info.get('closed_at'):
-            print(f"  Closed At: {info['closed_at']}")
+            logger.info(f"  Closed At: {info['closed_at']}")
         if info.get('close_reason'):
-            print(f"  Close Reason: {info['close_reason']}")
+            logger.info(f"  Close Reason: {info['close_reason']}")
     
     def run_complete_demo(self):
         """Run the complete demo."""
-        print("🎯 State Channels Complete Demo")
-        print("=" * 60)
+        logger.info("🎯 State Channels Complete Demo")
+        logger.info("=" * 60)
         
         try:
             # Run all demos
@@ -541,20 +544,20 @@ class StateChannelsDemo:
             self.demo_multi_channel_operations()
             
             # Show event summary
-            print("\n📋 Event Summary:")
-            print("=" * 50)
+            logger.info("\n📋 Event Summary:")
+            logger.info("=" * 50)
             event_counts = {}
             for event, channel_id, timestamp in self.events_received:
                 event_counts[event.value] = event_counts.get(event.value, 0) + 1
             
             for event_type, count in event_counts.items():
-                print(f"  {event_type}: {count}")
+                logger.info(f"  {event_type}: {count}")
             
-            print(f"\n✅ Demo completed successfully!")
-            print(f"📊 Total events received: {len(self.events_received)}")
+            logger.info(f"\n✅ Demo completed successfully!")
+            logger.info(f"📊 Total events received: {len(self.events_received)}")
             
         except Exception as e:
-            print(f"❌ Demo failed with error: {e}")
+            logger.info(f"❌ Demo failed with error: {e}")
             import traceback
             traceback.print_exc()
 

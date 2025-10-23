@@ -5,6 +5,8 @@ blockchain platform, providing structured error handling and categorization.
 """
 
 import logging
+
+logger = logging.getLogger(__name__)
 import time
 import traceback
 from dataclasses import dataclass, field

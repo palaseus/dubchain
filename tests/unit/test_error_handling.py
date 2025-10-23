@@ -1,5 +1,8 @@
 """Tests for the DubChain error handling system."""
 
+import logging
+
+logger = logging.getLogger(__name__)
 import threading
 import time
 from unittest.mock import Mock, patch

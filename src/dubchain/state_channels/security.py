@@ -8,6 +8,9 @@ This module implements security features including:
 - Threat detection and prevention
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import hashlib
 import json
 import time

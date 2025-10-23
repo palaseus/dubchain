@@ -8,6 +8,9 @@ This module provides OpenCL-specific hardware acceleration including:
 - Performance optimization
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import time
 import threading
 from dataclasses import dataclass

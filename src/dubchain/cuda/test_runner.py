@@ -5,6 +5,9 @@ This module provides ultra-fast test execution using CUDA acceleration,
 parallel processing, and intelligent test batching.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import time
 import threading
 import asyncio
@@ -92,11 +95,11 @@ class CUDATestRunner:
         self._results_lock = threading.Lock()
         self._progress_lock = threading.Lock()
         
-        print(f"🚀 CUDA Test Runner initialized")
-        print(f"   Max Workers: {max_workers}")
-        print(f"   GPU Acceleration: {gpu_acceleration}")
-        print(f"   Batch Size: {batch_size}")
-        print(f"   Timeout: {timeout}s")
+        logger.info(f"🚀 CUDA Test Runner initialized")
+        logger.info(f"   Max Workers: {max_workers}")
+        logger.info(f"   GPU Acceleration: {gpu_acceleration}")
+        logger.info(f"   Batch Size: {batch_size}")
+        logger.info(f"   Timeout: {timeout}s")
     
     def discover_tests(self, test_dir: str = "tests") -> List[str]:
         """
@@ -112,7 +115,7 @@ class CUDATestRunner:
         test_path = Path(test_dir)
         
         if not test_path.exists():
-            print(f"⚠️  Test directory {test_dir} not found")
+            logger.info(f"⚠️  Test directory {test_dir} not found")
             return test_files
         
         # Find all test files
@@ -121,7 +124,7 @@ class CUDATestRunner:
         
         test_files = [str(f) for f in test_files if f.is_file()]
         
-        print(f"📁 Discovered {len(test_files)} test files")
+        logger.info(f"📁 Discovered {len(test_files)} test files")
         return test_files
     
     def analyze_test_dependencies(self, test_files: List[str]) -> Dict[str, List[str]]:
@@ -152,7 +155,7 @@ class CUDATestRunner:
                                 if 'test_' in line or '_test' in line:
                                     deps.append(line.strip())
             except Exception as e:
-                print(f"⚠️  Error analyzing {test_file}: {e}")
+                logger.info(f"⚠️  Error analyzing {test_file}: {e}")
             
             dependencies[test_file] = deps
         
@@ -229,7 +232,7 @@ class CUDATestRunner:
         # Sort batches by priority
         batches.sort(key=lambda b: b.priority)
         
-        print(f"📦 Created {len(batches)} test batches")
+        logger.info(f"📦 Created {len(batches)} test batches")
         return batches
     
     def execute_test_batch(self, batch: TestBatch) -> List[TestResult]:
@@ -247,7 +250,7 @@ class CUDATestRunner:
         if not batch.test_files:
             return results
         
-        print(f"🔄 Executing batch {batch.batch_id} ({len(batch.test_files)} tests)")
+        logger.info(f"🔄 Executing batch {batch.batch_id} ({len(batch.test_files)} tests)")
         
         try:
             if batch.gpu_accelerated and self.accelerator.available:
@@ -257,10 +260,10 @@ class CUDATestRunner:
                 # Use parallel CPU execution
                 results = self._execute_batch_cpu(batch)
             
-            print(f"✅ Batch {batch.batch_id} completed: {len(results)} results")
+            logger.info(f"✅ Batch {batch.batch_id} completed: {len(results)} results")
             
         except Exception as e:
-            print(f"❌ Batch {batch.batch_id} failed: {e}")
+            logger.info(f"❌ Batch {batch.batch_id} failed: {e}")
             # Create error results for all tests in batch
             for test_file in batch.test_files:
                 result = TestResult(
@@ -285,13 +288,13 @@ class CUDATestRunner:
         Returns:
             Dictionary with test results and statistics
         """
-        print("🚀 Starting CUDA-accelerated test run")
+        logger.info("🚀 Starting CUDA-accelerated test run")
         self.start_time = time.time()
         
         # Discover tests
         test_files = self.discover_tests(test_dir)
         if not test_files:
-            print("❌ No tests found")
+            logger.info("❌ No tests found")
             return {"error": "No tests found"}
         
         self.total_tests = len(test_files)
@@ -322,12 +325,12 @@ class CUDATestRunner:
                         self.failed_tests += sum(1 for r in batch_results if r.status in ['failed', 'error'])
                         
                         progress = (self.completed_tests / self.total_tests) * 100
-                        print(f"📊 Progress: {progress:.1f}% ({self.completed_tests}/{self.total_tests})")
+                        logger.info(f"📊 Progress: {progress:.1f}% ({self.completed_tests}/{self.total_tests})")
                         
                 except concurrent.futures.TimeoutError:
-                    print(f"⏰ Batch {batch.batch_id} timed out")
+                    logger.info(f"⏰ Batch {batch.batch_id} timed out")
                 except Exception as e:
-                    print(f"❌ Batch {batch.batch_id} failed: {e}")
+                    logger.info(f"❌ Batch {batch.batch_id} failed: {e}")
         
         # Store results
         with self._results_lock:
@@ -337,18 +340,18 @@ class CUDATestRunner:
         duration = time.time() - self.start_time
         stats = self._calculate_statistics(duration)
         
-        print(f"🎉 Test run completed in {duration:.2f}s")
-        print(f"   Total: {stats['total']}")
-        print(f"   Passed: {stats['passed']}")
-        print(f"   Failed: {stats['failed']}")
-        print(f"   Errors: {stats['errors']}")
-        print(f"   Skipped: {stats['skipped']}")
-        print(f"   Success Rate: {stats['success_rate']:.1f}%")
+        logger.info(f"🎉 Test run completed in {duration:.2f}s")
+        logger.info(f"   Total: {stats['total']}")
+        logger.info(f"   Passed: {stats['passed']}")
+        logger.info(f"   Failed: {stats['failed']}")
+        logger.info(f"   Errors: {stats['errors']}")
+        logger.info(f"   Skipped: {stats['skipped']}")
+        logger.info(f"   Success Rate: {stats['success_rate']:.1f}%")
         
         if self.accelerator.available:
             metrics = self.accelerator.get_performance_metrics()
-            print(f"   GPU Operations: {metrics.gpu_operations}")
-            print(f"   Speedup Factor: {metrics.speedup_factor:.1f}x")
+            logger.info(f"   GPU Operations: {metrics.gpu_operations}")
+            logger.info(f"   Speedup Factor: {metrics.speedup_factor:.1f}x")
         
         return stats
     
@@ -362,7 +365,7 @@ class CUDATestRunner:
         Returns:
             Dictionary with test results and statistics
         """
-        print(f"🎯 Running {len(test_files)} specific test files")
+        logger.info(f"🎯 Running {len(test_files)} specific test files")
         self.start_time = time.time()
         
         # Create batches for specific tests
@@ -384,7 +387,7 @@ class CUDATestRunner:
                     batch_results = future.result(timeout=self.timeout)
                     all_results.extend(batch_results)
                 except Exception as e:
-                    print(f"❌ Batch {batch.batch_id} failed: {e}")
+                    logger.info(f"❌ Batch {batch.batch_id} failed: {e}")
         
         self.results = all_results
         
@@ -421,7 +424,7 @@ class CUDATestRunner:
                 
         except Exception as e:
             # Fallback to CPU execution
-            print(f"⚠️  GPU execution failed for batch {batch.batch_id}, falling back to CPU: {e}")
+            logger.info(f"⚠️  GPU execution failed for batch {batch.batch_id}, falling back to CPU: {e}")
             results = self._execute_batch_cpu(batch)
         
         return results
@@ -614,22 +617,22 @@ def run_specific_tests_cuda(test_files: List[str],
 
 if __name__ == "__main__":
     # Example usage
-    print("🚀 CUDA Test Runner Demo")
+    logger.info("🚀 CUDA Test Runner Demo")
     
     runner = CUDATestRunner(max_workers=4, gpu_acceleration=True)
     results = runner.run_all_tests("tests")
     
-    print(f"\n📊 Final Results:")
-    print(f"   Success Rate: {results['success_rate']:.1f}%")
-    print(f"   Duration: {results['duration']:.2f}s")
+    logger.info(f"\n📊 Final Results:")
+    logger.info(f"   Success Rate: {results['success_rate']:.1f}%")
+    logger.info(f"   Duration: {results['duration']:.2f}s")
     
     if results['failed'] > 0:
-        print(f"\n❌ Failed Tests:")
+        logger.info(f"\n❌ Failed Tests:")
         failed_tests = runner.get_failed_tests()
         for test in failed_tests[:5]:  # Show first 5 failed tests
-            print(f"   - {test.test_name}: {test.error_message}")
+            logger.info(f"   - {test.test_name}: {test.error_message}")
     
     performance_report = runner.get_performance_report()
-    print(f"\n🚀 Performance Report:")
-    print(f"   GPU Operations: {performance_report['acceleration_metrics']['gpu_operations']}")
-    print(f"   Speedup Factor: {performance_report['acceleration_metrics']['speedup_factor']:.1f}x")
+    logger.info(f"\n🚀 Performance Report:")
+    logger.info(f"   GPU Operations: {performance_report['acceleration_metrics']['gpu_operations']}")
+    logger.info(f"   Speedup Factor: {performance_report['acceleration_metrics']['speedup_factor']:.1f}x")

@@ -4,6 +4,9 @@ Unit tests for ZKP generation components.
 This module tests proof generation, trusted setup, and key management.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 import time
 import secrets

@@ -8,6 +8,9 @@ This module provides sophisticated smart contract functionality including:
 - Advanced contract features
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import time
 from dataclasses import dataclass, field
 from enum import Enum

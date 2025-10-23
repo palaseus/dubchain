@@ -5,6 +5,9 @@ This module provides a comprehensive wallet management system that integrates
 HD wallets, multi-signature wallets, encryption, and secure storage.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import json
 import os
 import time

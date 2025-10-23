@@ -5,6 +5,9 @@ This module tests the concrete backend implementations for different
 proof systems (zk-SNARKs, zk-STARKs, Bulletproofs, and mock).
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 import time
 from unittest.mock import Mock, patch

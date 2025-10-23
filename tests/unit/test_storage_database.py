@@ -1,5 +1,8 @@
 """Tests for database storage functionality."""
 
+import logging
+
+logger = logging.getLogger(__name__)
 import os
 import tempfile
 import time

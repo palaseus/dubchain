@@ -8,6 +8,9 @@ This module provides comprehensive hardware acceleration support including:
 - Performance benchmarking and comparison
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 from .detection import (
     HardwareDetector,
     HardwareCapabilities,

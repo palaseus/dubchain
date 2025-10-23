@@ -9,6 +9,9 @@ This module provides the core bridge functionality including:
 - Production bridge core
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 from .production_core import (
     ProductionBridgeCore,
     BridgeCoreConfig,

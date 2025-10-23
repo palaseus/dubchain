@@ -4,6 +4,9 @@ Cardano Bridge Implementation
 This module provides Cardano bridging capabilities.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 from dataclasses import dataclass
 from typing import Dict, Any, List, Optional
 import time

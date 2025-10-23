@@ -9,6 +9,9 @@ This module provides:
 - Integration with CI/CD for performance gating
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import gc
 import json
@@ -172,7 +175,7 @@ class Microbenchmark:
                 # Record failed iteration
                 iter_end = time.perf_counter()
                 times.append(iter_end - iter_start)
-                print(f"Warning: Function {name} failed on iteration {iteration}: {e}")
+                logger.info(f"Warning: Function {name} failed on iteration {iteration}: {e}")
                 
             iteration += 1
             
@@ -342,7 +345,7 @@ class RegressionDetector:
                 self.baseline_results[name] = result
                 
         except Exception as e:
-            print(f"Warning: Failed to load baseline: {e}")
+            logger.info(f"Warning: Failed to load baseline: {e}")
             
     def save_baseline(self, results: List[BenchmarkResult]) -> None:
         """Save results as new baseline."""
@@ -477,7 +480,7 @@ class BenchmarkSuite:
         
     def run_all_benchmarks(self) -> List[BenchmarkResult]:
         """Run all benchmark suites."""
-        print("Running DubChain benchmark suite...")
+        logger.info("Running DubChain benchmark suite...")
         
         # Core blockchain benchmarks
         self._run_core_benchmarks()
@@ -505,7 +508,7 @@ class BenchmarkSuite:
         
     def _run_core_benchmarks(self) -> None:
         """Run core blockchain benchmarks."""
-        print("Running core blockchain benchmarks...")
+        logger.info("Running core blockchain benchmarks...")
         
         # Import here to avoid circular imports
         from src.dubchain.core.block import Block
@@ -542,7 +545,7 @@ class BenchmarkSuite:
         
     def _run_consensus_benchmarks(self) -> None:
         """Run consensus mechanism benchmarks."""
-        print("Running consensus benchmarks...")
+        logger.info("Running consensus benchmarks...")
         
         # This would benchmark consensus mechanisms
         # Implementation depends on consensus module structure
@@ -550,7 +553,7 @@ class BenchmarkSuite:
         
     def _run_vm_benchmarks(self) -> None:
         """Run virtual machine benchmarks."""
-        print("Running VM benchmarks...")
+        logger.info("Running VM benchmarks...")
         
         # This would benchmark VM execution
         # Implementation depends on VM module structure
@@ -558,7 +561,7 @@ class BenchmarkSuite:
         
     def _run_network_benchmarks(self) -> None:
         """Run networking benchmarks."""
-        print("Running network benchmarks...")
+        logger.info("Running network benchmarks...")
         
         # This would benchmark network operations
         # Implementation depends on network module structure
@@ -566,7 +569,7 @@ class BenchmarkSuite:
         
     def _run_storage_benchmarks(self) -> None:
         """Run storage benchmarks."""
-        print("Running storage benchmarks...")
+        logger.info("Running storage benchmarks...")
         
         # This would benchmark storage operations
         # Implementation depends on storage module structure
@@ -574,7 +577,7 @@ class BenchmarkSuite:
         
     def _run_crypto_benchmarks(self) -> None:
         """Run cryptographic benchmarks."""
-        print("Running crypto benchmarks...")
+        logger.info("Running crypto benchmarks...")
         
         # This would benchmark cryptographic operations
         # Implementation depends on crypto module structure

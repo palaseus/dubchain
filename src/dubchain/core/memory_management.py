@@ -10,6 +10,9 @@ This module implements comprehensive memory management including:
 - Memory profiling and analytics
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import gc
 import os
 import sys
@@ -310,7 +313,7 @@ class MemoryMonitor:
                 time.sleep(self.update_interval)
 
             except Exception as e:
-                print(f"Memory monitoring error: {e}")
+                logger.info(f"Memory monitoring error: {e}")
                 time.sleep(self.update_interval)
 
     def _collect_stats(self) -> MemoryStats:
@@ -414,7 +417,7 @@ class GarbageCollectionManager:
                 try:
                     callback()
                 except Exception as e:
-                    print(f"GC callback error: {e}")
+                    logger.info(f"GC callback error: {e}")
 
             # Perform garbage collection
             collected = gc.collect(generation)
@@ -780,7 +783,7 @@ class MemoryManager:
                 try:
                     self._limit_callbacks[limit_name]()
                 except Exception as e:
-                    print(f"Memory limit callback error: {e}")
+                    logger.info(f"Memory limit callback error: {e}")
 
         return results
 
@@ -863,7 +866,7 @@ class MemoryManager:
             try:
                 callback(event)
             except Exception as e:
-                print(f"Memory event callback error: {e}")
+                logger.info(f"Memory event callback error: {e}")
 
     def _on_memory_limit_exceeded(self, stats: MemoryStats) -> None:
         """Handle memory limit exceeded."""

@@ -5,6 +5,9 @@ This module tests the new consensus mechanisms: Proof-of-Authority,
 Proof-of-History, Proof-of-Space/Time, and HotStuff.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 import time
 from unittest.mock import Mock, patch

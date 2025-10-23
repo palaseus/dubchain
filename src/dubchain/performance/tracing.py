@@ -9,6 +9,9 @@ This module provides comprehensive profiling including:
 - Prometheus/Grafana integration
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import json
 import os
@@ -132,7 +135,7 @@ class DistributedTracer:
             self._initialized = True
             
         except Exception as e:
-            print(f"Failed to initialize tracer: {e}")
+            logger.info(f"Failed to initialize tracer: {e}")
     
     def start_span(self, name: str, attributes: Optional[Dict[str, Any]] = None) -> Any:
         """Start a new span."""
@@ -205,7 +208,7 @@ class PerformanceProfiler:
             try:
                 self._collect_samples()
             except Exception as e:
-                print(f"Profiling error: {e}")
+                logger.info(f"Profiling error: {e}")
     
     def _collect_samples(self) -> None:
         """Collect performance samples."""
@@ -358,7 +361,7 @@ class PerformanceProfiler:
                 return True
                 
         except Exception as e:
-            print(f"Failed to generate flamegraph: {e}")
+            logger.info(f"Failed to generate flamegraph: {e}")
             return False
     
     def stop_profiling(self) -> None:
@@ -419,7 +422,7 @@ class PrometheusMetrics:
             self._initialized = True
             
         except Exception as e:
-            print(f"Failed to initialize Prometheus metrics: {e}")
+            logger.info(f"Failed to initialize Prometheus metrics: {e}")
     
     def record_operation(self, operation_type: str, duration: float, status: str = "success") -> None:
         """Record operation metrics."""
@@ -437,7 +440,7 @@ class PrometheusMetrics:
             ).observe(duration)
             
         except Exception as e:
-            print(f"Failed to record operation metrics: {e}")
+            logger.info(f"Failed to record operation metrics: {e}")
     
     def update_memory_usage(self, bytes_used: int) -> None:
         """Update memory usage metric."""
@@ -447,7 +450,7 @@ class PrometheusMetrics:
         try:
             self.metrics["memory_usage"].set(bytes_used)
         except Exception as e:
-            print(f"Failed to update memory usage: {e}")
+            logger.info(f"Failed to update memory usage: {e}")
     
     def update_cpu_usage(self, cpu_percent: float) -> None:
         """Update CPU usage metric."""
@@ -457,7 +460,7 @@ class PrometheusMetrics:
         try:
             self.metrics["cpu_usage"].set(cpu_percent)
         except Exception as e:
-            print(f"Failed to update CPU usage: {e}")
+            logger.info(f"Failed to update CPU usage: {e}")
     
     def update_active_connections(self, count: int) -> None:
         """Update active connections metric."""
@@ -467,7 +470,7 @@ class PrometheusMetrics:
         try:
             self.metrics["active_connections"].set(count)
         except Exception as e:
-            print(f"Failed to update active connections: {e}")
+            logger.info(f"Failed to update active connections: {e}")
     
     def update_block_height(self, height: int) -> None:
         """Update block height metric."""
@@ -477,7 +480,7 @@ class PrometheusMetrics:
         try:
             self.metrics["block_height"].set(height)
         except Exception as e:
-            print(f"Failed to update block height: {e}")
+            logger.info(f"Failed to update block height: {e}")
 
 
 class AdvancedProfiler:
@@ -601,7 +604,7 @@ class AdvancedProfiler:
             return True
             
         except Exception as e:
-            print(f"Failed to generate report: {e}")
+            logger.info(f"Failed to generate report: {e}")
             return False
     
     def cleanup(self) -> None:

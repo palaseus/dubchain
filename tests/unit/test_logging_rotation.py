@@ -2,6 +2,9 @@
 Tests for logging rotation module.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import gzip
 import os
 import shutil

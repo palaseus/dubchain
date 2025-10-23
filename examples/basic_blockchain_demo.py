@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+logger = logging.getLogger(__name__)
 """
 Basic GodChain Demo
 
@@ -9,14 +10,15 @@ This script demonstrates the core functionality of GodChain:
 - Cryptographic operations
 """
 
+import logging
 import time
 from dubchain import Blockchain, PrivateKey, PublicKey
 from dubchain.core.consensus import ConsensusConfig
 
 
 def main():
-    print("🚀 GodChain - Sophisticated Blockchain Demo")
-    print("=" * 50)
+    logger.info("🚀 GodChain - Sophisticated Blockchain Demo")
+    logger.info("=" * 50)
     
     # Create blockchain with custom configuration
     config = ConsensusConfig(
@@ -29,17 +31,17 @@ def main():
     blockchain = Blockchain(config)
     
     # Create genesis block
-    print("\n📦 Creating Genesis Block...")
+    logger.info("\n📦 Creating Genesis Block...")
     genesis_block = blockchain.create_genesis_block(
         coinbase_recipient="genesis_miner",
         coinbase_amount=1000000
     )
-    print(f"✅ Genesis block created: {genesis_block.get_hash().to_hex()[:16]}...")
-    print(f"   Height: {genesis_block.header.block_height}")
-    print(f"   Difficulty: {genesis_block.header.difficulty}")
+    logger.info(f"✅ Genesis block created: {genesis_block.get_hash().to_hex()[:16]}...")
+    logger.info(f"   Height: {genesis_block.header.block_height}")
+    logger.info(f"   Difficulty: {genesis_block.header.difficulty}")
     
     # Generate some wallets
-    print("\n👛 Creating Wallets...")
+    logger.info("\n👛 Creating Wallets...")
     alice_private = PrivateKey.generate()
     alice_public = alice_private.get_public_key()
     alice_address = alice_public.to_address()
@@ -48,37 +50,37 @@ def main():
     bob_public = bob_private.get_public_key()
     bob_address = bob_public.to_address()
     
-    print(f"Alice's address: {alice_address}")
-    print(f"Bob's address: {bob_address}")
+    logger.info(f"Alice's address: {alice_address}")
+    logger.info(f"Bob's address: {bob_address}")
     
     # Mine some blocks to get funds
-    print("\n⛏️  Mining Blocks...")
+    logger.info("\n⛏️  Mining Blocks...")
     for i in range(3):
-        print(f"   Mining block {i+1}...")
+        logger.info(f"   Mining block {i+1}...")
         start_time = time.time()
         
         block = blockchain.mine_block(alice_address, max_transactions=10)
         
         if block:
             mining_time = time.time() - start_time
-            print(f"   ✅ Block mined in {mining_time:.2f}s")
-            print(f"      Hash: {block.get_hash().to_hex()[:16]}...")
-            print(f"      Nonce: {block.header.nonce}")
-            print(f"      Transactions: {len(block.transactions)}")
+            logger.info(f"   ✅ Block mined in {mining_time:.2f}s")
+            logger.info(f"      Hash: {block.get_hash().to_hex()[:16]}...")
+            logger.info(f"      Nonce: {block.header.nonce}")
+            logger.info(f"      Transactions: {len(block.transactions)}")
         else:
-            print(f"   ❌ Failed to mine block {i+1}")
+            logger.info(f"   ❌ Failed to mine block {i+1}")
     
     # Check balances
-    print("\n💰 Checking Balances...")
+    logger.info("\n💰 Checking Balances...")
     alice_balance = blockchain.get_balance(alice_address)
     bob_balance = blockchain.get_balance(bob_address)
     
-    print(f"Alice's balance: {alice_balance}")
-    print(f"Bob's balance: {bob_balance}")
+    logger.info(f"Alice's balance: {alice_balance}")
+    logger.info(f"Bob's balance: {bob_balance}")
     
     # Create a transaction
     if alice_balance > 100000:
-        print("\n💸 Creating Transaction...")
+        logger.info("\n💸 Creating Transaction...")
         
         # Create a transfer transaction
         transfer_tx = blockchain.create_transfer_transaction(
@@ -89,62 +91,62 @@ def main():
         )
         
         if transfer_tx:
-            print(f"✅ Transaction created: {transfer_tx.get_hash().to_hex()[:16]}...")
-            print(f"   From: {alice_address}")
-            print(f"   To: {bob_address}")
-            print(f"   Amount: 50000")
-            print(f"   Fee: 1000")
+            logger.info(f"✅ Transaction created: {transfer_tx.get_hash().to_hex()[:16]}...")
+            logger.info(f"   From: {alice_address}")
+            logger.info(f"   To: {bob_address}")
+            logger.info(f"   Amount: 50000")
+            logger.info(f"   Fee: 1000")
             
             # Add transaction to pending pool
             blockchain.add_transaction(transfer_tx)
-            print("   Transaction added to pending pool")
+            logger.info("   Transaction added to pending pool")
             
             # Mine a block with the transaction
-            print("\n⛏️  Mining Block with Transaction...")
+            logger.info("\n⛏️  Mining Block with Transaction...")
             block = blockchain.mine_block(alice_address, max_transactions=10)
             
             if block:
-                print(f"✅ Block mined: {block.get_hash().to_hex()[:16]}...")
-                print(f"   Transactions: {len(block.transactions)}")
+                logger.info(f"✅ Block mined: {block.get_hash().to_hex()[:16]}...")
+                logger.info(f"   Transactions: {len(block.transactions)}")
                 
                 # Check balances again
-                print("\n💰 Updated Balances...")
+                logger.info("\n💰 Updated Balances...")
                 alice_balance = blockchain.get_balance(alice_address)
                 bob_balance = blockchain.get_balance(bob_address)
                 
-                print(f"Alice's balance: {alice_balance}")
-                print(f"Bob's balance: {bob_balance}")
+                logger.info(f"Alice's balance: {alice_balance}")
+                logger.info(f"Bob's balance: {bob_balance}")
         else:
-            print("❌ Failed to create transaction")
+            logger.info("❌ Failed to create transaction")
     
     # Show blockchain info
-    print("\n📊 Blockchain Information...")
+    logger.info("\n📊 Blockchain Information...")
     info = blockchain.get_chain_info()
-    print(f"Block count: {info['block_count']}")
-    print(f"Block height: {info['block_height']}")
-    print(f"Total difficulty: {info['total_difficulty']}")
-    print(f"Pending transactions: {info['pending_transactions']}")
-    print(f"UTXO count: {info['utxo_count']}")
+    logger.info(f"Block count: {info['block_count']}")
+    logger.info(f"Block height: {info['block_height']}")
+    logger.info(f"Total difficulty: {info['total_difficulty']}")
+    logger.info(f"Pending transactions: {info['pending_transactions']}")
+    logger.info(f"UTXO count: {info['utxo_count']}")
     
     if 'current_difficulty' in info:
-        print(f"Current difficulty: {info['current_difficulty']}")
-        print(f"Average block time: {info.get('average_block_time', 0):.2f}s")
+        logger.info(f"Current difficulty: {info['current_difficulty']}")
+        logger.info(f"Average block time: {info.get('average_block_time', 0):.2f}s")
     
     # Validate the entire chain
-    print("\n🔍 Validating Blockchain...")
+    logger.info("\n🔍 Validating Blockchain...")
     is_valid = blockchain.validate_chain()
-    print(f"Chain validation: {'✅ Valid' if is_valid else '❌ Invalid'}")
+    logger.info(f"Chain validation: {'✅ Valid' if is_valid else '❌ Invalid'}")
     
-    print("\n🎉 Demo completed successfully!")
-    print("\nGodChain features demonstrated:")
-    print("  ✅ Cryptographic signatures (ECDSA)")
-    print("  ✅ Hash functions (SHA-256)")
-    print("  ✅ Merkle trees")
-    print("  ✅ Proof of Work consensus")
-    print("  ✅ UTXO transaction model")
-    print("  ✅ Block validation")
-    print("  ✅ Difficulty adjustment")
-    print("  ✅ Comprehensive testing (97 tests passing)")
+    logger.info("\n🎉 Demo completed successfully!")
+    logger.info("\nGodChain features demonstrated:")
+    logger.info("  ✅ Cryptographic signatures (ECDSA)")
+    logger.info("  ✅ Hash functions (SHA-256)")
+    logger.info("  ✅ Merkle trees")
+    logger.info("  ✅ Proof of Work consensus")
+    logger.info("  ✅ UTXO transaction model")
+    logger.info("  ✅ Block validation")
+    logger.info("  ✅ Difficulty adjustment")
+    logger.info("  ✅ Comprehensive testing (97 tests passing)")
 
 
 if __name__ == "__main__":

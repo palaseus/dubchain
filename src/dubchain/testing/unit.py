@@ -6,6 +6,8 @@ suites, runners, and mock factories for isolated component testing.
 
 import inspect
 import logging
+
+logger = logging.getLogger(__name__)
 import threading
 import time
 from typing import Any, Callable, Dict, List, Optional, Type, Union

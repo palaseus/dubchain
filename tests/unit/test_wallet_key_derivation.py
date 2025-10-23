@@ -8,6 +8,9 @@ This module tests the advanced key derivation system including:
 - Custom derivation paths
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import secrets
 from unittest.mock import MagicMock, Mock, patch
 
@@ -311,7 +314,7 @@ class TestExtendedKey:
         extended_key = ExtendedKey(key, chain_code, 0, parent_fingerprint, 0)
         assert extended_key.parent_fingerprint == parent_fingerprint
 
-        # Invalid parent fingerprint (wrong length)
+        # Invalid parent fingerlogger.info(wrong length)
         with pytest.raises(ValueError, match="Parent fingerprint must be 4 bytes"):
             ExtendedKey(key, chain_code, 0, secrets.token_bytes(8), 0)
 

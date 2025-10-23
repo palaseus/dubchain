@@ -5,6 +5,9 @@ Implements the core block structure with advanced features like
 merkle trees, difficulty adjustment, and block validation.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional

@@ -5,6 +5,9 @@ This module provides property-based tests using Hypothesis to verify
 invariants and properties of the sharding system under various conditions.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 
 # Temporarily disable property tests due to hanging issues

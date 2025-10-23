@@ -6,6 +6,9 @@ including blockchain operations, wallet management, bridge transfers,
 governance, network monitoring, and consensus services.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 from .server import (
     GRPCServerConfig,
     DubChainGRPCServer,

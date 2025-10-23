@@ -2,6 +2,9 @@
 Tests for logging formatters module.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import json
 import time
 from typing import Any, Dict

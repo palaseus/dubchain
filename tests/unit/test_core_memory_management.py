@@ -2,6 +2,9 @@
 Comprehensive unit tests for the memory management system.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import gc
 import threading
 import time

@@ -1,5 +1,8 @@
 """Unit tests for dubchain.core.block module."""
 
+import logging
+
+logger = logging.getLogger(__name__)
 import time
 from unittest.mock import Mock, patch
 import pytest

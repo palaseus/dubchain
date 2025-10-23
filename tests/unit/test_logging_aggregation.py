@@ -2,6 +2,9 @@
 Tests for logging aggregation module.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import json
 import os
 import socket

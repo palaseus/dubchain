@@ -13,6 +13,9 @@ Key features:
 - Energy-efficient consensus
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import hashlib
 import random
 import time

@@ -5,6 +5,9 @@ This module provides the core execution engine that runs smart contracts
 with advanced features like gas metering, call depth limits, and state management.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import time
 from dataclasses import dataclass, field
 from enum import Enum

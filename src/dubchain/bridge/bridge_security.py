@@ -4,6 +4,9 @@ Bridge security system for DubChain.
 This module provides security features for cross-chain bridges.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set

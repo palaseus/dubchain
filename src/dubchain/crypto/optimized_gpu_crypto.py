@@ -9,6 +9,9 @@ truly benefit from GPU parallelization:
 - Optimized for blockchain workloads
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import hashlib
 import threading
 import time
@@ -82,12 +85,11 @@ class OptimizedGPUCrypto:
         # Thread safety
         self._metrics_lock = threading.Lock()
 
-        print(
-            f"🚀 Optimized GPU Crypto initialized - GPU Available: {self.gpu_available}"
+        logger.info(f"🚀 Optimized GPU Crypto initialized - GPU Available: {self.gpu_available}"
         )
         if self.gpu_available:
-            print(f"   Device: {self.device}")
-            print(f"   Min batch size for GPU: {self.config.min_batch_size}")
+            logger.info(f"   Device: {self.device}")
+            logger.info(f"   Min batch size for GPU: {self.config.min_batch_size}")
 
     def _check_gpu_availability(self) -> bool:
         """Check if GPU acceleration is available."""
@@ -156,7 +158,7 @@ class OptimizedGPUCrypto:
 
             except Exception as e:
                 if self.config.fallback_to_cpu:
-                    print(f"⚠️  GPU batch hash failed, falling back to CPU: {e}")
+                    logger.info(f"⚠️  GPU batch hash failed, falling back to CPU: {e}")
                     results = [
                         self._hash_data_cpu(data, algorithm) for data in data_list
                     ]
@@ -289,8 +291,7 @@ class OptimizedGPUCrypto:
 
             except Exception as e:
                 if self.config.fallback_to_cpu:
-                    print(
-                        f"⚠️  GPU signature verification failed, falling back to CPU: {e}"
+                    logger.info(f"⚠️  GPU signature verification failed, falling back to CPU: {e}"
                     )
                     results = self._verify_signatures_cpu(verifications)
                     self.metrics["cpu_fallbacks"] += len(verifications)
@@ -438,9 +439,9 @@ class OptimizedGPUCrypto:
         Returns:
             Benchmark results
         """
-        print(f"🔬 Optimized GPU vs CPU benchmark...")
-        print(f"   Data size: {data_size} bytes")
-        print(f"   Operations: {num_operations}")
+        logger.info(f"🔬 Optimized GPU vs CPU benchmark...")
+        logger.info(f"   Data size: {data_size} bytes")
+        logger.info(f"   Operations: {num_operations}")
 
         # Generate test data
         import secrets
@@ -448,13 +449,13 @@ class OptimizedGPUCrypto:
         test_data = [secrets.token_bytes(data_size) for _ in range(num_operations)]
 
         # CPU benchmark
-        print("   Testing CPU performance...")
+        logger.info("   Testing CPU performance...")
         cpu_start = time.time()
         cpu_results = [self._hash_data_cpu(data, "sha256") for data in test_data]
         cpu_time = time.time() - cpu_start
 
         # GPU benchmark (only if batch is large enough)
-        print("   Testing GPU performance...")
+        logger.info("   Testing GPU performance...")
         gpu_start = time.time()
         gpu_results = self.hash_data_batch_optimized(test_data, "sha256")
         gpu_time = time.time() - gpu_start
@@ -474,13 +475,13 @@ class OptimizedGPUCrypto:
             and self.gpu_available,
         }
 
-        print(f"   Results:")
-        print(f"     CPU time: {cpu_time:.4f}s")
-        print(f"     GPU time: {gpu_time:.4f}s")
-        print(f"     Speedup: {speedup:.2f}x")
-        print(f"     Used GPU: {results['used_gpu']}")
-        print(f"     CPU throughput: {results['cpu_throughput']:.2f} ops/sec")
-        print(f"     GPU throughput: {results['gpu_throughput']:.2f} ops/sec")
+        logger.info(f"   Results:")
+        logger.info(f"     CPU time: {cpu_time:.4f}s")
+        logger.info(f"     GPU time: {gpu_time:.4f}s")
+        logger.info(f"     Speedup: {speedup:.2f}x")
+        logger.info(f"     Used GPU: {results['used_gpu']}")
+        logger.info(f"     CPU throughput: {results['cpu_throughput']:.2f} ops/sec")
+        logger.info(f"     GPU throughput: {results['gpu_throughput']:.2f} ops/sec")
 
         return results
 

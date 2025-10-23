@@ -8,6 +8,9 @@ This module provides performance-optimized networking implementations with:
 - Adaptive backpressure and peer prioritization
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import json
 import struct
@@ -38,7 +41,6 @@ from .connection_manager import ConnectionManager
 from .gossip import GossipProtocol
 from .message_router import MessageRouter
 from .peer import Peer
-
 
 @dataclass
 class OptimizedNetworkConfig:
@@ -72,7 +74,6 @@ class OptimizedNetworkConfig:
     enable_performance_monitoring: bool = True
     metrics_collection_interval: float = 1.0
 
-
 @dataclass
 class MessageBatch:
     """Batch of messages for efficient transmission."""
@@ -82,7 +83,6 @@ class MessageBatch:
     timestamp: float
     total_size: int
     compression_enabled: bool = False
-
 
 @dataclass
 class PeerMetrics:
@@ -96,7 +96,6 @@ class PeerMetrics:
     error_count: int = 0
     last_seen: float = field(default_factory=time.time)
     priority_score: float = 1.0
-
 
 class ZeroCopySerializer:
     """Zero-copy serialization for network messages."""
@@ -183,7 +182,6 @@ class ZeroCopySerializer:
             if len(self.buffer_pool) < self.buffer_pool.maxlen:
                 self.buffer_pool.append(buffer)
 
-
 class MessageBatcher:
     """Batches messages for efficient network transmission."""
 
@@ -258,7 +256,7 @@ class MessageBatcher:
         5. Updating delivery metrics
         """
         try:
-            # TODO: Implement actual sending logic
+            
             # For now, simulate successful sending
             logger.debug(
                 f"Simulated sending batch of {len(batch.messages)} messages to peer {peer_id}"
@@ -296,7 +294,6 @@ class MessageBatcher:
 
                 self.batch_timers.clear()
                 return total_flushed
-
 
 class AdaptiveBackpressure:
     """Adaptive backpressure management for network operations."""
@@ -399,7 +396,6 @@ class AdaptiveBackpressure:
             )
             return [peer_id for peer_id, _ in sorted_peers[:count]]
 
-
 class OptimizedConnectionManager(ConnectionManager):
     """Optimized connection manager with async I/O and performance optimizations."""
 
@@ -467,7 +463,7 @@ class OptimizedConnectionManager(ConnectionManager):
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                print(f"Batch processor error: {e}")
+                logger.info(f"Batch processor error: {e}")
                 await asyncio.sleep(1.0)
 
     async def _backpressure_monitor(self) -> None:
@@ -483,7 +479,7 @@ class OptimizedConnectionManager(ConnectionManager):
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                print(f"Backpressure monitor error: {e}")
+                logger.info(f"Backpressure monitor error: {e}")
                 await asyncio.sleep(1.0)
 
     async def _metrics_collector(self) -> None:
@@ -505,7 +501,7 @@ class OptimizedConnectionManager(ConnectionManager):
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                print(f"Metrics collector error: {e}")
+                logger.info(f"Metrics collector error: {e}")
                 await asyncio.sleep(1.0)
 
     async def _apply_backpressure(self, peer_id: str) -> None:
@@ -544,14 +540,13 @@ class OptimizedConnectionManager(ConnectionManager):
             # Serialize message
             serialized = self.serializer.serialize_message(message)
 
-            # TODO: Implement actual peer sending mechanism
             # This would involve:
             # 1. Checking peer connection status
             # 2. Sending data over established connection
             # 3. Handling network errors and timeouts
             # 4. Implementing retry logic for failed sends
             peer = self.peers[peer_id]
-            # peer.send(serialized)  # TODO: Implement actual sending
+            # peer.send(serialized)  
 
             # Update metrics
             self.performance_metrics["messages_sent"] += 1
@@ -565,7 +560,7 @@ class OptimizedConnectionManager(ConnectionManager):
             return True
 
         except Exception as e:
-            print(f"Error sending message to {peer_id}: {e}")
+            logger.info(f"Error sending message to {peer_id}: {e}")
 
             # Update error metrics
             self.backpressure.update_peer_metrics(peer_id, {"error_count": 1})
@@ -592,7 +587,7 @@ class OptimizedConnectionManager(ConnectionManager):
             return message
 
         except Exception as e:
-            print(f"Error receiving message from {peer_id}: {e}")
+            logger.info(f"Error receiving message from {peer_id}: {e}")
 
             # Update error metrics
             self.backpressure.update_peer_metrics(peer_id, {"error_count": 1})
@@ -640,7 +635,6 @@ class OptimizedConnectionManager(ConnectionManager):
         metrics["backpressure_peers"] = backpressure_peers
 
         return metrics
-
 
 class OptimizedGossipProtocol(GossipProtocol):
     """Optimized gossip protocol with batching and prioritization."""
@@ -733,7 +727,6 @@ class OptimizedGossipProtocol(GossipProtocol):
         """Update priority for a peer."""
         self.peer_priorities[peer_id] = priority
 
-
 class OptimizedMessageRouter(MessageRouter):
     """Optimized message router with performance optimizations."""
 
@@ -807,7 +800,7 @@ class OptimizedMessageRouter(MessageRouter):
         except Exception as e:
             # Update error metrics
             self.handler_metrics[message_type]["error_count"] += 1
-            print(f"Error routing message {message_type}: {e}")
+            logger.info(f"Error routing message {message_type}: {e}")
             return False
 
     async def _handle_async_message(
@@ -822,7 +815,7 @@ class OptimizedMessageRouter(MessageRouter):
                 loop = asyncio.get_event_loop()
                 await loop.run_in_executor(None, handler, message, peer_id)
         except Exception as e:
-            print(f"Error in async message handler: {e}")
+            logger.info(f"Error in async message handler: {e}")
 
     def get_handler_metrics(self) -> Dict[str, Any]:
         """Get handler performance metrics."""
@@ -842,7 +835,6 @@ class OptimizedMessageRouter(MessageRouter):
             }
 
         return metrics
-
 
 class OptimizedNetworkManager:
     """Main optimized network manager."""

@@ -355,6 +355,37 @@ keys/
 generated/
 auto_generated/
 
+# Temporary fix scripts and development artifacts
+scripts/fix_*.py
+scripts/ultimate_*.py
+scripts/final_*.py
+scripts/comprehensive_import_fix.py
+scripts/replace_prints_with_logging.py
+
+# Timestamped result files
+*_results_*.json
+*_results_*.md
+documentation_example_results_*.json
+production_readiness_results_*.json
+comprehensive_test_results_*.json
+master_test_results_*.json
+performance_results_*.json
+security_results_*.json
+integration_results_*.json
+
+# Temporary development files
+*.tmp
+*.temp
+temp_*
+tmp_*
+
+# Large generated files that cause push timeouts
+performance_baselines.json
+baseline_profiling_results/
+comprehensive_test_results/
+master_test_results/
+test_results_summary/
+
 # Build artifacts
 build/
 dist/

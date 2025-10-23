@@ -5,6 +5,9 @@ This module provides utility functions for CUDA operations throughout
 the entire codebase, ensuring consistent GPU acceleration support.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import os
 import time
 import threading
@@ -71,7 +74,7 @@ def get_cuda_device() -> Optional[str]:
             try:
                 _cuda_device = _detect_cuda_device()
             except Exception as e:
-                print(f"Warning: CUDA device detection failed: {e}")
+                logger.info(f"Warning: CUDA device detection failed: {e}")
                 _cuda_device = None
     
     return _cuda_device
@@ -89,7 +92,7 @@ def _detect_cuda_device() -> Optional[str]:
             device_id = torch.cuda.current_device()
             return f"cuda:{device_id}"
         except Exception as e:
-            print(f"Warning: PyTorch CUDA device detection failed: {e}")
+            logger.info(f"Warning: PyTorch CUDA device detection failed: {e}")
     
     # Fallback to CuPy
     if CUPY_AVAILABLE and cp.cuda.is_available():
@@ -149,7 +152,7 @@ def _get_memory_info() -> Dict[str, Any]:
                 'compute_capability': None,
             })
     except Exception as e:
-        print(f"Warning: Failed to get CUDA memory info: {e}")
+        logger.info(f"Warning: Failed to get CUDA memory info: {e}")
     
     return memory_info
 
@@ -165,7 +168,7 @@ def cuda_synchronize() -> None:
         elif CUPY_AVAILABLE and cp.cuda.is_available():
             cp.cuda.Stream.null.synchronize()
     except Exception as e:
-        print(f"Warning: CUDA synchronization failed: {e}")
+        logger.info(f"Warning: CUDA synchronization failed: {e}")
 
 
 def cuda_memory_cleanup() -> None:
@@ -179,7 +182,7 @@ def cuda_memory_cleanup() -> None:
         elif CUPY_AVAILABLE and cp.cuda.is_available():
             cp.get_default_memory_pool().free_all_blocks()
     except Exception as e:
-        print(f"Warning: CUDA memory cleanup failed: {e}")
+        logger.info(f"Warning: CUDA memory cleanup failed: {e}")
 
 
 @contextmanager
@@ -221,7 +224,7 @@ def cuda_tensor_to_numpy(tensor) -> Optional[np.ndarray]:
         else:
             return np.array(tensor)
     except Exception as e:
-        print(f"Warning: Failed to convert tensor to numpy: {e}")
+        logger.info(f"Warning: Failed to convert tensor to numpy: {e}")
         return None
 
 
@@ -242,7 +245,7 @@ def numpy_to_cuda_tensor(array: np.ndarray, device: Optional[str] = None) -> Any
         else:
             return array
     except Exception as e:
-        print(f"Warning: Failed to convert numpy to CUDA tensor: {e}")
+        logger.info(f"Warning: Failed to convert numpy to CUDA tensor: {e}")
         return array
 
 
@@ -261,7 +264,7 @@ def cuda_batch_operation(operation_func, data_list: List[Any], batch_size: int =
             else:
                 results.append(batch_results)
         except Exception as e:
-            print(f"Warning: CUDA batch operation failed, falling back to CPU: {e}")
+            logger.info(f"Warning: CUDA batch operation failed, falling back to CPU: {e}")
             # Fallback to CPU
             for item in batch:
                 results.append(operation_func(item))
@@ -291,7 +294,7 @@ def cuda_benchmark(operation_func, test_data: List[Any], num_iterations: int = 1
             end_time = time.time()
             times.append(end_time - start_time)
         except Exception as e:
-            print(f"Warning: CUDA benchmark failed: {e}")
+            logger.info(f"Warning: CUDA benchmark failed: {e}")
             return {'cuda_available': False}
     
     if not times:
@@ -332,7 +335,7 @@ def cuda_memory_usage() -> Dict[str, int]:
                 'max_reserved': mempool.total_bytes(),
             }
     except Exception as e:
-        print(f"Warning: Failed to get CUDA memory usage: {e}")
+        logger.info(f"Warning: Failed to get CUDA memory usage: {e}")
     
     return {'available': False}
 
@@ -369,6 +372,6 @@ def cuda_device_info() -> Dict[str, Any]:
                 'total_memory': cp.cuda.runtime.memGetInfo()[1],
             }
     except Exception as e:
-        print(f"Warning: Failed to get CUDA device info: {e}")
+        logger.info(f"Warning: Failed to get CUDA device info: {e}")
     
     return {'available': False}

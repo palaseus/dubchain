@@ -5,6 +5,9 @@ This module provides comprehensive performance testing and benchmarking
 capabilities for the ZKP system under various load conditions.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 
 # Temporarily disable all benchmark tests due to hanging issues
@@ -36,7 +39,7 @@ class ZKPBenchmark:
     
     def benchmark_proof_generation(self, num_proofs: int = 100, input_size: int = 100) -> Dict[str, Any]:
         """Benchmark proof generation performance."""
-        print(f"Benchmarking proof generation: {num_proofs} proofs, {input_size} bytes input")
+        logger.info(f"Benchmarking proof generation: {num_proofs} proofs, {input_size} bytes input")
         
         # Prepare test data
         test_input = b"x" * input_size
@@ -97,7 +100,7 @@ class ZKPBenchmark:
     
     def benchmark_proof_verification(self, num_verifications: int = 100, input_size: int = 100) -> Dict[str, Any]:
         """Benchmark proof verification performance."""
-        print(f"Benchmarking proof verification: {num_verifications} verifications, {input_size} bytes input")
+        logger.info(f"Benchmarking proof verification: {num_verifications} verifications, {input_size} bytes input")
         
         # Generate proofs first
         test_input = b"x" * input_size
@@ -161,12 +164,12 @@ class ZKPBenchmark:
     
     def benchmark_batch_operations(self, batch_sizes: List[int] = [1, 5, 10, 20, 50]) -> Dict[str, Any]:
         """Benchmark batch operations with different batch sizes."""
-        print(f"Benchmarking batch operations: {batch_sizes}")
+        logger.info(f"Benchmarking batch operations: {batch_sizes}")
         
         batch_results = {}
         
         for batch_size in batch_sizes:
-            print(f"  Testing batch size: {batch_size}")
+            logger.info(f"  Testing batch size: {batch_size}")
             
             # Generate proofs for batch
             proofs = []
@@ -209,7 +212,7 @@ class ZKPBenchmark:
     
     def benchmark_concurrent_operations(self, num_threads: int = 10, operations_per_thread: int = 10) -> Dict[str, Any]:
         """Benchmark concurrent operations."""
-        print(f"Benchmarking concurrent operations: {num_threads} threads, {operations_per_thread} ops/thread")
+        logger.info(f"Benchmarking concurrent operations: {num_threads} threads, {operations_per_thread} ops/thread")
         
         def worker_thread(thread_id: int, results: List[Dict[str, Any]]):
             """Worker thread for concurrent operations."""
@@ -280,7 +283,7 @@ class ZKPBenchmark:
     
     def benchmark_memory_usage(self, num_operations: int = 1000) -> Dict[str, Any]:
         """Benchmark memory usage patterns."""
-        print(f"Benchmarking memory usage: {num_operations} operations")
+        logger.info(f"Benchmarking memory usage: {num_operations} operations")
         
         # Force garbage collection
         gc.collect()
@@ -320,7 +323,7 @@ class ZKPBenchmark:
     
     def run_comprehensive_benchmark(self) -> Dict[str, Any]:
         """Run comprehensive benchmark suite."""
-        print("Running comprehensive ZKP benchmark suite...")
+        logger.info("Running comprehensive ZKP benchmark suite...")
         
         # Run all benchmarks
         self.benchmark_proof_generation(num_proofs=100, input_size=100)
@@ -335,7 +338,7 @@ class ZKPBenchmark:
         """Save benchmark results to file."""
         with open(filename, 'w') as f:
             json.dump(self.results, f, indent=2, default=str)
-        print(f"Benchmark results saved to {filename}")
+        logger.info(f"Benchmark results saved to {filename}")
 
 
 class TestZKPBenchmarks:

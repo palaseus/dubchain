@@ -5,6 +5,9 @@ This module provides the circuit abstraction for defining zero-knowledge proofs,
 including constraint systems, witnesses, and circuit builders.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import hashlib
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field

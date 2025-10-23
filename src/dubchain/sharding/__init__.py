@@ -9,6 +9,9 @@ This module provides sophisticated sharding capabilities including:
 - Shard state management
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 from .cross_shard_communication import (
     CrossShardMessage,
     CrossShardMessaging,

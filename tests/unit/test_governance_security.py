@@ -6,6 +6,9 @@ Sybil detection, vote buying detection, flash loan detection,
 and governance front-running detection.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 import time
 from unittest.mock import Mock, patch

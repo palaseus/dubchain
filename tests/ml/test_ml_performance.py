@@ -10,6 +10,9 @@ This module provides comprehensive performance and stress tests for ML component
 - Model accuracy tests
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 import unittest
 import asyncio
@@ -70,10 +73,10 @@ class TestMLPerformance(unittest.TestCase):
         extraction_time = end_time - start_time
         transactions_per_second = len(transactions) / extraction_time
         
-        print(f"\nFeature Extraction Performance:")
-        print(f"  Transactions: {len(transactions)}")
-        print(f"  Time: {extraction_time:.4f}s")
-        print(f"  Throughput: {transactions_per_second:.2f} tx/s")
+        logger.info(f"\nFeature Extraction Performance:")
+        logger.info(f"  Transactions: {len(transactions)}")
+        logger.info(f"  Time: {extraction_time:.4f}s")
+        logger.info(f"  Throughput: {transactions_per_second:.2f} tx/s")
         
         # Performance assertions
         self.assertLess(extraction_time, 30.0)  # Should complete within 30 seconds
@@ -114,11 +117,11 @@ class TestMLPerformance(unittest.TestCase):
         
         optimization_time = end_time - start_time
         
-        print(f"\nTopology Optimization Performance:")
-        print(f"  Nodes: {len(nodes)}")
-        print(f"  Edges: {len(edges)}")
-        print(f"  Time: {optimization_time:.4f}s")
-        print(f"  Improvement Score: {result.improvement_score:.4f}")
+        logger.info(f"\nTopology Optimization Performance:")
+        logger.info(f"  Nodes: {len(nodes)}")
+        logger.info(f"  Edges: {len(edges)}")
+        logger.info(f"  Time: {optimization_time:.4f}s")
+        logger.info(f"  Improvement Score: {result.improvement_score:.4f}")
         
         # Performance assertions
         self.assertLess(optimization_time, 60.0)  # Should complete within 60 seconds
@@ -159,10 +162,10 @@ class TestMLPerformance(unittest.TestCase):
         
         routing_time = end_time - start_time
         
-        print(f"\nRouting Optimization Performance:")
-        print(f"  Nodes: {len(nodes)}")
-        print(f"  Route Length: {len(route)}")
-        print(f"  Time: {routing_time:.4f}s")
+        logger.info(f"\nRouting Optimization Performance:")
+        logger.info(f"  Nodes: {len(nodes)}")
+        logger.info(f"  Route Length: {len(route)}")
+        logger.info(f"  Time: {routing_time:.4f}s")
         
         # Performance assertions
         self.assertLess(routing_time, 30.0)  # Should complete within 30 seconds
@@ -191,13 +194,13 @@ class TestMLPerformance(unittest.TestCase):
         
         samples_per_second = len(test_data) / inference_time
         
-        print(f"\nAnomaly Detection Performance:")
-        print(f"  Training Samples: {len(data)}")
-        print(f"  Training Time: {training_time:.4f}s")
-        print(f"  Test Samples: {len(test_data)}")
-        print(f"  Inference Time: {inference_time:.4f}s")
-        print(f"  Throughput: {samples_per_second:.2f} samples/s")
-        print(f"  Anomalies Detected: {len(result.anomaly_scores)}")
+        logger.info(f"\nAnomaly Detection Performance:")
+        logger.info(f"  Training Samples: {len(data)}")
+        logger.info(f"  Training Time: {training_time:.4f}s")
+        logger.info(f"  Test Samples: {len(test_data)}")
+        logger.info(f"  Inference Time: {inference_time:.4f}s")
+        logger.info(f"  Throughput: {samples_per_second:.2f} samples/s")
+        logger.info(f"  Anomalies Detected: {len(result.anomaly_scores)}")
         
         # Performance assertions
         self.assertLess(training_time, 120.0)  # Should complete within 2 minutes
@@ -236,11 +239,11 @@ class TestMLPerformance(unittest.TestCase):
         
         optimization_time = end_time - start_time
         
-        print(f"\nParameter Optimization Performance:")
-        print(f"  Parameters: {len(parameter_spaces)}")
-        print(f"  Iterations: {len(result.optimization_history)}")
-        print(f"  Time: {optimization_time:.4f}s")
-        print(f"  Best Score: {result.best_score:.4f}")
+        logger.info(f"\nParameter Optimization Performance:")
+        logger.info(f"  Parameters: {len(parameter_spaces)}")
+        logger.info(f"  Iterations: {len(result.optimization_history)}")
+        logger.info(f"  Time: {optimization_time:.4f}s")
+        logger.info(f"  Best Score: {result.best_score:.4f}")
         
         # Performance assertions
         self.assertLess(optimization_time, 180.0)  # Should complete within 3 minutes
@@ -272,11 +275,11 @@ class TestMLPerformance(unittest.TestCase):
         
         memory_increase = training_memory - initial_memory
         
-        print(f"\nMemory Usage:")
-        print(f"  Initial Memory: {initial_memory:.2f} MB")
-        print(f"  After Training: {training_memory:.2f} MB")
-        print(f"  After Inference: {inference_memory:.2f} MB")
-        print(f"  Memory Increase: {memory_increase:.2f} MB")
+        logger.info(f"\nMemory Usage:")
+        logger.info(f"  Initial Memory: {initial_memory:.2f} MB")
+        logger.info(f"  After Training: {training_memory:.2f} MB")
+        logger.info(f"  After Inference: {inference_memory:.2f} MB")
+        logger.info(f"  Memory Increase: {memory_increase:.2f} MB")
         
         # Memory assertions
         self.assertLess(memory_increase, 1000.0)  # Should not increase by more than 1GB
@@ -320,10 +323,10 @@ class TestMLStressTests(unittest.TestCase):
         extraction_time = end_time - start_time
         transactions_per_second = len(transactions) / extraction_time
         
-        print(f"\nHigh Volume Feature Extraction:")
-        print(f"  Transactions: {len(transactions)}")
-        print(f"  Time: {extraction_time:.4f}s")
-        print(f"  Throughput: {transactions_per_second:.2f} tx/s")
+        logger.info(f"\nHigh Volume Feature Extraction:")
+        logger.info(f"  Transactions: {len(transactions)}")
+        logger.info(f"  Time: {extraction_time:.4f}s")
+        logger.info(f"  Throughput: {transactions_per_second:.2f} tx/s")
         
         # Stress test assertions
         self.assertLess(extraction_time, 300.0)  # Should complete within 5 minutes
@@ -364,11 +367,11 @@ class TestMLStressTests(unittest.TestCase):
         
         optimization_time = end_time - start_time
         
-        print(f"\nLarge Network Topology Optimization:")
-        print(f"  Nodes: {len(nodes)}")
-        print(f"  Edges: {len(edges)}")
-        print(f"  Time: {optimization_time:.4f}s")
-        print(f"  Improvement Score: {result.improvement_score:.4f}")
+        logger.info(f"\nLarge Network Topology Optimization:")
+        logger.info(f"  Nodes: {len(nodes)}")
+        logger.info(f"  Edges: {len(edges)}")
+        logger.info(f"  Time: {optimization_time:.4f}s")
+        logger.info(f"  Improvement Score: {result.improvement_score:.4f}")
         
         # Stress test assertions
         self.assertLess(optimization_time, 600.0)  # Should complete within 10 minutes
@@ -406,11 +409,11 @@ class TestMLStressTests(unittest.TestCase):
         total_time = time.time() - start_time
         samples_per_second = total_samples / total_time
         
-        print(f"\nContinuous Anomaly Detection:")
-        print(f"  Duration: {test_duration}s")
-        print(f"  Detections: {detection_count}")
-        print(f"  Total Samples: {total_samples}")
-        print(f"  Throughput: {samples_per_second:.2f} samples/s")
+        logger.info(f"\nContinuous Anomaly Detection:")
+        logger.info(f"  Duration: {test_duration}s")
+        logger.info(f"  Detections: {detection_count}")
+        logger.info(f"  Total Samples: {total_samples}")
+        logger.info(f"  Throughput: {samples_per_second:.2f} samples/s")
         
         # Stress test assertions
         self.assertGreater(detection_count, 100)  # At least 100 detections
@@ -515,13 +518,13 @@ class TestMLStressTests(unittest.TestCase):
                 results[operation] = []
             results[operation].append(duration)
         
-        print(f"\nConcurrent ML Operations:")
-        print(f"  Total Threads: {len(threads)}")
-        print(f"  Total Time: {total_time:.4f}s")
+        logger.info(f"\nConcurrent ML Operations:")
+        logger.info(f"  Total Threads: {len(threads)}")
+        logger.info(f"  Total Time: {total_time:.4f}s")
         
         for operation, durations in results.items():
             avg_duration = sum(durations) / len(durations)
-            print(f"  {operation}: {len(durations)} operations, avg {avg_duration:.4f}s")
+            logger.info(f"  {operation}: {len(durations)} operations, avg {avg_duration:.4f}s")
         
         # Stress test assertions
         self.assertLess(total_time, 300.0)  # Should complete within 5 minutes
@@ -550,17 +553,17 @@ class TestMLStressTests(unittest.TestCase):
             current_memory = psutil.Process().memory_info().rss / 1024 / 1024  # MB
             memory_increase = current_memory - initial_memory
             
-            print(f"  Dataset {i+1}: Memory increase {memory_increase:.2f} MB")
+            logger.info(f"  Dataset {i+1}: Memory increase {memory_increase:.2f} MB")
         
         # Final memory check
         final_memory = psutil.Process().memory_info().rss / 1024 / 1024  # MB
         total_memory_increase = final_memory - initial_memory
         
-        print(f"\nMemory Stress Test:")
-        print(f"  Initial Memory: {initial_memory:.2f} MB")
-        print(f"  Final Memory: {final_memory:.2f} MB")
-        print(f"  Total Increase: {total_memory_increase:.2f} MB")
-        print(f"  Datasets Processed: {len(datasets)}")
+        logger.info(f"\nMemory Stress Test:")
+        logger.info(f"  Initial Memory: {initial_memory:.2f} MB")
+        logger.info(f"  Final Memory: {final_memory:.2f} MB")
+        logger.info(f"  Total Increase: {total_memory_increase:.2f} MB")
+        logger.info(f"  Datasets Processed: {len(datasets)}")
         
         # Stress test assertions
         self.assertLess(total_memory_increase, 2000.0)  # Should not increase by more than 2GB

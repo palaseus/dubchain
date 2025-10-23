@@ -2,6 +2,9 @@
 Unit tests for mnemonic module.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import hashlib
 from unittest.mock import Mock, patch
 

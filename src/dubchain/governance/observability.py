@@ -5,6 +5,9 @@ This module provides comprehensive observability including events, audit trails,
 merkle proofs for off-chain votes, and governance metrics.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import hashlib
 import json
 import time
@@ -526,7 +529,7 @@ class GovernanceEvents:
                 try:
                     listener(event)
                 except Exception as e:
-                    print(f"Error in event listener: {e}")
+                    logger.info(f"Error in event listener: {e}")
         
         return event
     

@@ -8,6 +8,9 @@ This module tests the core caching interfaces and data structures including:
 - Cache statistics and monitoring
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import threading
 import time
 from dataclasses import dataclass

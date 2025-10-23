@@ -6,6 +6,8 @@ This module provides comprehensive monitoring of Ethereum events and real-time g
 
 import asyncio
 import logging
+
+logger = logging.getLogger(__name__)
 import time
 from typing import Dict, List, Optional, Callable, Any, Tuple
 from dataclasses import dataclass

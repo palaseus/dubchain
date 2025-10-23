@@ -2,6 +2,9 @@
 Unit tests for HD wallet functionality.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import time
 from typing import List
 

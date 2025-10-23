@@ -9,6 +9,9 @@ This module provides comprehensive Polygon zkEVM integration including:
 - Bridge integration with zkEVM
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import hashlib
 import json

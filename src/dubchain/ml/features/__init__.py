@@ -10,6 +10,9 @@ This module provides comprehensive feature engineering for blockchain data inclu
 - Feature selection and dimensionality reduction
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 from .pipeline import (
     FeaturePipeline,
     FeatureConfig,

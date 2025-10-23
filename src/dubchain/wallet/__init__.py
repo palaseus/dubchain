@@ -5,6 +5,9 @@ This package provides a sophisticated wallet system with HD key derivation,
 multi-signature support, encryption, and advanced security features.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 from .encryption import (
     EncryptedData,
     EncryptionAlgorithm,

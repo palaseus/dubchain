@@ -5,6 +5,9 @@ This module provides atomic swap functionality for cross-chain transactions
 including swap proposals, execution, and validation.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import hashlib
 import json
 import secrets

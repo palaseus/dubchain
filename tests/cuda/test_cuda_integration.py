@@ -5,6 +5,9 @@ This module provides comprehensive tests for CUDA integration across
 all components of the DubChain system.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import pytest
 pytest.skip("CUDA integration tests temporarily disabled due to hanging issues", allow_module_level=True)
 import time

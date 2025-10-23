@@ -10,6 +10,9 @@ This module provides comprehensive Avalanche bridging capabilities including:
 - Bridge security and validation
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 from .client import (
     AvalancheClient,
     AvalancheConfig,

@@ -9,6 +9,9 @@ This module provides comprehensive integration tests covering:
 - Fault tolerance scenarios
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import asyncio
 import pytest
 import time

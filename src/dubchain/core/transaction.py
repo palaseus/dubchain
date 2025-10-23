@@ -5,6 +5,9 @@ Implements a UTXO-based transaction model similar to Bitcoin, with support for
 smart contracts and advanced features.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import time
 from dataclasses import dataclass, field
 from enum import Enum

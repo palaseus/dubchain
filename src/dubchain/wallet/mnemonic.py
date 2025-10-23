@@ -5,6 +5,9 @@ This module implements BIP39 compliant mnemonic generation with support for
 multiple languages, custom wordlists, and advanced entropy generation.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import hashlib
 import json
 import secrets

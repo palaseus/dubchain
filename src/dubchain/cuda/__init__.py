@@ -5,6 +5,9 @@ This module provides comprehensive CUDA support throughout the entire codebase,
 including automatic GPU acceleration for computationally intensive operations.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 from .cuda_manager import CUDAManager, get_global_cuda_manager
 from .cuda_utils import (
     cuda_available,

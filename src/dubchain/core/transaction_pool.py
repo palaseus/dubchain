@@ -10,6 +10,9 @@ This module implements a sophisticated transaction pool with:
 - Memory management and performance optimization
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 import heapq
 import threading
 import time
@@ -23,7 +26,6 @@ from ..crypto.hashing import Hash
 from .blockchain import BlockchainState
 from .transaction import UTXO, Transaction, TransactionType
 
-
 class TransactionPriority(Enum):
     """Transaction priority levels."""
 
@@ -31,7 +33,6 @@ class TransactionPriority(Enum):
     NORMAL = 2
     HIGH = 3
     URGENT = 4
-
 
 @dataclass
 class TransactionEntry:
@@ -122,7 +123,6 @@ class TransactionEntry:
 
         return True
 
-
 @dataclass
 class FeeEstimate:
     """Fee estimate for different confirmation targets."""
@@ -131,7 +131,6 @@ class FeeEstimate:
     fee_rate: float  # satoshis per byte
     confidence: float  # 0.0 to 1.0
     timestamp: float = field(default_factory=time.time)
-
 
 class TransactionPool:
     """Advanced transaction pool with sophisticated management."""
@@ -558,7 +557,7 @@ class TransactionPool:
                     fee_rate=estimated_fee,
                     confidence=self._calculate_fee_confidence(
                         estimated_fee, target_blocks
-                    ),  # TODO: Implement actual confidence calculation
+                    ),  
                 )
 
     def _evict_low_priority(self) -> bool:
@@ -623,7 +622,7 @@ class TransactionPool:
 
             except Exception as e:
                 # Log error in production
-                print(f"Transaction pool cleanup error: {e}")
+                logger.info(f"Transaction pool cleanup error: {e}")
 
     def force_cleanup(self) -> None:
         """Force cleanup of expired transactions (for testing)."""

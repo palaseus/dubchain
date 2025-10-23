@@ -4,6 +4,9 @@ This module provides persistent storage capabilities for the DubChain blockchain
 including database backends, indexing, migrations, and backup/recovery systems.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
 from .backup import BackupConfig, BackupError, BackupManager
 from .database import DatabaseBackend, DatabaseConfig, DatabaseError
 from .indexing import IndexConfig, IndexManager, IndexType
